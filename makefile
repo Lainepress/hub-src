@@ -10,3 +10,6 @@ install: hub
 
 clean:
 	rm -f *.hi *.o *~
+
+distclean: clean
+	rm hub
