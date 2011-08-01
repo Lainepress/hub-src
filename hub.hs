@@ -13,15 +13,16 @@ import qualified Data.Map               as Map
 main :: IO ()
 main = 
      do p <- get_prog
-        putStrLn $ printf "prog : %s" $ show p 
+        -- putStrLn $ printf "prog : %s" $ show p 
         n <- which_hub
-        putStrLn $ printf "hub  : %s" $ show n 
+        -- putStrLn $ printf "hub  : %s" $ show n 
         h <- get_hub n
-        putStrLn $ printf " =>  : %s" $ show h
+        -- putStrLn $ printf " =>  : %s" $ show h
         set_pkg_path h
         a <- getArgs
-        putStrLn $ printf "exec %s %s" (prog_path h p) (unwords a)
-        executeFile "/bin/bash" False [] Nothing
+        -- putStrLn $ printf "exec %s %s" (prog_path h p) (unwords a)
+        -- executeFile "/bin/bash" False [] Nothing
+        executeFile (prog_path h p) False a Nothing
 
 get_prog :: IO Prog
 get_prog =
@@ -75,58 +76,76 @@ set_pkg_path h =
         setEnv "GHC_PACKAGE_PATH" pth True
         
 prog_path :: Hub -> Prog -> FilePath
-prog_path h p =
-        case is_ghc_prog p of
-          True  -> ghc_bin h </> prog_name p
-          False -> hp_bin  h </> prog_name p
+prog_path h pg =
+        case ghcPG pg of
+          True  -> ghc_bin h </> namePG pg
+          False -> hp_bin  h </> namePG pg
 
 
-
+data Prog = PG {
+     progPG :: P,
+     namePG :: String,
+     ghcPG  :: Bool
+     }                                                          deriving (Show)
 
 prog_mp :: Map.Map String Prog
-prog_mp = Map.fromList
-    [ (,) "ghc"         GhcP
-    , (,) "ghc-pkg"     Ghc_pkgP
-    , (,) "cabal"       CabalP
-    ]
+prog_mp = Map.fromList [ (namePG pg,pg) | pg<-map p2pg [minBound..maxBound] ]
 
-data Prog
+data P
     = GhcP
+    | GhciP
     | Ghc_pkgP
+    | HaddockP
+    | Hp2psP
+    | HpcP
+    | Hsc2hsP
+    | RunghcP
+    | RunhaskellP
+    | AlexP
+    | Basic_testsP
     | CabalP
-                                                                deriving (Show)
-is_ghc_prog :: Prog -> Bool
-is_ghc_prog p =
-        case p of
-           GhcP      -> True
-           Ghc_pkgP  -> True
-           CabalP    -> False
+    | Extended_testsP
+    | HappyP
+    | Terminal_testsP
+                                            deriving (Eq,Ord,Bounded,Enum,Show)
 
-prog_name :: Prog -> FilePath
-prog_name p =
-        case p of
-           GhcP      -> "ghc"
-           Ghc_pkgP  -> "ghc-pkg"
-           CabalP    -> "cabal"
+p2pg :: P -> Prog
+p2pg p =
+    case p of
+      GhcP               -> PG p "ghc"                  True
+      GhciP              -> PG p "ghci"                 True
+      Ghc_pkgP           -> PG p "ghc-pkg"              True
+      HaddockP           -> PG p "haddock"              True
+      Hp2psP             -> PG p "hp2ps"                True
+      HpcP               -> PG p "hpc"                  True
+      Hsc2hsP            -> PG p "hsc2hs"               True
+      RunghcP            -> PG p "runghc"               True
+      RunhaskellP        -> PG p "runhaskell"           True
+      AlexP              -> PG p "alex"                 False
+      Basic_testsP       -> PG p "basic-tests"          False
+      CabalP             -> PG p "cabal"                False
+      Extended_testsP    -> PG p "extended-tests"       False
+      HappyP             -> PG p "happy"                False
+      Terminal_testsP    -> PG p "terminal-tests"       False
+
 
 hub_cts :: HubName -> IO String
 hub_cts nm = 
-     do hm <-home 
-        readFile $ printf "%s/.hs/hubs/%s.conf" hm nm
+     do hme <-home 
+        readFile $ printf "%s/.hs/hubs/%s.conf" hme nm
 
 hub_pdb :: FilePath -> Hub -> FilePath
 hub_pdb hme h = printf "%s/.hs/hubs/%s-%s-%s/%s.conf.d"
                                             hme arch os (ghcH h) (hubH   h)
 
 s_hub_pdb :: Hub -> FilePath
-s_hub_pdb h = printf "/usr/hs/hubs/%s-%s-%s/%s.conf.d" 
-                                                arch os (ghcH h) (s_hubH h)
+s_hub_pdb h = printf "/usr/hs/hubs/%s/%s.conf.d"        (ghcH h) (s_hubH h)
 
 ghc_bin :: Hub -> FilePath
-ghc_bin h = printf "/usr/local/hs/ghc/%s/bin" (ghcH h)
+ghc_bin h = printf "/usr/hs/ghc/%s/bin" (ghcH h)
 
 hp_bin :: Hub -> FilePath
-hp_bin h = printf "/usr/local/hs/hp/%s/bin" (hpH h)
+hp_bin h = printf "/usr/hs/hp/%s/bin" (hpH h)
 
 home :: IO FilePath
 home = getEnv "HOME"
@@ -138,3 +157,14 @@ trim ln0 =
           _                  -> ln
       where
         ln = dropWhile isSpace ln0
+
+
+--
+-- tools
+--
+
+
+link_script :: IO ()
+link_script = mapM_ link_out $ Map.keys prog_mp
+      where
+        link_out pn = putStrLn $ printf "ln -s hub %s" pn
