@@ -1,0 +1,6 @@
+<hub>
+<hc-bin>/vacs/sdk/bin                                       </hc-bin>
+<hp-bin>/vacs/sdk/bin                                       </hp-bin>
+<sys-db>/vacs/sdk/lib/ghc-6.12.3/package.conf.d             </sys-db>
+<usr-db>/home/apache/.ghc/x86_64-linux-6.12.3/package.conf.d</usr-db>
+</hub>

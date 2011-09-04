@@ -1,0 +1,4 @@
+This package provides a utility for multiplexing multiple
+GHC and Haskell Platform installations, the installation
+being selected by configuraton file or environment
+variable.

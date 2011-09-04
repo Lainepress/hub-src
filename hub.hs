@@ -1,3 +1,4 @@
+module Main(main) where 
 
 import           System.Environment
 import           System.Directory
@@ -8,6 +9,8 @@ import           System.Posix.Process
 import           Text.Printf
 import           Data.Char
 import qualified Data.Map               as Map
+import           Distribution.Hub.CL
+import           Distribution.Hub.Parse
 
 
 main :: IO ()
@@ -32,12 +35,12 @@ get_prog =
           Nothing -> error "Oops, program not recognised"
           Just p  -> return p
 
-type HubName = String
+-- type HubName = String
 
 type GHCInst = String
 type HPInst  = String
 
-data Hub = HUB {
+data Hub_ = HUB_ {
     ghcH   :: GHCInst,
     hpH    :: HPInst,
     s_hubH :: HubName,
@@ -57,17 +60,17 @@ which_hub = (reverse.splitDirectories) `fmap` getCurrentDirectory >>= w_h
                   [w] -> return w
                   _   -> ioError $ userError "hub not here"
 
-get_hub :: HubName -> IO Hub
+get_hub :: HubName -> IO Hub_
 get_hub hub =
      do cts <- hub_cts hub
         case map trim $ filter n_cmt $ lines cts of
-          ghc:hp:s_hub:_ -> return $ HUB ghc hp s_hub hub
+          ghc:hp:s_hub:_ -> return $ HUB_ ghc hp s_hub hub
           _              -> error  $ "Hub " ++ hub ++ ": bad format"
       where
         n_cmt ('#':_) = False
         n_cmt ln      = not $ all isSpace ln
 
-set_pkg_path :: Hub -> IO ()
+set_pkg_path :: Hub_ -> IO ()
 set_pkg_path h =
      do hme <- home
         let spd = s_hub_pdb     h
@@ -75,22 +78,24 @@ set_pkg_path h =
             pth = printf "%s:%s" upd spd
         setEnv "GHC_PACKAGE_PATH" pth True
         
-prog_path :: Hub -> Prog -> FilePath
-prog_path h pg =
-        case ghcPG pg of
-          True  -> ghc_bin h </> namePG pg
-          False -> hp_bin  h </> namePG pg
+prog_path :: Hub_ -> Prog -> FilePath
+prog_path h prog =
+        case typPROG prog of
+          HcPT -> ghc_bin h </> nmePROG prog
+          _    -> hp_bin  h </> nmePROG prog
 
-
+{-
 data Prog = PG {
      progPG :: P,
      namePG :: String,
      ghcPG  :: Bool
      }                                                          deriving (Show)
+-}
 
 prog_mp :: Map.Map String Prog
-prog_mp = Map.fromList [ (namePG pg,pg) | pg<-map p2pg [minBound..maxBound] ]
+prog_mp = Map.fromList [ (nmePROG pg,pg) | pg<-map p2prog [minBound..maxBound] ]
 
+{-
 data P
     = GhcP
     | GhciP
@@ -127,24 +132,24 @@ p2pg p =
       Extended_testsP    -> PG p "extended-tests"       False
       HappyP             -> PG p "happy"                False
       Terminal_testsP    -> PG p "terminal-tests"       False
-
+-}
 
 hub_cts :: HubName -> IO String
 hub_cts nm = 
      do hme <-home 
         readFile $ printf "%s/.hs/hubs/%s.conf" hme nm
 
-hub_pdb :: FilePath -> Hub -> FilePath
+hub_pdb :: FilePath -> Hub_ -> FilePath
 hub_pdb hme h = printf "%s/.hs/hubs/%s-%s-%s/%s.conf.d"
                                             hme arch os (ghcH h) (hubH   h)
 
-s_hub_pdb :: Hub -> FilePath
+s_hub_pdb :: Hub_ -> FilePath
 s_hub_pdb h = printf "/usr/hs/hubs/%s/%s.conf.d"        (ghcH h) (s_hubH h)
 
-ghc_bin :: Hub -> FilePath
+ghc_bin :: Hub_ -> FilePath
 ghc_bin h = printf "/usr/hs/ghc/%s/bin" (ghcH h)
 
-hp_bin :: Hub -> FilePath
+hp_bin :: Hub_ -> FilePath
 hp_bin h = printf "/usr/hs/hp/%s/bin" (hpH h)
 
 home :: IO FilePath
@@ -164,7 +169,26 @@ trim ln0 =
 --
 
 
+{-
 link_script :: IO ()
 link_script = mapM_ link_out $ Map.keys prog_mp
       where
         link_out pn = putStrLn $ printf "ln -s hub %s" pn
+-}
+
+
+{-
+--
+-- XML Experiments
+--
+
+
+test :: IO ()
+test =
+     do cts <- readFile "test.hub"
+        case parseXMLDoc cts of
+          Nothing -> putStrLn "*** parse failure ***"
+          Just el -> putStrLn $ showTopElement el
+-}
+
+
