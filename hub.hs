@@ -4,8 +4,8 @@ import           System.Environment
 import           System.Directory
 import           System.FilePath
 import           System.Info
-import           System.Posix.Env       (setEnv)
-import           System.Posix.Process
+--import           System.Posix.Env       (setEnv)
+--import           System.Posix.Process
 import           Text.Printf
 import           Data.Char
 import qualified Data.Map               as Map
@@ -25,7 +25,8 @@ main =
         a <- getArgs
         -- putStrLn $ printf "exec %s %s" (prog_path h p) (unwords a)
         -- executeFile "/bin/bash" False [] Nothing
-        executeFile (prog_path h p) False a Nothing
+        -- executeFile (prog_path h p) False a Nothing
+        return ()
 
 get_prog :: IO Prog
 get_prog =
@@ -73,10 +74,13 @@ get_hub hub =
 set_pkg_path :: Hub_ -> IO ()
 set_pkg_path h =
      do hme <- home
+     {-
         let spd = s_hub_pdb     h
             upd = hub_pdb   hme h
-            pth = printf "%s:%s" upd spd
-        setEnv "GHC_PACKAGE_PATH" pth True
+            pth = printf "%s:%s" upd spd :: String
+      --setEnv "GHC_PACKAGE_PATH" pth True
+      -}
+        return ()
         
 prog_path :: Hub_ -> Prog -> FilePath
 prog_path h prog =

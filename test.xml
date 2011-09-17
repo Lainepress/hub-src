@@ -1,0 +1,5 @@
+<hub>
+  <hcbin>/usr/hs/ghc/6.12.3/bin</hcbin>
+  <cibin>/usr/hs/bin</cibin>
+  <glbdb>/usr/hs/db/6.12.3.d</glbdb>
+</hub>
