@@ -2,8 +2,11 @@ module Distribution.Hub.Parse
     ( parse
     , Hub(..)
     , HubName
+    , PSt(..) -- kill warnings
     ) where
 
+import Char
+import Text.Printf
 import qualified Data.ByteString          as B
 import qualified Text.XML.Expat.Annotated as X
 
@@ -14,7 +17,7 @@ data Hub = HUB {
     handleHUB :: HubName,
     locatnHUB :: FilePath,
     hc_binHUB :: FilePath,
-    cb_binHUB :: FilePath,
+    ci_binHUB :: FilePath,
     hp_binHUB :: Maybe FilePath,
     glb_dbHUB :: FilePath,
     usr_dbHUB :: Maybe FilePath
@@ -57,17 +60,25 @@ loc0 = X.XMLParseLocation 1 0 0 0
 parse' :: B.ByteString -> Poss Node
 parse' = ei2ps . X.parse' X.defaultParseOptions
 
-
 check :: HubName -> FilePath -> Node -> Poss Hub
 check hn hf (X.Element "hub" [] ns lc) = final $ foldl chk (YUP $ start hn hf lc) ns 
-check _  _  _                          = NOPE $ err loc0 "expected simple <hub>...</hub>"
+          where
+            chk (NOPE er) _  = NOPE er
+            chk (YUP  st) nd = foldr (trial st nd) (NOPE $ unrecognised st nd)
+                    [ chk_wspce
+                    , chk_hcbin
+                    , chk_cibin
+                    , chk_hpbin
+                    , chk_glbdb
+                    ]
+check _  _  _ = NOPE $ err loc0 "expected simple <hub>...</hub>"
 
 data PSt = ST {
     handlST :: HubName,
     hpathST :: FilePath,	
 	locwfST :: Loc,
 	hcbinST :: Maybe FilePath,
-	cbbinST :: Maybe FilePath,
+	cibinST :: Maybe FilePath,
 	hpbinST :: Maybe FilePath,
 	glbdbST :: Maybe FilePath,
 	usrdbST :: Maybe FilePath
@@ -86,7 +97,7 @@ final (YUP  st) =
 	  where
 		get_hc = maybe (NOPE hc_err) YUP                    mb_hc
 		get_cb = maybe (NOPE cb_err) YUP $ maybe mb_hp Just mb_cb
-		get_gl = maybe (NOPE gl_err) YUP                    mb_hp
+		get_gl = maybe (NOPE gl_err) YUP                    mb_gl
 
 		hc_err = err lc "Hub doesn't specify a GHC bin directory"
 		cb_err = err lc "Hub doesn't specify an HP or Cabal bin directory"
@@ -94,47 +105,96 @@ final (YUP  st) =
 
 		ST hn hf lc mb_hc mb_cb mb_hp mb_gl mb_ur = st
 
-chk :: Poss PSt -> Node -> Poss PSt
-chk (NOPE er) _  = NOPE er
-chk (YUP  st) nd = foldr (trial st nd) (NOPE $ unrecognised st)
-		[ chk_wspce
-		, chk_hcbin
-		, chk_cibin
-		, chk_hpbin
-		, chk_glbdb
-		]
-
 trial :: PSt -> Node -> (PSt -> Node -> Maybe(Poss PSt)) -> Poss PSt -> Poss PSt
 trial st nd f ps = maybe ps id $ f st nd
 
-unrecognised :: PSt -> Err
-unrecognised = undefined
+unrecognised :: PSt -> Node -> Err
+unrecognised _  (X.Element tg _ _ lc) = err lc $ printf "<%s> not recognised" tg
+unrecognised st (X.Text    tx       ) = err lc $ printf "unexpected text: %s" tx
+                                                        where
+                                                          lc = locwfST st
 
-chk_wspce, chk_hcbin, chk_cibin, chk_hpbin, chk_glbdb :: PSt -> Node -> Maybe(Poss PSt)
-chk_wspce = undefined
-chk_hcbin = undefined
-chk_cibin = undefined
-chk_hpbin = undefined
-chk_glbdb = undefined
+chk_wspce, chk_hcbin, chk_cibin, chk_hpbin,
+                                chk_glbdb :: PSt -> Node -> Maybe(Poss PSt)
+
+chk_wspce st nd =
+        case nd of
+          X.Element _ _ _ _            -> Nothing
+          X.Text txt | all isSpace txt -> Just $ YUP    st
+                     | otherwise       -> Just $ NOPE $ err lc txt_er
+      where
+        lc     = locwfST st 
+        txt_er = "unexpected top-level text"
+
+chk_hcbin st0 nd = simple_node st0 nd "hcbin" chk
+              where
+                chk st lc arg =
+                        case hcbinST st of
+                          Nothing -> YUP (st{hcbinST=Just arg})
+                          Just _  -> NOPE $ err lc "<hcbin> respecified"
+
+chk_cibin st0 nd = simple_node st0 nd "cibin" chk
+              where
+                chk st lc arg =
+                        case cibinST st of
+                          Nothing -> YUP (st{cibinST=Just arg})
+                          Just _  -> NOPE $ err lc "<cibin> respecified"
+
+chk_hpbin st0 nd = simple_node st0 nd "hpbin" chk
+              where
+                chk st lc arg =
+                        case hpbinST st of
+                          Nothing -> YUP (st{hpbinST=Just arg})
+                          Just _  -> NOPE $ err lc "<hpbin> respecified"
+
+chk_glbdb st0 nd = simple_node st0 nd "glbdb" chk
+              where
+                chk st lc arg =
+                        case glbdbST st of
+                          Nothing -> YUP (st{glbdbST=Just arg})
+                          Just _  -> NOPE $ err lc "<glbdb> respecified"
+
+simple_node :: PSt -> Node -> Tag -> (PSt->Loc->String->Poss PSt)
+                                                        -> Maybe (Poss PSt)
+simple_node st (X.Element tg' as ks lc) tg cont
+    | tg==tg'   = Just $
+                     do chk_as
+                        txt <- chk_ks
+                        cont (st {locwfST=lc}) lc txt
+    | otherwise = Nothing
+                      where
+                        chk_as = case as of
+                                   []  -> return  ()
+                                   _:_ -> NOPE $ err lc ats_er
+    
+                        chk_ks = case [ () | X.Element _ _ _ _<-ks ] of
+                                   []  -> chk_nl
+                                   _:_ -> NOPE $ err lc txt_er
+                                   
+                        chk_nl = case all_tx of
+                                   _:_ -> chk_ls
+                                   []  -> NOPE $ err lc emp_er
+    
+                        chk_ls = case all (/='\n') all_tx of
+                                   True  -> return all_tx
+                                   False -> NOPE $ err lc lns_er
+    
+                        all_tx = trim $ concat $ [ txt | X.Text txt<-ks ]
+                        ats_er = printf "<%s> takes no attributes"        tg
+                        txt_er = printf "<%s> takes simple text"          tg
+                        emp_er = printf "<%s> shouldn't be empty"         tg
+                        lns_er = printf "<%s> should be on a single line" tg
+simple_node _ (X.Text _) _ _
+                = Nothing
 
 
-
-
-
- 
- 
+trim :: String -> String
+trim = reverse . dropWhile isSpace . reverse . dropWhile isSpace
 
 {-
-		case nd of
-		  Element 
-		chk_top_txt
--}
-
 test :: IO ()
 test = 
      do cts <- B.readFile "test.xml"
      	print $ parse' cts
-
-     	
-     	
-     	
+-}
+ 
