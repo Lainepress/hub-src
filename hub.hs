@@ -9,8 +9,8 @@ import           System.Info
 import           Text.Printf
 import           Data.Char
 import qualified Data.Map               as Map
-import           Distribution.Hub.CL
-import           Distribution.Hub.Parse
+import           Hub.CL
+import           Hub.Parse
 
 
 main :: IO ()

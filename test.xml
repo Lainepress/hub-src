@@ -1,5 +1,21 @@
 <hub>
-  <hcbin>/usr/hs/ghc/6.12.3/bin</hcbin>
-  <cibin>/usr/hs/bin</cibin>
-  <glbdb>/usr/hs/db/6.12.3.d</glbdb>
+<!--<foo/>-->
+<!--How about some text.-->
+  
+  <hcbin>
+  /usr/hs/ghc/6 12 3/bin
+  <!-- and how about this -->
+  </hcbin>
+
+  <cibin>/usr/hs/bin
+  </cibin>
+
+  <glbdb>
+  <!--<foo/>-->
+  /usr/hs/db/6.12.3.d    </glbdb>
+
+<!--
+  <glbdb>
+  </glbdb>
+-->
 </hub>

@@ -1,12 +1,12 @@
-module Distribution.Hub.Parse
+module Hub.Parse
     ( parse
     , Hub(..)
     , HubName
     , PSt(..) -- kill warnings
     ) where
 
-import Char
-import Text.Printf
+import           Char
+import           Text.Printf
 import qualified Data.ByteString          as B
 import qualified Text.XML.Expat.Annotated as X
 
@@ -27,8 +27,20 @@ parse :: HubName -> FilePath -> IO Hub
 parse hn hf =
      do cts <- B.readFile hf
      	case parse' cts of
-     	  YUP t | YUP h <- check hn hf t -> return h
-     	  _                              -> ioError $ userError "Hub parse error"
+     	  YUP  tr -> case check hn hf tr of
+     	               NOPE er -> fail_err hn hf er
+     	               YUP  hb -> return hb
+     	  NOPE er -> fail_err hn hf er
+
+fail_err :: HubName -> FilePath -> Err -> IO a
+fail_err _ hf er = ioError $ userError rs
+      where
+        rs = printf "%s:%d:%d %s" hf ln (cn+1) es
+        
+        ln = X.xmlLineNumber   lc
+        cn = X.xmlColumnNumber lc
+        
+        X.XMLParseError es lc = er
 
 type Loc    = X.XMLParseLocation
 
@@ -41,15 +53,18 @@ type Node   = X.LNode Tag String
 data Poss a = NOPE Err | YUP a
 																deriving (Show)
 instance Monad Poss where
-	(>>=) ps f = undefined ps f -- poss (\_->ei) f ps
+	(>>=) ps f = poss NOPE f ps
 	return     = YUP
 
---poss :: (Err->b) -> (a->b) -> Poss a -> b
---poss n _ (NOPE e) = n e
---poss _ y (YUP  x) = y x
+poss :: (Err->b) -> (a->b) -> Poss a -> b
+poss n _ (NOPE e) = n e
+poss _ y (YUP  x) = y x
 
 ei2ps :: Either Err a -> Poss a
 ei2ps = either NOPE YUP
+
+tx_err :: Loc -> String -> Err
+tx_err _ = err loc0
 
 err :: Loc -> String -> Err
 err = flip X.XMLParseError
@@ -61,7 +76,8 @@ parse' :: B.ByteString -> Poss Node
 parse' = ei2ps . X.parse' X.defaultParseOptions
 
 check :: HubName -> FilePath -> Node -> Poss Hub
-check hn hf (X.Element "hub" [] ns lc) = final $ foldl chk (YUP $ start hn hf lc) ns 
+check hn hf (X.Element "hub" [] ns lc) = 
+                                final $ foldl chk (YUP $ start hn hf lc) ns 
           where
             chk (NOPE er) _  = NOPE er
             chk (YUP  st) nd = foldr (trial st nd) (NOPE $ unrecognised st nd)
@@ -121,7 +137,7 @@ chk_wspce st nd =
         case nd of
           X.Element _ _ _ _            -> Nothing
           X.Text txt | all isSpace txt -> Just $ YUP    st
-                     | otherwise       -> Just $ NOPE $ err lc txt_er
+                     | otherwise       -> Just $ NOPE $ tx_err lc txt_er
       where
         lc     = locwfST st 
         txt_er = "unexpected top-level text"
@@ -138,7 +154,7 @@ chk_cibin st0 nd = simple_node st0 nd "cibin" chk
                 chk st lc arg =
                         case cibinST st of
                           Nothing -> YUP (st{cibinST=Just arg})
-                          Just _  -> NOPE $ err lc "<cibin> respecified"
+                          Just _  -> NOPE $ err lc "<cibin> re-specified"
 
 chk_hpbin st0 nd = simple_node st0 nd "hpbin" chk
               where
@@ -194,7 +210,6 @@ trim = reverse . dropWhile isSpace . reverse . dropWhile isSpace
 {-
 test :: IO ()
 test = 
-     do cts <- B.readFile "test.xml"
-     	print $ parse' cts
+     do h <- parse "test" "test.xml"
+        print h
 -}
- 

@@ -1,4 +1,4 @@
-module Distribution.Hub.CL
+module Hub.CL
     ( cl
     , CL(..)
     , Prog(..)
@@ -8,7 +8,7 @@ module Distribution.Hub.CL
     ) where
 
 
-import Distribution.Hub.Parse
+import Hub.Parse
 
 
 cl :: IO CL
@@ -19,11 +19,13 @@ data CL
     = RunCL Prog
     | HlpCL String
     | VrnCL
-    | StsCL Hub  
-    | InfLC Hub
-    | ClnCL Hub Hub
-    | RenCL Hub HubName
-    | DelCL Hub
+    | NameCL Hub  
+    | PathLC Hub
+    | CatCL  Hub
+    | InitCL Hub
+    | CpCL   Hub HubName
+    | MvCL   Hub HubName
+    | RmCL   Hub
 
 data Prog = PROG {
     enmPROG :: P,
