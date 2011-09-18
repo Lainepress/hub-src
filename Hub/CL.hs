@@ -33,7 +33,7 @@ data Prog = PROG {
     typPROG :: ProgType
     }                                                           deriving (Show)
 
-data ProgType = HcPT | CbPT | HpPT
+data ProgType = HcPT | CiPT | HpPT
                                                                 deriving (Show)
 data P
     = GhcP
@@ -65,7 +65,7 @@ p2prog p =
       Hsc2hsP            -> PROG p "hsc2hs"               HcPT
       RunghcP            -> PROG p "runghc"               HcPT
       RunhaskellP        -> PROG p "runhaskell"           HcPT
-      CabalP             -> PROG p "cabal"                CbPT
+      CabalP             -> PROG p "cabal"                CiPT
       AlexP              -> PROG p "alex"                 HpPT
       Basic_testsP       -> PROG p "basic-tests"          HpPT
       Extended_testsP    -> PROG p "extended-tests"       HpPT

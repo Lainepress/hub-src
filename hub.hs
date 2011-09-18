@@ -3,9 +3,8 @@ module Main(main) where
 import           System.Environment
 import           System.Directory
 import           System.FilePath
-import           System.Info
---import           System.Posix.Env       (setEnv)
---import           System.Posix.Process
+import           System.Posix.Env       (setEnv)
+import           System.Posix.Process
 import           Text.Printf
 import           Data.Char
 import qualified Data.Map               as Map
@@ -16,16 +15,17 @@ import           Hub.Parse
 main :: IO ()
 main = 
      do p <- get_prog
-        -- putStrLn $ printf "prog : %s" $ show p 
+                                -- putStrLn $ printf "prog : %s" $ show p 
         n <- which_hub
-        -- putStrLn $ printf "hub  : %s" $ show n 
+                                -- putStrLn $ printf "hub  : %s" $ show n 
         h <- get_hub n
-        -- putStrLn $ printf " =>  : %s" $ show h
+                                -- putStrLn $ printf " =>  : %s" $ show h
         set_pkg_path h
+        
         a <- getArgs
-        -- putStrLn $ printf "exec %s %s" (prog_path h p) (unwords a)
-        -- executeFile "/bin/bash" False [] Nothing
-        -- executeFile (prog_path h p) False a Nothing
+                                -- putStrLn $ printf "exec %s %s" (prog_path h p) (unwords a)
+        pth <- prog_path h p
+        executeFile pth False a Nothing
         return ()
 
 get_prog :: IO Prog
@@ -33,21 +33,20 @@ get_prog =
      do pn <- getProgName
         let (_,p_s) = splitFileName pn
         case Map.lookup p_s prog_mp of
-          Nothing -> error "Oops, program not recognised"
+          Nothing -> ioError $ userError $ error $ printf "hub: GHC/HP program %s not recognised" p_s
           Just p  -> return p
 
--- type HubName = String
-
+{-
 type GHCInst = String
 type HPInst  = String
 
-data Hub_ = HUB_ {
+data Hub = HUB_ {
     ghcH   :: GHCInst,
     hpH    :: HPInst,
     s_hubH :: HubName,
     hubH   :: HubName
     }                                                           deriving (Show)
-
+-}
 
 which_hub :: IO HubName
 which_hub = (reverse.splitDirectories) `fmap` getCurrentDirectory >>= w_h
@@ -61,104 +60,68 @@ which_hub = (reverse.splitDirectories) `fmap` getCurrentDirectory >>= w_h
                   [w] -> return w
                   _   -> ioError $ userError "hub not here"
 
-get_hub :: HubName -> IO Hub_
-get_hub hub =
-     do cts <- hub_cts hub
-        case map trim $ filter n_cmt $ lines cts of
-          ghc:hp:s_hub:_ -> return $ HUB_ ghc hp s_hub hub
-          _              -> error  $ "Hub " ++ hub ++ ": bad format"
+get_hub :: HubName -> IO Hub
+get_hub hn =
+     do hf <- case hn of
+          h:_ | isDigit h -> return $ printf "/usr/hs/hub/%s.xml" hn
+          _               -> getEnv "HOME" >>= \hme ->
+                                return $ printf "%s/.hs/hubs/%s.conf" hme hn
+        parse hn hf
+
+set_pkg_path :: Hub -> IO ()
+set_pkg_path hub = setEnv "GHC_PACKAGE_PATH" pth True
       where
-        n_cmt ('#':_) = False
-        n_cmt ln      = not $ all isSpace ln
-
-set_pkg_path :: Hub_ -> IO ()
-set_pkg_path h =
-     do hme <- home
-     {-
-        let spd = s_hub_pdb     h
-            upd = hub_pdb   hme h
-            pth = printf "%s:%s" upd spd :: String
-      --setEnv "GHC_PACKAGE_PATH" pth True
-      -}
-        return ()
+        pth        = maybe glb mk_pth $ usr_dbHUB hub
         
-prog_path :: Hub_ -> Prog -> FilePath
-prog_path h prog =
-        case typPROG prog of
-          HcPT -> ghc_bin h </> nmePROG prog
-          _    -> hp_bin  h </> nmePROG prog
+        mk_pth usr = printf "%s:%s" usr glb
 
-{-
-data Prog = PG {
-     progPG :: P,
-     namePG :: String,
-     ghcPG  :: Bool
-     }                                                          deriving (Show)
--}
+        glb        = glb_dbHUB hub
+        
+prog_path :: Hub -> Prog -> IO FilePath
+prog_path hub prog =
+        case typPROG prog of
+          HcPT -> return $ hc_binHUB hub </> nmePROG prog
+          CiPT -> return $ hc_binHUB hub </> nmePROG prog
+          HpPT -> chk_hp $ \hp_bin -> return $ hp_bin </>  nmePROG prog
+      where
+        chk_hp f = maybe nhp_err f $ hp_binHUB hub
+        
+        nhp_err  = ioError $ userError $
+                        printf "Hub %s does not hava a Haskell Platform"
+                                                            (handleHUB hub) 
 
 prog_mp :: Map.Map String Prog
 prog_mp = Map.fromList [ (nmePROG pg,pg) | pg<-map p2prog [minBound..maxBound] ]
 
 {-
-data P
-    = GhcP
-    | GhciP
-    | Ghc_pkgP
-    | HaddockP
-    | Hp2psP
-    | HpcP
-    | Hsc2hsP
-    | RunghcP
-    | RunhaskellP
-    | AlexP
-    | Basic_testsP
-    | CabalP
-    | Extended_testsP
-    | HappyP
-    | Terminal_testsP
-                                            deriving (Eq,Ord,Bounded,Enum,Show)
-
-p2pg :: P -> Prog
-p2pg p =
-    case p of
-      GhcP               -> PG p "ghc"                  True
-      GhciP              -> PG p "ghci"                 True
-      Ghc_pkgP           -> PG p "ghc-pkg"              True
-      HaddockP           -> PG p "haddock"              True
-      Hp2psP             -> PG p "hp2ps"                True
-      HpcP               -> PG p "hpc"                  True
-      Hsc2hsP            -> PG p "hsc2hs"               True
-      RunghcP            -> PG p "runghc"               True
-      RunhaskellP        -> PG p "runhaskell"           True
-      AlexP              -> PG p "alex"                 False
-      Basic_testsP       -> PG p "basic-tests"          False
-      CabalP             -> PG p "cabal"                False
-      Extended_testsP    -> PG p "extended-tests"       False
-      HappyP             -> PG p "happy"                False
-      Terminal_testsP    -> PG p "terminal-tests"       False
--}
-
 hub_cts :: HubName -> IO String
 hub_cts nm = 
      do hme <-home 
         readFile $ printf "%s/.hs/hubs/%s.conf" hme nm
 
-hub_pdb :: FilePath -> Hub_ -> FilePath
+hub_pdb :: FilePath -> Hub -> FilePath
 hub_pdb hme h = printf "%s/.hs/hubs/%s-%s-%s/%s.conf.d"
                                             hme arch os (ghcH h) (hubH   h)
 
-s_hub_pdb :: Hub_ -> FilePath
+s_hub_pdb :: Hub -> FilePath
 s_hub_pdb h = printf "/usr/hs/hubs/%s/%s.conf.d"        (ghcH h) (s_hubH h)
 
-ghc_bin :: Hub_ -> FilePath
+ghc_bin :: Hub -> FilePath
 ghc_bin h = printf "/usr/hs/ghc/%s/bin" (ghcH h)
 
-hp_bin :: Hub_ -> FilePath
+hp_bin :: Hub -> FilePath
 hp_bin h = printf "/usr/hs/hp/%s/bin" (hpH h)
 
 home :: IO FilePath
 home = getEnv "HOME"
+-}
 
+
+--
+-- tools
+--
+
+{-
 trim :: String -> String
 trim ln0 =
         case reverse ln of
@@ -166,12 +129,7 @@ trim ln0 =
           _                  -> ln
       where
         ln = dropWhile isSpace ln0
-
-
---
--- tools
---
-
+-}
 
 {-
 link_script :: IO ()
