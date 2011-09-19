@@ -8,24 +8,24 @@ import           System.Posix.Process
 import           Text.Printf
 import           Data.Char
 import qualified Data.Map               as Map
-import           Hub.CL
+import           Hub.CommandLine
 import           Hub.Parse
 
 
 main :: IO ()
 main = 
-     do p <- get_prog
+     do prg <- get_prog
                                 -- putStrLn $ printf "prog : %s" $ show p 
-        n <- which_hub
+        hn  <- which_hub
                                 -- putStrLn $ printf "hub  : %s" $ show n 
-        h <- get_hub n
+        hub <- get_hub hn
                                 -- putStrLn $ printf " =>  : %s" $ show h
-        set_pkg_path h
+        set_pkg_path hub
         
-        a <- getArgs
+        as  <- getArgs
                                 -- putStrLn $ printf "exec %s %s" (prog_path h p) (unwords a)
-        pth <- prog_path h p
-        executeFile pth False a Nothing
+        pth <- prog_path hub prg
+        executeFile pth False as Nothing
         return ()
 
 get_prog :: IO Prog
@@ -35,18 +35,6 @@ get_prog =
         case Map.lookup p_s prog_mp of
           Nothing -> ioError $ userError $ error $ printf "hub: GHC/HP program %s not recognised" p_s
           Just p  -> return p
-
-{-
-type GHCInst = String
-type HPInst  = String
-
-data Hub = HUB_ {
-    ghcH   :: GHCInst,
-    hpH    :: HPInst,
-    s_hubH :: HubName,
-    hubH   :: HubName
-    }                                                           deriving (Show)
--}
 
 which_hub :: IO HubName
 which_hub = (reverse.splitDirectories) `fmap` getCurrentDirectory >>= w_h
@@ -92,65 +80,3 @@ prog_path hub prog =
 
 prog_mp :: Map.Map String Prog
 prog_mp = Map.fromList [ (nmePROG pg,pg) | pg<-map p2prog [minBound..maxBound] ]
-
-{-
-hub_cts :: HubName -> IO String
-hub_cts nm = 
-     do hme <-home 
-        readFile $ printf "%s/.hs/hubs/%s.conf" hme nm
-
-hub_pdb :: FilePath -> Hub -> FilePath
-hub_pdb hme h = printf "%s/.hs/hubs/%s-%s-%s/%s.conf.d"
-                                            hme arch os (ghcH h) (hubH   h)
-
-s_hub_pdb :: Hub -> FilePath
-s_hub_pdb h = printf "/usr/hs/hubs/%s/%s.conf.d"        (ghcH h) (s_hubH h)
-
-ghc_bin :: Hub -> FilePath
-ghc_bin h = printf "/usr/hs/ghc/%s/bin" (ghcH h)
-
-hp_bin :: Hub -> FilePath
-hp_bin h = printf "/usr/hs/hp/%s/bin" (hpH h)
-
-home :: IO FilePath
-home = getEnv "HOME"
--}
-
-
---
--- tools
---
-
-{-
-trim :: String -> String
-trim ln0 =
-        case reverse ln of
-          c:r_cs | isSpace c -> reverse $ dropWhile isSpace r_cs
-          _                  -> ln
-      where
-        ln = dropWhile isSpace ln0
--}
-
-{-
-link_script :: IO ()
-link_script = mapM_ link_out $ Map.keys prog_mp
-      where
-        link_out pn = putStrLn $ printf "ln -s hub %s" pn
--}
-
-
-{-
---
--- XML Experiments
---
-
-
-test :: IO ()
-test =
-     do cts <- readFile "test.hub"
-        case parseXMLDoc cts of
-          Nothing -> putStrLn "*** parse failure ***"
-          Just el -> putStrLn $ showTopElement el
--}
-
-
