@@ -18,7 +18,7 @@ commandLine :: IO CommandLine
 commandLine = 
      do as  <- getArgs
         mb  <- prog as
-        mb' <- maybe (hub as) (return.Just) mb
+        mb' <- maybe (hub_dispatch as) (return.Just) mb
         case mb' of
           Nothing -> return $ HelpCL True usage
           Just cl -> return   cl
@@ -46,7 +46,7 @@ data ProgType = HcPT | CiPT | HpPT
                                                                 deriving (Show)
 
 
-prog, hub :: [String] -> IO (Maybe CommandLine)
+prog, hub_dispatch :: [String] -> IO (Maybe CommandLine)
 
 prog _  =
      do pn <- getProgName
@@ -57,21 +57,21 @@ prog _  =
              do hub <- current_hub
                 return $ Just $ ProgCL hub prg 
 
-hub as = case as of
-  ["--help"     ] ->                                          return $ Just $ HelpCL False usage
-  ["--version"  ] ->                                          return $ Just VrsnCL
-  ["name"       ] -> current_hub            >>= \hub       -> return $ Just $ NameCL hub
-  ["path"       ] -> current_hub            >>= \hub       -> return $ Just $ PathCL hub
-  ["path",hn    ] -> read_hub hn            >>= \hub       -> return $ Just $ PathCL hub
-  ["xml"        ] -> current_hub            >>= \hub       -> return $ Just $ XmlCL hub
-  ["xml" ,hn    ] -> read_hub hn            >>= \hub       -> return $ Just $ XmlCL hub
-  ["init",hn    ] -> read_hub hn            >>= \hub       -> return $ Just $ InitCL hub
-  ["cp"  ,hn    ] -> hub_pair hn Nothing    >>= \(hub,hn_) -> return $ Just $ CpCL hub hn_
-  ["cp"  ,hn,hn'] -> hub_pair hn (Just hn') >>= \(hub,hn_) -> return $ Just $ CpCL hub hn_
-  ["mv"  ,hn    ] -> hub_pair hn Nothing    >>= \(hub,hn_) -> return $ Just $ MvCL hub hn_
-  ["mv"  ,hn,hn'] -> hub_pair hn (Just hn') >>= \(hub,hn_) -> return $ Just $ MvCL hub hn_
-  ["rm"  ,hn    ] -> read_hub hn            >>= \hub       -> return $ Just $ RmCL hub
-  _               ->                                          return   Nothing  
+hub_dispatch as = case as of
+  ["--help"     ] ->                                      return $ Just $ HelpCL False usage
+  ["--version"  ] ->                                      return $ Just VrsnCL
+  ["name"       ] -> current_hub              >>= \hub -> return $ Just $ NameCL hub
+  ["path"       ] -> current_hub              >>= \hub -> return $ Just $ PathCL hub
+  ["path",hn    ] -> read_hub         hn      >>= \hub -> return $ Just $ PathCL hub
+  ["xml"        ] -> current_hub              >>= \hub -> return $ Just $ XmlCL hub
+  ["xml" ,hn    ] -> read_hub         hn      >>= \hub -> return $ Just $ XmlCL hub
+  ["init"   ,hn'] -> read_hub             hn' >>= \hub -> return $ Just $ InitCL hub
+  ["cp"     ,hn'] -> hub_pair Nothing     hn' >>= \hub -> return $ Just $ CpCL hub hn'
+  ["cp"  ,hn,hn'] -> hub_pair (Just   hn) hn' >>= \hub -> return $ Just $ CpCL hub hn'
+  ["mv"     ,hn'] -> hub_pair Nothing     hn' >>= \hub -> return $ Just $ MvCL hub hn'
+  ["mv"  ,hn,hn'] -> hub_pair (Just   hn) hn' >>= \hub -> return $ Just $ MvCL hub hn'
+  ["rm"  ,hn    ] -> read_hub         hn      >>= \hub -> return $ Just $ RmCL hub
+  _               ->                                      return   Nothing  
 
 usage :: String
 usage = unlines
@@ -129,10 +129,37 @@ prog_mp = Map.fromList [ (nmePROG pg,pg) | pg<-map p2prog [minBound..maxBound] ]
 
       
 current_hub :: IO Hub
-current_hub = undefined
+current_hub = which_hub >>= read_hub
 
 read_hub :: HubName -> IO Hub
-read_hub hn = undefined hn
+read_hub hn = check_hub_name hn >> load_hub hn hf 
+      where
+        hf = if is_global hn then global_hub hn else user_hub hn
 
-hub_pair :: HubName -> Maybe HubName -> IO (Hub,HubName)
-hub_pair hn mb = undefined hn mb
+hub_pair :: Maybe HubName -> HubName -> IO Hub
+hub_pair Nothing   hn' = which_hub >>= \hn -> hub_pair' hn hn'
+hub_pair (Just hn) hn' =                      hub_pair' hn hn' 
+
+hub_pair' :: HubName -> HubName -> IO Hub
+hub_pair' hn hn' = check_user_hub_name_available hn' >> read_hub hn
+
+which_hub :: IO HubName
+which_hub = undefined
+
+global_hub :: HubName -> FilePath
+global_hub = undefined
+
+user_hub :: HubName -> FilePath
+user_hub = undefined
+
+load_hub :: HubName -> FilePath -> IO Hub
+load_hub = undefined
+
+check_hub_name :: HubName -> IO ()
+check_hub_name = undefined
+
+check_user_hub_name_available :: HubName -> IO ()
+check_user_hub_name_available = undefined
+
+is_global :: HubName -> Bool
+is_global = undefined
