@@ -8,10 +8,15 @@ module Hub.CommandLine
     ) where
 
 
+import           Char
+import           IO
 import           System
+import           System.Directory
 import           System.FilePath
 import qualified Data.Map       as Map
 import           Hub.Parse
+
+
 
 
 commandLine :: IO CommandLine
@@ -144,7 +149,48 @@ hub_pair' :: HubName -> HubName -> IO Hub
 hub_pair' hn hn' = check_user_hub_name_available hn' >> read_hub hn
 
 which_hub :: IO HubName
-which_hub = undefined
+which_hub =
+     do ei <- try $ getEnv "HUB"
+        hn <- case ei of
+                Left  _ -> trim `fmap` dir_which_hub True
+                Right s -> trim `fmap` env_which_hub s
+        check_hub_name hn
+        return hn
+
+env_which_hub :: String -> IO HubName
+env_which_hub str =
+        case str of
+          "--default" -> dir_which_hub True
+          "--dir    " -> dir_which_hub False
+          "--user"    -> usr_which_hub
+          "--global"  -> glb_which_hub
+          _           -> return str
+
+dir_which_hub :: Bool -> IO HubName
+dir_which_hub def_usr = 
+     do ds <- (reverse.splitDirectories) `fmap` getCurrentDirectory
+        w_h ds
+      where
+        w_h [] | def_usr   = usr_which_hub
+               | otherwise = ioError $ userError "Hub"  
+        w_h (d:ds)         = catch (here (d:ds)) (\_ -> w_h ds)
+        
+        here r_ds  =
+             do cts <- readFile ( joinPath $ reverse $ ".hub":r_ds)  
+                case words cts of
+                  [w] -> return w
+                  _   -> ioError $ userError "hub not here"
+
+usr_which_hub :: IO HubName
+usr_which_hub =
+     do yup <- isUserHub homeHub
+        case yup of
+          True  -> return ()
+          False -> createUserHub homeHub
+        return homeHub
+
+glb_which_hub :: IO HubName
+glb_which_hub = readFile defaultHubPath
 
 global_hub :: HubName -> FilePath
 global_hub = undefined
@@ -163,3 +209,23 @@ check_user_hub_name_available = undefined
 
 is_global :: HubName -> Bool
 is_global = undefined
+
+
+
+
+defaultHubPath :: FilePath
+defaultHubPath = "/usr/hs/hub/defaultHub"
+
+
+homeHub :: FilePath
+homeHub = "home"
+
+isUserHub :: HubName -> IO Bool
+isUserHub = undefined
+
+createUserHub :: HubName -> IO ()
+createUserHub = undefined
+
+
+trim :: String -> String
+trim = reverse . dropWhile isSpace . reverse . dropWhile isSpace
