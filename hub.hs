@@ -8,6 +8,7 @@ import           System.Posix.Process
 import           Text.Printf
 import           Data.Char
 import qualified Data.Map               as Map
+import           Hub.Hub
 import           Hub.CommandLine
 import           Hub.Parse
 

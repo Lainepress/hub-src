@@ -1,7 +1,5 @@
 module Hub.Parse
     ( parse
-    , Hub(..)
-    , HubName
     , PSt(..) -- kill warnings
     ) where
 
@@ -9,19 +7,8 @@ import           Char
 import           Text.Printf
 import qualified Data.ByteString          as B
 import qualified Text.XML.Expat.Annotated as X
+import           Hub.Hub
 
-
-type HubName = String
-
-data Hub = HUB {
-    handleHUB :: HubName,
-    locatnHUB :: FilePath,
-    hc_binHUB :: FilePath,
-    ci_binHUB :: FilePath,
-    hp_binHUB :: Maybe FilePath,
-    glb_dbHUB :: FilePath,
-    usr_dbHUB :: Maybe FilePath
-    }                                                           deriving (Show)
 
 parse :: HubName -> FilePath -> IO Hub
 parse hn hf =

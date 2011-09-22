@@ -7,16 +7,14 @@ module Hub.CommandLine
     , p2prog
     ) where
 
-
 import           Char
 import           IO
 import           System
 import           System.Directory
 import           System.FilePath
 import qualified Data.Map       as Map
+import           Hub.Hub
 import           Hub.Parse
-
-
 
 
 commandLine :: IO CommandLine
@@ -137,16 +135,16 @@ current_hub :: IO Hub
 current_hub = which_hub >>= read_hub
 
 read_hub :: HubName -> IO Hub
-read_hub hn = check_hub_name hn >> load_hub hn hf 
+read_hub hn = checkHubName hn >> parse hn hf 
       where
-        hf = if is_global hn then global_hub hn else user_hub hn
+        hf = if isGlobal hn then globalHubPath hn else userHubPath hn
 
 hub_pair :: Maybe HubName -> HubName -> IO Hub
 hub_pair Nothing   hn' = which_hub >>= \hn -> hub_pair' hn hn'
 hub_pair (Just hn) hn' =                      hub_pair' hn hn' 
 
 hub_pair' :: HubName -> HubName -> IO Hub
-hub_pair' hn hn' = check_user_hub_name_available hn' >> read_hub hn
+hub_pair' hn hn' = userHubAvailable hn' >> read_hub hn
 
 which_hub :: IO HubName
 which_hub =
@@ -154,7 +152,7 @@ which_hub =
         hn <- case ei of
                 Left  _ -> trim `fmap` dir_which_hub True
                 Right s -> trim `fmap` env_which_hub s
-        check_hub_name hn
+        checkHubName hn
         return hn
 
 env_which_hub :: String -> IO HubName
@@ -175,11 +173,7 @@ dir_which_hub def_usr =
                | otherwise = ioError $ userError "Hub"  
         w_h (d:ds)         = catch (here (d:ds)) (\_ -> w_h ds)
         
-        here r_ds  =
-             do cts <- readFile ( joinPath $ reverse $ ".hub":r_ds)  
-                case words cts of
-                  [w] -> return w
-                  _   -> ioError $ userError "hub not here"
+        here r_ds  = readFile ( joinPath $ reverse $ ".hub":r_ds)
 
 usr_which_hub :: IO HubName
 usr_which_hub =
@@ -192,39 +186,6 @@ usr_which_hub =
 glb_which_hub :: IO HubName
 glb_which_hub = readFile defaultHubPath
 
-global_hub :: HubName -> FilePath
-global_hub = undefined
-
-user_hub :: HubName -> FilePath
-user_hub = undefined
-
-load_hub :: HubName -> FilePath -> IO Hub
-load_hub = undefined
-
-check_hub_name :: HubName -> IO ()
-check_hub_name = undefined
-
-check_user_hub_name_available :: HubName -> IO ()
-check_user_hub_name_available = undefined
-
-is_global :: HubName -> Bool
-is_global = undefined
-
-
-
-
-defaultHubPath :: FilePath
-defaultHubPath = "/usr/hs/hub/defaultHub"
-
-
-homeHub :: FilePath
-homeHub = "home"
-
-isUserHub :: HubName -> IO Bool
-isUserHub = undefined
-
-createUserHub :: HubName -> IO ()
-createUserHub = undefined
 
 
 trim :: String -> String
