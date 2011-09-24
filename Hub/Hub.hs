@@ -16,6 +16,10 @@ module Hub.Hub
     ) where
 
 
+import           Char
+import           Text.Printf
+
+
 type HubName = String
 
 
@@ -53,8 +57,10 @@ isUserHub = undefined
 
 
 hub_path :: HubName -> IO FilePath
-hub_path hn = home $ printf ".hub/hub/%s.xml"
+hub_path hn = home >>= \hme -> printf "%s/.hub/hub/%s.xml" hme hn
 
+home :: IO FilePath
+home = undefined
 
 globalHubPath :: HubName -> FilePath
 globalHubPath = undefined

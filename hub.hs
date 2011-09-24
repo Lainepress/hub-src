@@ -1,13 +1,13 @@
 module Main(main) where 
 
+import           Char
 import           System.Environment
 import           System.Directory
 import           System.FilePath
-import           System.Posix.Env       (setEnv)
-import           System.Posix.Process
 import           Text.Printf
 import           Data.Char
 import qualified Data.Map               as Map
+import           Hub.System
 import           Hub.Hub
 import           Hub.CommandLine
 import           Hub.Parse
@@ -26,7 +26,7 @@ main =
         as  <- getArgs
                                 -- putStrLn $ printf "exec %s %s" (prog_path h p) (unwords a)
         pth <- prog_path hub prg
-        executeFile pth False as Nothing
+        exec pth False as Nothing
         return ()
 
 get_prog :: IO Prog
