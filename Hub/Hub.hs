@@ -18,6 +18,7 @@ module Hub.Hub
 
 type HubName = String
 
+
 data Hub = HUB {
     handleHUB :: HubName,
     locatnHUB :: FilePath,
@@ -27,8 +28,6 @@ data Hub = HUB {
     glb_dbHUB :: FilePath,
     usr_dbHUB :: Maybe FilePath
     }                                                           deriving (Show)
-
-
 
 
 homeHub :: FilePath
@@ -41,16 +40,20 @@ defaultHubPath = "/usr/hs/hub/defaultHub"
 
 
 isGlobal :: HubName -> Bool
-isGlobal = undefined
+isGlobal (c:_) = isDigit c
+isGlobal _     = False
 
 
 
 
-
-
+-- tests for presence of user Hub
 
 isUserHub :: HubName -> IO Bool
 isUserHub = undefined
+
+
+hub_path :: HubName -> IO FilePath
+hub_path hn = home $ printf ".hub/hub/%s.xml"
 
 
 globalHubPath :: HubName -> FilePath
