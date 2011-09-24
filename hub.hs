@@ -5,7 +5,6 @@ import           System.Environment
 import           System.Directory
 import           System.FilePath
 import           Text.Printf
-import           Data.Char
 import qualified Data.Map               as Map
 import           Hub.System
 import           Hub.Hub

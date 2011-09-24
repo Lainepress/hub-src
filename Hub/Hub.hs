@@ -53,7 +53,7 @@ isGlobal _     = False
 -- tests for presence of user Hub
 
 isUserHub :: HubName -> IO Bool
-isUserHub = undefined
+isUserHub = undefined hub_path
 
 
 hub_path :: HubName -> IO FilePath
