@@ -1,5 +1,6 @@
 module Hub.Parse
     ( parse
+    , dump
     , PSt(..) -- kill warnings
     ) where
 
@@ -18,6 +19,34 @@ parse hn hf =
      	               NOPE er -> fail_err hn hf er
      	               YUP  hb -> return hb
      	  NOPE er -> fail_err hn hf er
+
+dump :: Hub -> IO ()
+dump hub = B.writeFile path xml_bs
+      where
+        xml_bs   = B.pack $ map (toEnum.fromEnum) xml
+        
+        xml      = unlines $
+            [        "<hub>" 
+            , printf "  <hcbin>%s</hcbin>" hcbin
+            , printf "  <cibin>%s</cibin>" cibin
+            ] ++
+            [ printf "  <hpbin>%s</hpbin>" hpbin | Just hpbin<-[mb_hpbin]
+            ] ++
+            [ printf "  <glbdb>%s</glbdb>" glbdb
+            ] ++
+            [ printf "  <usrdb>%s</usrdb>" usrdb | Just usrdb<-[mb_usrdb]
+            ] ++
+            [        "</hub>"
+            ]
+                
+        path     = path__HUB hub
+        hcbin    = hc_binHUB hub
+        cibin    = ci_binHUB hub
+        mb_hpbin = hp_binHUB hub
+        glbdb    = glb_dbHUB hub
+        mb_usrdb = usr_dbHUB hub
+        
+
 
 fail_err :: HubName -> FilePath -> Err -> IO a
 fail_err _ hf er = ioError $ userError rs

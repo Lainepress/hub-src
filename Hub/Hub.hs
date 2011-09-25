@@ -3,29 +3,30 @@ module Hub.Hub
     , Hub(..)
     , homeHub
     , defaultHubPath
+    , checkHubName
+    , userHubAvailable
     , isGlobal
     , isUserHub
     , globalHubPath
     , userHubPath
-    , checkHubName
-    , userHubAvailable
-    , createUserHub
-    , copyUserHub
-    , renameUserHub
-    , removeUserHub
+    , userHubPaths
+    , createHubDirs
     ) where
 
 
 import           Char
+import           System
+import           System.Directory
 import           Text.Printf
+import           Hub.System
 
 
 type HubName = String
 
 
 data Hub = HUB {
-    handleHUB :: HubName,
-    locatnHUB :: FilePath,
+    name__HUB :: HubName,
+    path__HUB :: FilePath,
     hc_binHUB :: FilePath,
     ci_binHUB :: FilePath,
     hp_binHUB :: Maybe FilePath,
@@ -36,6 +37,10 @@ data Hub = HUB {
 
 homeHub :: FilePath
 homeHub = "home"
+
+
+
+
 
 defaultHubPath :: FilePath
 defaultHubPath = "/usr/hs/hub/defaultHub"
@@ -52,42 +57,51 @@ isGlobal _     = False
 
 -- tests for presence of user Hub
 
-isUserHub :: HubName -> IO Bool
-isUserHub = undefined hub_path
-
-
-hub_path :: HubName -> IO FilePath
-hub_path hn = home >>= \hme -> printf "%s/.hub/hub/%s.xml" hme hn
-
-home :: IO FilePath
-home = undefined
-
-globalHubPath :: HubName -> FilePath
-globalHubPath = undefined
-
-userHubPath :: HubName -> FilePath
-userHubPath = undefined
-
-
-
 checkHubName :: HubName -> IO ()
-checkHubName = undefined
-
-
+checkHubName hn =
+        case hn of
+          c:cs | first_hubname_c c && all hubname_c cs
+            -> return ()
+          _ -> ioError $ userError $ printf "%s: invalid (user) hub name" hn   
 
 userHubAvailable :: HubName -> IO ()
-userHubAvailable = undefined
+userHubAvailable hn = 
+     do iuh <- isUserHub hn
+        case iuh of
+          True  -> ioError $ userError "%s: hub already in use"
+          False -> return ()
 
 
+isUserHub :: HubName -> IO Bool
+isUserHub hn = userHubPath hn >>= fileExists
 
-createUserHub :: HubName -> IO ()
-createUserHub = undefined
 
-copyUserHub :: Hub -> HubName -> IO ()
-copyUserHub = undefined
+globalHubPath :: HubName -> IO FilePath
+globalHubPath hn = return $ printf "/usr/hs/hub/%s.xml" hn
 
-renameUserHub :: Hub -> HubName -> IO ()
-renameUserHub = undefined
+userHubPath :: HubName -> IO FilePath
+userHubPath hn = fst `fmap` userHubPaths hn
 
-removeUserHub :: Hub -> IO ()
-removeUserHub  = undefined
+userHubPaths :: HubName -> IO (FilePath,FilePath)
+userHubPaths hn = 
+     do hme <- home
+        return ( printf "%s/.hub/hub/%s.xml" hme hn
+               , printf "%s/.hub/db/%s"      hme hn
+               )
+
+first_hubname_c, hubname_c :: Char -> Bool
+first_hubname_c c = c `elem` "_." || isAlpha c   
+hubname_c       c = c `elem` "_." || isAlpha c || isDigit c
+
+
+createHubDirs :: IO ()
+createHubDirs =
+     do hme <- home
+        let hub = printf "%s/.hub/hub" hme
+            db  = printf "%s/.hub/db"  hme
+        createDirectoryIfMissing True  hub
+        createDirectoryIfMissing False db
+
+home :: IO FilePath
+home = catch (getEnv "HOME") $ \_ -> return "/"
+

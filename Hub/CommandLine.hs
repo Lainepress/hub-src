@@ -15,6 +15,7 @@ import           System.FilePath
 import qualified Data.Map       as Map
 import           Hub.Hub
 import           Hub.Parse
+import           Hub.Commands
 
 
 commandLine :: IO CommandLine
@@ -28,13 +29,13 @@ commandLine =
 
 
 data CommandLine
-    = ProgCL Hub Prog
+    = ProgCL Hub Prog [String]
     | HelpCL Bool String   -- False => help, True => usage
     | VrsnCL
     | NameCL Hub  
     | PathCL Hub
     | XmlCL  Hub
-    | InitCL Hub
+    | InitCL Hub HubName
     | CpCL   Hub HubName
     | MvCL   Hub HubName
     | RmCL   Hub
@@ -51,14 +52,14 @@ data ProgType = HcPT | CiPT | HpPT
 
 prog, hub_dispatch :: [String] -> IO (Maybe CommandLine)
 
-prog _  =
+prog as =
      do pn <- getProgName
         let (_,p_s) = splitFileName pn
         case Map.lookup p_s prog_mp of
           Nothing  -> return Nothing
           Just prg ->
              do hub <- current_hub
-                return $ Just $ ProgCL hub prg 
+                return $ Just $ ProgCL hub prg as
 
 hub_dispatch as = case as of
   ["--help"     ] ->                                      return $ Just $ HelpCL False usage
@@ -66,14 +67,15 @@ hub_dispatch as = case as of
   ["name"       ] -> current_hub              >>= \hub -> return $ Just $ NameCL hub
   ["path"       ] -> current_hub              >>= \hub -> return $ Just $ PathCL hub
   ["path",hn    ] -> read_hub         hn      >>= \hub -> return $ Just $ PathCL hub
-  ["xml"        ] -> current_hub              >>= \hub -> return $ Just $ XmlCL hub
-  ["xml" ,hn    ] -> read_hub         hn      >>= \hub -> return $ Just $ XmlCL hub
-  ["init"   ,hn'] -> read_hub             hn' >>= \hub -> return $ Just $ InitCL hub
-  ["cp"     ,hn'] -> hub_pair Nothing     hn' >>= \hub -> return $ Just $ CpCL hub hn'
-  ["cp"  ,hn,hn'] -> hub_pair (Just   hn) hn' >>= \hub -> return $ Just $ CpCL hub hn'
-  ["mv"     ,hn'] -> hub_pair Nothing     hn' >>= \hub -> return $ Just $ MvCL hub hn'
-  ["mv"  ,hn,hn'] -> hub_pair (Just   hn) hn' >>= \hub -> return $ Just $ MvCL hub hn'
-  ["rm"  ,hn    ] -> read_hub         hn      >>= \hub -> return $ Just $ RmCL hub
+  ["xml"        ] -> current_hub              >>= \hub -> return $ Just $ XmlCL  hub
+  ["xml" ,hn    ] -> read_hub         hn      >>= \hub -> return $ Just $ XmlCL  hub
+  ["init"   ,hn'] -> hub_pair Nothing     hn' >>= \hub -> return $ Just $ InitCL hub hn'
+  ["init",hn,hn'] -> hub_pair (Just   hn) hn' >>= \hub -> return $ Just $ InitCL hub hn'
+  ["cp"     ,hn'] -> hub_pair Nothing     hn' >>= \hub -> return $ Just $ CpCL   hub hn'
+  ["cp"  ,hn,hn'] -> hub_pair (Just   hn) hn' >>= \hub -> return $ Just $ CpCL   hub hn'
+  ["mv"     ,hn'] -> hub_pair Nothing     hn' >>= \hub -> return $ Just $ MvCL   hub hn'
+  ["mv"  ,hn,hn'] -> hub_pair (Just   hn) hn' >>= \hub -> return $ Just $ MvCL   hub hn'
+  ["rm"  ,hn    ] -> read_hub         hn      >>= \hub -> return $ Just $ RmCL   hub
   _               ->                                      return   Nothing  
 
 usage :: String
@@ -83,7 +85,7 @@ usage = unlines
     , "    name"
     , "    path [<hub>]"
     , "    xml  [<hub>]"
-    , "    init         <hub>"
+    , "    init [<hub>] <hub>"
     , "    cp   [<hub>] <hub>"
     , "    mv   [<hub>] <hub>"
     , "    rm           <hub>"
@@ -135,16 +137,23 @@ current_hub :: IO Hub
 current_hub = which_hub >>= read_hub
 
 read_hub :: HubName -> IO Hub
-read_hub hn = checkHubName hn >> parse hn hf 
-      where
-        hf = if isGlobal hn then globalHubPath hn else userHubPath hn
+read_hub hn = 
+     do hf <-  case isGlobal hn  of
+                  True  -> globalHubPath hn
+                  False -> userHubPath   hn
+        checkHubName hn
+        parse hn hf 
 
 hub_pair :: Maybe HubName -> HubName -> IO Hub
 hub_pair Nothing   hn' = which_hub >>= \hn -> hub_pair' hn hn'
 hub_pair (Just hn) hn' =                      hub_pair' hn hn' 
 
 hub_pair' :: HubName -> HubName -> IO Hub
-hub_pair' hn hn' = userHubAvailable hn' >> read_hub hn
+hub_pair' hn hn' = 
+     do checkHubName     hn
+        checkHubName     hn'
+        userHubAvailable hn'
+        read_hub hn
 
 which_hub :: IO HubName
 which_hub =
@@ -153,7 +162,7 @@ which_hub =
                 Left  _ -> trim `fmap` dir_which_hub True
                 Right s -> trim `fmap` env_which_hub s
         checkHubName hn
-        return hn
+        return       hn
 
 env_which_hub :: String -> IO HubName
 env_which_hub str =
@@ -180,7 +189,7 @@ usr_which_hub =
      do yup <- isUserHub homeHub
         case yup of
           True  -> return ()
-          False -> createUserHub homeHub
+          False -> defGlobalHub >>= \hub -> _init hub homeHub
         return homeHub
 
 glb_which_hub :: IO HubName

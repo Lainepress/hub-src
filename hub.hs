@@ -1,17 +1,45 @@
 module Main(main) where 
 
-import           Char
-import           System.Environment
-import           System.Directory
-import           System.FilePath
-import           Text.Printf
-import qualified Data.Map               as Map
-import           Hub.System
-import           Hub.Hub
-import           Hub.CommandLine
-import           Hub.Parse
+import IO
+import System
+import Text.Printf
+import Hub.CommandLine
+import Hub.Prog
+import Hub.Commands
 
 
+version :: String
+version = "0.0"
+
+
+main :: IO ()
+main = 
+     do cl <- commandLine
+        case cl of
+          ProgCL hub prg as -> _prog hub prg as
+          HelpCL err hlp    -> _help err hlp
+          VrsnCL            -> _vrsn
+          NameCL hub        -> _name hub
+          PathCL hub        -> _path hub
+          XmlCL  hub        -> _xml  hub
+          InitCL hub hn     -> _init hub hn
+          CpCL   hub hn     -> _cp   hub hn
+          MvCL   hub hn     -> _mv   hub hn
+          RmCL   hub        -> _rm   hub
+        
+
+_help :: Bool -> String -> IO ()
+_help False hlp = putStr hlp
+_help True  hlp = hPutStrLn stderr hlp >> exitWith (ExitFailure 1)
+
+_vrsn :: IO ()
+_vrsn = putStrLn $ printf "hub %s" version
+
+
+
+
+
+{-
 main :: IO ()
 main = 
      do prg <- get_prog
@@ -76,7 +104,8 @@ prog_path hub prog =
         
         nhp_err  = ioError $ userError $
                         printf "Hub %s does not hava a Haskell Platform"
-                                                            (handleHUB hub) 
+                                                            (name__HUB hub) 
 
 prog_mp :: Map.Map String Prog
 prog_mp = Map.fromList [ (nmePROG pg,pg) | pg<-map p2prog [minBound..maxBound] ]
+-}
