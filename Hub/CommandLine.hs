@@ -7,12 +7,15 @@ module Hub.CommandLine
     , p2prog
     ) where
 
+import           Monad
 import           Char
 import           IO
 import           System
 import           System.Directory
 import           System.FilePath
 import qualified Data.Map       as Map
+import           Text.Printf
+import           Hub.System
 import           Hub.Hub
 import           Hub.Parse
 import           Hub.Commands
@@ -62,21 +65,21 @@ prog as =
                 return $ Just $ ProgCL hub prg as
 
 hub_dispatch as = case as of
-  ["--help"     ] ->                                      return $ Just $ HelpCL False usage
-  ["--version"  ] ->                                      return $ Just VrsnCL
-  ["name"       ] -> current_hub              >>= \hub -> return $ Just $ NameCL hub
-  ["path"       ] -> current_hub              >>= \hub -> return $ Just $ PathCL hub
-  ["path",hn    ] -> read_hub         hn      >>= \hub -> return $ Just $ PathCL hub
-  ["xml"        ] -> current_hub              >>= \hub -> return $ Just $ XmlCL  hub
-  ["xml" ,hn    ] -> read_hub         hn      >>= \hub -> return $ Just $ XmlCL  hub
-  ["init"   ,hn'] -> hub_pair Nothing     hn' >>= \hub -> return $ Just $ InitCL hub hn'
-  ["init",hn,hn'] -> hub_pair (Just   hn) hn' >>= \hub -> return $ Just $ InitCL hub hn'
-  ["cp"     ,hn'] -> hub_pair Nothing     hn' >>= \hub -> return $ Just $ CpCL   hub hn'
-  ["cp"  ,hn,hn'] -> hub_pair (Just   hn) hn' >>= \hub -> return $ Just $ CpCL   hub hn'
-  ["mv"     ,hn'] -> hub_pair Nothing     hn' >>= \hub -> return $ Just $ MvCL   hub hn'
-  ["mv"  ,hn,hn'] -> hub_pair (Just   hn) hn' >>= \hub -> return $ Just $ MvCL   hub hn'
-  ["rm"  ,hn    ] -> read_hub         hn      >>= \hub -> return $ Just $ RmCL   hub
-  _               ->                                      return   Nothing  
+    ["--help"     ] ->                                      return $ Just $ HelpCL False usage
+    ["--version"  ] ->                                      return $ Just VrsnCL
+    ["name"       ] -> current_hub              >>= \hub -> return $ Just $ NameCL hub
+    ["path"       ] -> current_hub              >>= \hub -> return $ Just $ PathCL hub
+    ["path",hn    ] -> read_hub         hn      >>= \hub -> return $ Just $ PathCL hub
+    ["xml"        ] -> current_hub              >>= \hub -> return $ Just $ XmlCL  hub
+    ["xml" ,hn    ] -> read_hub         hn      >>= \hub -> return $ Just $ XmlCL  hub
+    ["init"   ,hn'] -> hub_pair Nothing     hn' >>= \hub -> return $ Just $ InitCL hub hn'
+    ["init",hn,hn'] -> hub_pair (Just   hn) hn' >>= \hub -> return $ Just $ InitCL hub hn'
+    ["cp"     ,hn'] -> hub_pair Nothing     hn' >>= \hub -> return $ Just $ CpCL   hub hn'
+    ["cp"  ,hn,hn'] -> hub_pair (Just   hn) hn' >>= \hub -> return $ Just $ CpCL   hub hn'
+    ["mv"     ,hn'] -> hub_pair Nothing     hn' >>= \hub -> return $ Just $ MvCL   hub hn'
+    ["mv"  ,hn,hn'] -> hub_pair (Just   hn) hn' >>= \hub -> return $ Just $ MvCL   hub hn'
+    ["rm"  ,hn    ] -> read_hub         hn      >>= \hub -> return $ Just $ RmCL   hub
+    _               ->                                      return   Nothing  
 
 usage :: String
 usage = unlines
@@ -152,6 +155,8 @@ hub_pair' :: HubName -> HubName -> IO Hub
 hub_pair' hn hn' = 
      do checkHubName     hn
         checkHubName     hn'
+        when (hn==hn') $ ioError $ userError $
+                                printf "%s: same source and destination"
         userHubAvailable hn'
         read_hub hn
 
@@ -182,7 +187,7 @@ dir_which_hub def_usr =
                | otherwise = ioError $ userError "Hub"  
         w_h (d:ds)         = catch (here (d:ds)) (\_ -> w_h ds)
         
-        here r_ds  = readFile ( joinPath $ reverse $ ".hub":r_ds)
+        here r_ds  = readAFile (joinPath $ reverse $ ".hub":r_ds)
 
 usr_which_hub :: IO HubName
 usr_which_hub =
