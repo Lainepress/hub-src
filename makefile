@@ -1,15 +1,14 @@
+OD = dist/build/hub
+HC = mkdir -p $(OD); ghc -cpp --make -outputdir build -Wall
 
 all: hub
 
+hub:
+	$(HC) -cpp -Wall --make -o $(OD)/hub hub.hs
 
-hub: hub.hs
-	ghc --make -o hub hub.hs
-
-install: hub
-	cp hub /usr/local/bin/hub
+install:
+	cp $(OD)/hub /usr/local/bin/hub
 
 clean:
-	rm -f *.hi *.o *~
-
-distclean: clean
-	rm hub
+	cabal clean
+	rm -rf build

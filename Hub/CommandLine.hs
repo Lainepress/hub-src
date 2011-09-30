@@ -42,6 +42,7 @@ data CommandLine
     | CpCL   Hub HubName
     | MvCL   Hub HubName
     | RmCL   Hub
+                                                                deriving (Show)
 
 data Prog = PROG {
     enmPROG :: P,
@@ -194,7 +195,7 @@ usr_which_hub =
      do yup <- isUserHub homeHub
         case yup of
           True  -> return ()
-          False -> defGlobalHub >>= \hub -> _init hub homeHub
+          False -> defaultGlobalHub >>= \hub -> _init hub homeHub
         return homeHub
 
 glb_which_hub :: IO HubName

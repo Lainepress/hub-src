@@ -27,7 +27,7 @@ prog_path :: Hub -> Prog -> IO FilePath
 prog_path hub prog =
         case typPROG prog of
           HcPT -> return $ hc_binHUB hub </> nmePROG prog
-          CiPT -> return $ hc_binHUB hub </> nmePROG prog
+          CiPT -> return $ ci_binHUB hub </> nmePROG prog
           HpPT -> chk_hp $ \hp_bin -> return $ hp_bin </> nmePROG prog
       where
         chk_hp f = maybe nhp_err f $ hp_binHUB hub

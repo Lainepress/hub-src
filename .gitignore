@@ -1,4 +1,7 @@
 .project
 dist
+build
 System
 *~
+*.hi
+*.o

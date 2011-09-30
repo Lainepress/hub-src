@@ -102,6 +102,7 @@ check hn hf (X.Element "hub" [] ns lc) =
                     , chk_cibin
                     , chk_hpbin
                     , chk_glbdb
+                    , chk_usrdb
                     ]
 check _  _  _ = NOPE $ err loc0 "expected simple <hub>...</hub>"
 
@@ -147,7 +148,7 @@ unrecognised st (X.Text    tx       ) = err lc $ printf "unexpected text: %s" tx
                                                           lc = locwfST st
 
 chk_wspce, chk_hcbin, chk_cibin, chk_hpbin,
-                                chk_glbdb :: PSt -> Node -> Maybe(Poss PSt)
+                         chk_glbdb, chk_usrdb :: PSt -> Node -> Maybe(Poss PSt)
 
 chk_wspce st nd =
         case nd of
@@ -185,6 +186,13 @@ chk_glbdb st0 nd = simple_node st0 nd "glbdb" chk
                         case glbdbST st of
                           Nothing -> YUP (st{glbdbST=Just arg})
                           Just _  -> NOPE $ err lc "<glbdb> respecified"
+
+chk_usrdb st0 nd = simple_node st0 nd "usrdb" chk
+              where
+                chk st lc arg =
+                        case usrdbST st of
+                          Nothing -> YUP (st{usrdbST=Just arg})
+                          Just _  -> NOPE $ err lc "<usrdb> respecified"
 
 simple_node :: PSt -> Node -> Tag -> (PSt->Loc->String->Poss PSt)
                                                         -> Maybe (Poss PSt)

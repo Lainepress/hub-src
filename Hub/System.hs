@@ -39,17 +39,19 @@ winstub = error "winstub"
 #else
 
 import System.Cmd
+import System.Exit
 import System.Posix.Env
 import System.Posix.Process
 import System.Posix.Files
+import Text.Printf
 
 exec :: String -> Bool -> [String] -> Maybe [(String,String)] -> IO ()
 exec = executeFile
 
 fileExists :: FilePath -> IO Bool
-fileExists fp = flip catch (\_->return False)
-     do fst <- getFileStatus fp
-        return $ isRegularFile fst
+fileExists fp = flip catch (\_->return False) $
+     do st <- getFileStatus fp
+        return $ isRegularFile st
 
 removeRF :: FilePath -> IO ()
 removeRF fp =
@@ -68,7 +70,7 @@ cpFileDir fp fp' =
                                 printf "cp failure (return code=%d)" n  
 
 mvFileDir :: FilePath -> FilePath -> IO ()
-mvFileDir =
+mvFileDir fp fp' =
      do ec <- rawSystem "mv" [fp,fp']
         case ec of
           ExitSuccess   -> return ()

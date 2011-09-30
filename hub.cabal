@@ -27,7 +27,15 @@ Executable hub
                     containers,
                     unix,
                     filepath,
-                    directory
-    Other-modules:  Distribution.Hub.Parse
-                    Distribution.Hub.CL
+                    directory,
+                    process,
+                    bytestring,
+                    haskell98
+    Other-modules:  Hub.System
+                    Hub.Hub
+                    Hub.Parse
+                    Hub.CommandLine
+                    Hub.Prog
+                    Hub.Commands
     GHC-options:    -Wall
+    Extensions:     CPP

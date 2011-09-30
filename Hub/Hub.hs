@@ -62,7 +62,7 @@ checkHubName hn =
         case hn of
           c:cs | first_hubname_c c && all hubname_c cs
             -> return ()
-          _ -> ioError $ userError $ printf "%s: invalid (user) hub name" hn   
+          _ -> ioError $ userError $ printf "%s: invalid hub name" hn   
 
 userHubAvailable :: HubName -> IO ()
 userHubAvailable hn = 
@@ -90,7 +90,7 @@ userHubPaths hn =
                )
 
 first_hubname_c, hubname_c :: Char -> Bool
-first_hubname_c c = c `elem` "_." || isAlpha c   
+first_hubname_c c = c `elem` "_." || isAlpha c || isDigit c -- FIXME:TODO:REVIEW: should this sometimes be checking that user hub names are being used
 hubname_c       c = c `elem` "_." || isAlpha c || isDigit c
 
 

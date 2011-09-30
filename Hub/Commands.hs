@@ -1,5 +1,5 @@
 module Hub.Commands
-    ( defGlobalHub
+    ( defaultGlobalHub
     , _name
     , _path
     , _xml
@@ -9,6 +9,7 @@ module Hub.Commands
     , _rm
     ) where
 
+import		 Char
 import qualified Data.ByteString          as B
 import           System.Cmd
 import           System.Exit
@@ -20,20 +21,20 @@ import           Hub.Hub
 import           Hub.Parse
 
 
-defGlobalHub :: IO Hub
-defGlobalHub =
-     do hn <- readAFile "/usr/hs/hub"
-        checkHubName hn
+defaultGlobalHub :: IO Hub
+defaultGlobalHub =
+     do hn <- trim `fmap` readAFile "/usr/hs/default.hub"
+        -- checkHubName hn
         hf <-  case isGlobal hn of
                   True  -> globalHubPath hn
                   False -> userHubPath   hn
         parse hn hf
 
 _name :: Hub -> IO ()
-_name hub = putStr $ name__HUB hub
+_name hub = putStrLn $ name__HUB hub
 
 _path :: Hub -> IO ()
-_path hub = putStr $ path__HUB hub
+_path hub = putStrLn $ path__HUB hub
 
 _xml :: Hub -> IO ()
 _xml hub =
@@ -101,3 +102,6 @@ not_global hub =
           Nothing -> ioError $ userError $
                                 printf "%s: is a global hub" $name__HUB hub
           Just db -> return db
+
+trim :: String -> String
+trim = reverse . dropWhile isSpace . reverse . dropWhile isSpace
