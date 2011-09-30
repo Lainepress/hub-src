@@ -59,11 +59,10 @@ prog, hub_dispatch :: [String] -> IO (Maybe CommandLine)
 prog as =
      do pn <- getProgName
         let (_,p_s) = splitFileName pn
+        hub <- current_hub
         case Map.lookup p_s prog_mp of
           Nothing  -> return Nothing
-          Just prg ->
-             do hub <- current_hub
-                return $ Just $ ProgCL hub prg as
+          Just prg -> return $ Just $ cabal_fixup hub prg as 
 
 hub_dispatch as = case as of
     ["--help"     ] ->                                      return $ Just $ HelpCL False usage
@@ -201,6 +200,26 @@ usr_which_hub =
 glb_which_hub :: IO HubName
 glb_which_hub = readFile defaultHubPath
 
+
+
+cabal_fixup :: Hub -> Prog -> [String] -> CommandLine
+cabal_fixup hub prg as = ProgCL hub prg as' 
+      where
+        as'  = case enmPROG prg of
+                 CabalP | ci_needs_fixup as -> as''
+                 _                          -> as 
+
+        as'' = case usr_dbHUB hub of
+                 Nothing -> as
+                 Just db -> ["--package-db="++db]
+
+ci_needs_fixup :: [String] -> Bool
+ci_needs_fixup as =
+        case as of
+          "install"  :_ -> True
+          "upgrade"  :_ -> True
+          "configure":_ -> True
+          _             -> False
 
 
 trim :: String -> String
