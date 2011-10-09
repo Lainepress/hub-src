@@ -206,20 +206,19 @@ cabal_fixup :: Hub -> Prog -> [String] -> CommandLine
 cabal_fixup hub prg as = ProgCL hub prg as' 
       where
         as'  = case enmPROG prg of
-                 CabalP | ci_needs_fixup as -> as''
-                 _                          -> as 
+                 CabalP -> ci_fixup (usr_dbHUB hub) as
+                 _      -> as 
 
-        as'' = case usr_dbHUB hub of
-                 Nothing -> as
-                 Just db -> ["--package-db="++db]
-
-ci_needs_fixup :: [String] -> Bool
-ci_needs_fixup as =
+ci_fixup :: Maybe FilePath -> [String] -> [String]
+ci_fixup mb as =
         case as of
-          "install"  :_ -> True
-          "upgrade"  :_ -> True
-          "configure":_ -> True
-          _             -> False
+          "install"  :as' -> "install"   : x_as ++ as'
+          "upgrade"  :as' -> "upgrade"   : x_as ++ as'
+          "configure":as' -> "configure" : x_as ++ as'
+          _               -> as
+      where
+        x_as = maybe [] (\db->["--package-db="++db]) mb
+
 
 
 trim :: String -> String
