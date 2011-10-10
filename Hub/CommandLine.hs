@@ -59,10 +59,11 @@ prog, hub_dispatch :: [String] -> IO (Maybe CommandLine)
 prog as =
      do pn <- getProgName
         let (_,p_s) = splitFileName pn
-        hub <- current_hub
         case Map.lookup p_s prog_mp of
           Nothing  -> return Nothing
-          Just prg -> return $ Just $ cabal_fixup hub prg as 
+          Just prg -> 
+             do hub <- current_hub
+                return $ Just $ cabal_fixup hub prg as 
 
 hub_dispatch as = case as of
     ["--help"     ] ->                                      return $ Just $ HelpCL False usage
@@ -78,7 +79,7 @@ hub_dispatch as = case as of
     ["cp"  ,hn,hn'] -> hub_pair (Just   hn) hn' >>= \hub -> return $ Just $ CpCL   hub hn'
     ["mv"     ,hn'] -> hub_pair Nothing     hn' >>= \hub -> return $ Just $ MvCL   hub hn'
     ["mv"  ,hn,hn'] -> hub_pair (Just   hn) hn' >>= \hub -> return $ Just $ MvCL   hub hn'
-    ["rm"  ,hn    ] -> read_hub         hn      >>= \hub -> return $ Just $ RmCL   hub
+    ["rm"     ,hn'] -> read_hub             hn' >>= \hub -> return $ Just $ RmCL   hub
     _               ->                                      return   Nothing  
 
 usage :: String
@@ -142,9 +143,9 @@ current_hub = which_hub >>= read_hub
 read_hub :: HubName -> IO Hub
 read_hub hn = 
      do hf <-  case isGlobal hn  of
-                  True  -> globalHubPath hn
-                  False -> userHubPath   hn
-        checkHubName hn
+                 True  -> return $ globalHubPath hn
+                 False -> userHubPath hn
+        checkHubName AnyHT hn
         parse hn hf 
 
 hub_pair :: Maybe HubName -> HubName -> IO Hub
@@ -153,8 +154,8 @@ hub_pair (Just hn) hn' =                      hub_pair' hn hn'
 
 hub_pair' :: HubName -> HubName -> IO Hub
 hub_pair' hn hn' = 
-     do checkHubName     hn
-        checkHubName     hn'
+     do checkHubName AnyHT hn
+        checkHubName UsrHT hn'
         when (hn==hn') $ ioError $ userError $
                                 printf "%s: same source and destination"
         userHubAvailable hn'
@@ -166,8 +167,8 @@ which_hub =
         hn <- case ei of
                 Left  _ -> trim `fmap` dir_which_hub True
                 Right s -> trim `fmap` env_which_hub s
-        checkHubName hn
-        return       hn
+        checkHubName AnyHT hn
+        return hn
 
 env_which_hub :: String -> IO HubName
 env_which_hub str =

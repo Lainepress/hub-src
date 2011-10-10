@@ -11,15 +11,13 @@ import qualified Text.XML.Expat.Annotated as X
 import           Hub.Hub
 
 
-hub_bin :: FilePath
-hub_bin = "/usr/hs/bin"
 
 
 parse :: HubName -> FilePath -> IO Hub
 parse hn hf =
      do cts <- B.readFile hf
      	case parse' cts of
-     	  YUP  tr -> case check hub_bin hn hf tr of
+     	  YUP  tr -> case check hubBin hn hf tr of
      	               NOPE er -> fail_err hn hf er
      	               YUP  hb -> return hb
      	  NOPE er -> fail_err hn hf er

@@ -23,11 +23,11 @@ import           Hub.Parse
 
 defaultGlobalHub :: IO Hub
 defaultGlobalHub =
-     do hn <- trim `fmap` readAFile "/usr/hs/default.hub"
-        -- checkHubName hn
-        hf <-  case isGlobal hn of
-                  True  -> globalHubPath hn
-                  False -> userHubPath   hn
+     do hn <- trim `fmap` readAFile defaultHubPath
+        checkHubName GlbHT hn
+        hf <- case isGlobal hn of
+                True  -> return $ globalHubPath hn
+                False -> userHubPath hn
         parse hn hf
 
 _name :: Hub -> IO ()

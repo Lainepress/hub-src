@@ -2,12 +2,14 @@ module Hub.Hub
     ( HubName
     , Hub(..)
     , homeHub
+    , hubBin
     , defaultHubPath
+    , globalHubPath
+    , HubType(..)
     , checkHubName
     , userHubAvailable
     , isGlobal
     , isUserHub
-    , globalHubPath
     , userHubPath
     , userHubPaths
     , createHubDirs
@@ -39,11 +41,13 @@ homeHub :: FilePath
 homeHub = "home"
 
 
+hubBin, defaultHubPath ::            FilePath
+globalHubPath          :: HubName -> FilePath
 
+hubBin           =        "/usr/hs/bin"
+defaultHubPath   =        "/usr/hs/default.hub"
+globalHubPath hn = printf "/usr/hs/hub/%s.xml"  hn
 
-
-defaultHubPath :: FilePath
-defaultHubPath = "/usr/hs/hub/defaultHub"
 
 
 
@@ -55,12 +59,18 @@ isGlobal _     = False
 
 
 
--- tests for presence of user Hub
+data HubType
+    = AnyHT
+    | GlbHT
+    | UsrHT
+                                                                deriving (Show)
 
-checkHubName :: HubName -> IO ()
-checkHubName hn =
+-- tests for presence of (user) Hub
+
+checkHubName :: HubType -> HubName -> IO ()
+checkHubName ht hn =
         case hn of
-          c:cs | first_hubname_c c && all hubname_c cs
+          c:cs | fst_hubname_c ht c && all (hubname_c ht) cs
             -> return ()
           _ -> ioError $ userError $ printf "%s: invalid hub name" hn   
 
@@ -76,9 +86,6 @@ isUserHub :: HubName -> IO Bool
 isUserHub hn = userHubPath hn >>= fileExists
 
 
-globalHubPath :: HubName -> IO FilePath
-globalHubPath hn = return $ printf "/usr/hs/hub/%s.xml" hn
-
 userHubPath :: HubName -> IO FilePath
 userHubPath hn = fst `fmap` userHubPaths hn
 
@@ -89,9 +96,15 @@ userHubPaths hn =
                , printf "%s/.hub/db/%s"      hme hn
                )
 
-first_hubname_c, hubname_c :: Char -> Bool
-first_hubname_c c = c `elem` "_." || isAlpha c || isDigit c -- FIXME:TODO:REVIEW: should this sometimes be checking that user hub names are being used
-hubname_c       c = c `elem` "_." || isAlpha c || isDigit c
+fst_hubname_c, hubname_c :: HubType -> Char -> Bool
+fst_hubname_c AnyHT c = glb_first_hub_name_c c || usr_first_hub_name_c c
+fst_hubname_c GlbHT c = glb_first_hub_name_c c
+fst_hubname_c UsrHT c = usr_first_hub_name_c c
+hubname_c     _     c = c `elem` "_." || isAlpha c || isDigit c
+
+glb_first_hub_name_c, usr_first_hub_name_c :: Char -> Bool
+glb_first_hub_name_c c = isDigit c
+usr_first_hub_name_c c = c `elem` "_." || isAlpha c
 
 
 createHubDirs :: IO ()
