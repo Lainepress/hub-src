@@ -2,6 +2,7 @@ module Hub.Prog (_prog) where
 
 import System.FilePath
 import Text.Printf
+import Hub.Oops
 import Hub.System
 import Hub.Hub
 import Hub.CommandLine
@@ -32,6 +33,6 @@ prog_path hub prog =
       where
         chk_hp f = maybe nhp_err f $ hp_binHUB hub
         
-        nhp_err  = ioError $ userError $
+        nhp_err  = oops PrgO $
                         printf "Hub %s does not hava a Haskell Platform"
                                                             (name__HUB hub) 

@@ -8,6 +8,7 @@ import           Char
 import           Text.Printf
 import qualified Data.ByteString          as B
 import qualified Text.XML.Expat.Annotated as X
+import           Hub.Oops
 import           Hub.Hub
 
 
@@ -51,7 +52,7 @@ dump hub = B.writeFile path xml_bs
 
 
 fail_err :: HubName -> FilePath -> Err -> IO a
-fail_err _ hf er = ioError $ userError rs
+fail_err _ hf er = oops SysO rs
       where
         rs = printf "%s:%d:%d %s" hf ln (cn+1) es
         

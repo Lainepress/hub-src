@@ -15,6 +15,7 @@ import           System.Directory
 import           System.FilePath
 import qualified Data.Map       as Map
 import           Text.Printf
+import           Hub.Oops
 import           Hub.System
 import           Hub.Hub
 import           Hub.Parse
@@ -156,8 +157,8 @@ hub_pair' :: HubName -> HubName -> IO Hub
 hub_pair' hn hn' = 
      do checkHubName AnyHT hn
         checkHubName UsrHT hn'
-        when (hn==hn') $ ioError $ userError $
-                                printf "%s: same source and destination"
+        when (hn==hn') $ oops HubO $
+                                printf "%s: same source and destination" hn
         userHubAvailable hn'
         read_hub hn
 
@@ -185,7 +186,7 @@ dir_which_hub def_usr =
         w_h ds
       where
         w_h [] | def_usr   = usr_which_hub
-               | otherwise = ioError $ userError "Hub"  
+               | otherwise = oops HubO "no hub specified"
         w_h (d:ds)         = catch (here (d:ds)) (\_ -> w_h ds)
         
         here r_ds  = readAFile (joinPath $ reverse $ ".hub":r_ds)

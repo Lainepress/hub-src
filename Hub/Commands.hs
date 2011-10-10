@@ -16,6 +16,7 @@ import           System.Exit
 import           System.FilePath
 import           System.Directory
 import           Text.Printf
+import           Hub.Oops
 import           Hub.System
 import           Hub.Hub
 import           Hub.Parse
@@ -81,7 +82,7 @@ pkg_init hub fp =
      do ec <- rawSystem ghc_pkg ["init",fp]
         case ec of
           ExitSuccess   -> return ()
-          ExitFailure n -> ioError $ userError $
+          ExitFailure n -> oops HubO $
                                 printf "ghc-pkg failure (return code=%d)" n  
       where
         ghc_pkg = hc_binHUB hub </> "ghc-pkg"
@@ -91,7 +92,7 @@ pkg_recache hub fp =
      do ec <- rawSystem ghc_pkg ["recache","-f",fp]
         case ec of
           ExitSuccess   -> return ()
-          ExitFailure n -> ioError $ userError $
+          ExitFailure n -> oops HubO $
                                 printf "ghc-pkg failure (return code=%d)" n  
       where
         ghc_pkg = hc_binHUB hub </> "ghc-pkg"
@@ -99,8 +100,7 @@ pkg_recache hub fp =
 not_global :: Hub -> IO FilePath
 not_global hub =
         case usr_dbHUB hub of
-          Nothing -> ioError $ userError $
-                                printf "%s: is a global hub" $name__HUB hub
+          Nothing -> oops HubO $ printf "%s: is a global hub" $name__HUB hub
           Just db -> return db
 
 trim :: String -> String

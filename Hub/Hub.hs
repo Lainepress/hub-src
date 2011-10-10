@@ -20,6 +20,7 @@ import           Char
 import           System
 import           System.Directory
 import           Text.Printf
+import           Hub.Oops
 import           Hub.System
 
 
@@ -72,13 +73,18 @@ checkHubName ht hn =
         case hn of
           c:cs | fst_hubname_c ht c && all (hubname_c ht) cs
             -> return ()
-          _ -> ioError $ userError $ printf "%s: invalid hub name" hn   
+          _ -> oops SysO $ printf "%s: invalid %shub name" hn ht_s
+      where
+        ht_s =  case ht of
+                  AnyHT -> ""
+                  GlbHT -> "global "
+                  UsrHT -> "user "
 
 userHubAvailable :: HubName -> IO ()
 userHubAvailable hn = 
      do iuh <- isUserHub hn
         case iuh of
-          True  -> ioError $ userError "%s: hub already in use"
+          True  -> oops SysO "%s: hub already in use"
           False -> return ()
 
 

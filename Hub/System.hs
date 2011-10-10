@@ -9,6 +9,8 @@ module Hub.System
     ) where
 
 import qualified Data.ByteString as B
+import Hub.Oops
+
 
 #if mingw32_HOST_OS==1
 
@@ -58,7 +60,7 @@ removeRF fp =
      do ec <- rawSystem "rm" ["-rf",fp]
         case ec of
           ExitSuccess   -> return ()
-          ExitFailure n -> ioError $ userError $
+          ExitFailure n -> oops SysO $
                                 printf "rm failure (return code=%d)" n  
 
 cpFileDir :: FilePath -> FilePath -> IO ()
@@ -66,7 +68,7 @@ cpFileDir fp fp' =
      do ec <- rawSystem "cp" ["-a",fp,fp']
         case ec of
           ExitSuccess   -> return ()
-          ExitFailure n -> ioError $ userError $
+          ExitFailure n -> oops SysO $
                                 printf "cp failure (return code=%d)" n  
 
 mvFileDir :: FilePath -> FilePath -> IO ()
@@ -74,7 +76,7 @@ mvFileDir fp fp' =
      do ec <- rawSystem "mv" [fp,fp']
         case ec of
           ExitSuccess   -> return ()
-          ExitFailure n -> ioError $ userError $
+          ExitFailure n -> oops SysO $
                                 printf "mv failure (return code=%d)" n  
 
 #endif
