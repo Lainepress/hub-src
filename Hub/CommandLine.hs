@@ -5,6 +5,7 @@ module Hub.CommandLine
     , P(..)
     , ProgType(..)
     , p2prog
+    , readHub
     ) where
 
 import           Monad
@@ -15,6 +16,7 @@ import           System.Directory
 import           System.FilePath
 import qualified Data.Map       as Map
 import           Text.Printf
+import           Hub.Help
 import           Hub.Oops
 import           Hub.System
 import           Hub.Hub
@@ -36,13 +38,19 @@ data CommandLine
     = ProgCL Hub Prog [String]
     | HelpCL Bool String   -- False => help, True => usage
     | VrsnCL
-    | NameCL Hub  
+    | DfltCL
+    | StDfCL Hub
+    | RsDfCL
+    | LsCL
+    | NameCL Hub
+    | InfoCL Hub
     | PathCL Hub
     | XmlCL  Hub
     | InitCL Hub HubName
     | CpCL   Hub HubName
     | MvCL   Hub HubName
     | RmCL   Hub
+    | SwapCL Hub HubName
                                                                 deriving (Show)
 
 data Prog = PROG {
@@ -67,33 +75,49 @@ prog as =
                 return $ Just $ cabal_fixup hub prg as 
 
 hub_dispatch as = case as of
-    ["--help"     ] ->                                      return $ Just $ HelpCL False usage
+    ["--help"     ] ->                                      return $ Just $ HelpCL False help
+    ["help"       ] ->                                      return $ Just $ HelpCL False help
     ["--version"  ] ->                                      return $ Just VrsnCL
+    ["version"    ] ->                                      return $ Just VrsnCL
+    ["--usage"    ] ->                                      return $ Just $ HelpCL False usage
+    ["usage"      ] ->                                      return $ Just $ HelpCL False usage
+    ["default"    ] ->                                      return $ Just $ DfltCL
+    ["default","-"] ->                                      return $ Just $ RsDfCL
+    ["default",hn ] -> readHub          hn      >>= \hub -> return $ Just $ StDfCL hub
+    ["ls"         ] ->                                      return $ Just $ LsCL
     ["name"       ] -> current_hub              >>= \hub -> return $ Just $ NameCL hub
+    ["info"       ] -> current_hub              >>= \hub -> return $ Just $ InfoCL hub
+    ["info",hn    ] -> readHub          hn      >>= \hub -> return $ Just $ InfoCL hub
     ["path"       ] -> current_hub              >>= \hub -> return $ Just $ PathCL hub
-    ["path",hn    ] -> read_hub         hn      >>= \hub -> return $ Just $ PathCL hub
+    ["path",hn    ] -> readHub          hn      >>= \hub -> return $ Just $ PathCL hub
     ["xml"        ] -> current_hub              >>= \hub -> return $ Just $ XmlCL  hub
-    ["xml" ,hn    ] -> read_hub         hn      >>= \hub -> return $ Just $ XmlCL  hub
+    ["xml" ,hn    ] -> readHub          hn      >>= \hub -> return $ Just $ XmlCL  hub
     ["init"   ,hn'] -> hub_pair Nothing     hn' >>= \hub -> return $ Just $ InitCL hub hn'
     ["init",hn,hn'] -> hub_pair (Just   hn) hn' >>= \hub -> return $ Just $ InitCL hub hn'
     ["cp"     ,hn'] -> hub_pair Nothing     hn' >>= \hub -> return $ Just $ CpCL   hub hn'
     ["cp"  ,hn,hn'] -> hub_pair (Just   hn) hn' >>= \hub -> return $ Just $ CpCL   hub hn'
     ["mv"     ,hn'] -> hub_pair Nothing     hn' >>= \hub -> return $ Just $ MvCL   hub hn'
     ["mv"  ,hn,hn'] -> hub_pair (Just   hn) hn' >>= \hub -> return $ Just $ MvCL   hub hn'
-    ["rm"     ,hn'] -> read_hub             hn' >>= \hub -> return $ Just $ RmCL   hub
+    ["rm"     ,hn'] -> readHub              hn' >>= \hub -> return $ Just $ RmCL   hub
+    ["swap",hn,hn'] -> hub_pair (Just   hn) hn' >>= \hub -> return $ Just $ MvCL   hub hn'
     _               ->                                      return   Nothing  
 
 usage :: String
 usage = unlines
-    [ "hub --help"
-    , "    --version"
+    [ "hub [--]help"
+    , "    [--]version"
+    , "    [--]usage"
+    , "    default [<hub>|-]"
+    , "    ls"    
     , "    name"
+    , "    info [<hub>]"        -- ****
     , "    path [<hub>]"
     , "    xml  [<hub>]"
     , "    init [<hub>] <hub>"
     , "    cp   [<hub>] <hub>"
     , "    mv   [<hub>] <hub>"
     , "    rm           <hub>"
+    , "    swap  <hub>  <hub>"  -- ****
     ]
 
 data P
@@ -139,15 +163,7 @@ prog_mp = Map.fromList [ (nmePROG pg,pg) | pg<-map p2prog [minBound..maxBound] ]
 
       
 current_hub :: IO Hub
-current_hub = which_hub >>= read_hub
-
-read_hub :: HubName -> IO Hub
-read_hub hn = 
-     do hf <-  case isGlobal hn  of
-                 True  -> return $ globalHubPath hn
-                 False -> userHubPath hn
-        checkHubName AnyHT hn
-        parse hn hf 
+current_hub = which_hub >>= readHub
 
 hub_pair :: Maybe HubName -> HubName -> IO Hub
 hub_pair Nothing   hn' = which_hub >>= \hn -> hub_pair' hn hn'
@@ -160,7 +176,7 @@ hub_pair' hn hn' =
         when (hn==hn') $ oops HubO $
                                 printf "%s: same source and destination" hn
         userHubAvailable hn'
-        read_hub hn
+        readHub hn
 
 which_hub :: IO HubName
 which_hub =

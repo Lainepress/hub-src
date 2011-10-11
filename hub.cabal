@@ -24,6 +24,7 @@ Executable hub
     Main-is:        hub.hs
     Build-depends:  base        >= 4.0 && < 4.5,
                     hexpat      == 0.19.*,
+                    regex-compat,
                     containers,
                     unix,
                     filepath,

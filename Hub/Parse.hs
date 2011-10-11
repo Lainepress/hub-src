@@ -1,5 +1,6 @@
 module Hub.Parse
-    ( parse
+    ( readHub
+    , parse
     , dump
     , PSt(..) -- kill warnings
     ) where
@@ -12,6 +13,15 @@ import           Hub.Oops
 import           Hub.Hub
 
 
+
+
+readHub :: HubName -> IO Hub
+readHub hn = 
+     do hf <-  case isGlobal hn  of
+                 True  -> return $ globalHubPath hn
+                 False -> userHubPath hn
+        checkHubName AnyHT hn
+        parse hn hf 
 
 
 parse :: HubName -> FilePath -> IO Hub

@@ -1,0 +1,40 @@
+hub [--]help
+
+
+hub [--]version
+
+
+hub [--]usage
+
+
+hub default [<hub>|-]
+
+
+hub ls
+
+
+hub name
+
+
+hub info [<hub>]
+
+
+hub path [<hub>]
+
+
+hub xml  [<hub>]
+
+
+hub init [<hub>] <hub>
+
+
+hub cp   [<hub>] <hub>
+
+
+hub mv   [<hub>] <hub>
+
+
+hub rm           <hub>
+
+
+hub swap  <hub>  <hub>
