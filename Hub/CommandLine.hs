@@ -196,7 +196,7 @@ usr_which_hub =
      do yup <- isUserHub homeHub
         case yup of
           True  -> return ()
-          False -> defaultGlobalHub >>= \hub -> _init hub homeHub
+          False -> default_global_hub >>= \hub -> _init hub homeHub
         return homeHub
 
 glb_which_hub :: IO HubName
@@ -220,6 +220,14 @@ ci_fixup mb as =
           _               -> as
       where
         x_as = maybe [] (\db->["--package-db="++db]) mb
+
+default_global_hub :: IO Hub
+default_global_hub =
+     do hn <- defaultGlobalHubName
+        hf <- case isGlobal hn of
+                True  -> return $ globalHubPath hn
+                False -> userHubPath hn
+        parse hn hf
 
 
 

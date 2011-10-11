@@ -4,15 +4,19 @@ module Hub.Hub
     , homeHub
     , hubBin
     , defaultHubPath
+    , globalHubDir
+    , userHubDirs
+    , lsHubs
+    , defaultGlobalHubName
     , globalHubPath
+    , isGlobal
     , HubType(..)
     , checkHubName
     , userHubAvailable
-    , isGlobal
     , isUserHub
+    , createHubDirs
     , userHubPath
     , userHubPaths
-    , createHubDirs
     ) where
 
 
@@ -41,23 +45,40 @@ data Hub = HUB {
 homeHub :: FilePath
 homeHub = "home"
 
+hubBin, defaultHubPath, globalHubDir :: FilePath
+globalHubDir     = "/usr/hs/hub/%s.xml"
+hubBin           = "/usr/hs/bin"
+defaultHubPath   = "/usr/hs/default.hub"
 
-hubBin, defaultHubPath ::            FilePath
-globalHubPath          :: HubName -> FilePath
-
-hubBin           =        "/usr/hs/bin"
-defaultHubPath   =        "/usr/hs/default.hub"
-globalHubPath hn = printf "/usr/hs/hub/%s.xml"  hn
-
-
+userHubDirs :: IO (FilePath,FilePath)
+userHubDirs = 
+     do hme <- home
+        let hub = printf "%s/.hub/hub" hme
+            db  = printf "%s/.hub/db"  hme
+        return (hub,db)
 
 
+lsHubs :: IO [FilePath]
+lsHubs = undefined
+
+
+defaultGlobalHubName :: IO HubName
+defaultGlobalHubName = undefined
+
+{-
+     do hn <- trim `fmap` readAFile defaultHubPath
+        checkHubName GlbHT hn
+        return hn
+      where
+        trim = reverse . dropWhile isSpace . reverse . dropWhile isSpace
+-}
 
 isGlobal :: HubName -> Bool
 isGlobal (c:_) = isDigit c
 isGlobal _     = False
 
-
+globalHubPath :: HubName -> FilePath
+globalHubPath hn = printf "%s/%s.xml" globalHubDir hn
 
 
 data HubType
@@ -66,7 +87,7 @@ data HubType
     | UsrHT
                                                                 deriving (Show)
 
--- tests for presence of (user) Hub
+-- tests for presence of Hub
 
 checkHubName :: HubType -> HubName -> IO ()
 checkHubName ht hn =
@@ -80,6 +101,8 @@ checkHubName ht hn =
                   GlbHT -> "global "
                   UsrHT -> "user "
 
+
+
 userHubAvailable :: HubName -> IO ()
 userHubAvailable hn = 
      do iuh <- isUserHub hn
@@ -92,15 +115,22 @@ isUserHub :: HubName -> IO Bool
 isUserHub hn = userHubPath hn >>= fileExists
 
 
+createHubDirs :: IO ()
+createHubDirs =
+     do (hub,db) <- userHubDirs 
+        createDirectoryIfMissing True  hub
+        createDirectoryIfMissing False db
+
 userHubPath :: HubName -> IO FilePath
 userHubPath hn = fst `fmap` userHubPaths hn
 
 userHubPaths :: HubName -> IO (FilePath,FilePath)
 userHubPaths hn = 
-     do hme <- home
-        return ( printf "%s/.hub/hub/%s.xml" hme hn
-               , printf "%s/.hub/db/%s"      hme hn
-               )
+     do (hub,db) <- userHubDirs 
+        return (printf "%/%s.xml" hub hn,printf "%s/%s" db hn)
+
+
+
 
 fst_hubname_c, hubname_c :: HubType -> Char -> Bool
 fst_hubname_c AnyHT c = glb_first_hub_name_c c || usr_first_hub_name_c c
@@ -112,14 +142,6 @@ glb_first_hub_name_c, usr_first_hub_name_c :: Char -> Bool
 glb_first_hub_name_c c = isDigit c
 usr_first_hub_name_c c = c `elem` "_." || isAlpha c
 
-
-createHubDirs :: IO ()
-createHubDirs =
-     do hme <- home
-        let hub = printf "%s/.hub/hub" hme
-            db  = printf "%s/.hub/db"  hme
-        createDirectoryIfMissing True  hub
-        createDirectoryIfMissing False db
 
 home :: IO FilePath
 home = catch (getEnv "HOME") $ \_ -> return "/"
