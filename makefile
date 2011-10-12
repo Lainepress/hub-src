@@ -10,7 +10,7 @@ Hub/Help.hs: help.txt
 	runhaskell prep
 
 install:
-	cp $(OD)/hub /usr/local/bin/hub
+	cp $(OD)/hub /usr/hs/bin
 
 clean:
 	cabal clean
