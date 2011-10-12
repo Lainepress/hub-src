@@ -28,7 +28,7 @@ parse :: HubName -> FilePath -> IO Hub
 parse hn hf =
      do cts <- B.readFile hf
      	case parse' cts of
-     	  YUP  tr -> case check hubBin hn hf tr of
+     	  YUP  tr -> case check hn hf tr of
      	               NOPE er -> fail_err hn hf er
      	               YUP  hb -> return hb
      	  NOPE er -> fail_err hn hf er
@@ -104,9 +104,9 @@ loc0 = X.XMLParseLocation 1 0 0 0
 parse' :: B.ByteString -> Poss Node
 parse' = ei2ps . X.parse' X.defaultParseOptions
 
-check :: FilePath -> HubName -> FilePath -> Node -> Poss Hub
-check c0 hn hf (X.Element "hub" [] ns lc) = 
-                                final $ foldl chk (YUP $ start c0 hn hf lc) ns 
+check :: HubName -> FilePath -> Node -> Poss Hub
+check hn hf (X.Element "hub" [] ns lc) = 
+                                final $ foldl chk (YUP $ start hn hf lc) ns 
           where
             chk (NOPE er) _  = NOPE er
             chk (YUP  st) nd = foldr (trial st nd) (NOPE $ unrecognised st nd)
@@ -117,22 +117,21 @@ check c0 hn hf (X.Element "hub" [] ns lc) =
                     , chk_glbdb
                     , chk_usrdb
                     ]
-check _ _  _  _ = NOPE $ err loc0 "expected simple <hub>...</hub>"
+check _  _  _ = NOPE $ err loc0 "expected simple <hub>...</hub>"
 
 data PSt = ST {
     handlST :: HubName,
     hpathST :: FilePath,	
 	locwfST :: Loc,
 	hcbinST :: Maybe FilePath,
-	cibn0ST :: FilePath,
 	cibinST :: Maybe FilePath,
 	hpbinST :: Maybe FilePath,
 	glbdbST :: Maybe FilePath,
 	usrdbST :: Maybe FilePath
 	}															deriving (Show)
 
-start :: FilePath -> HubName -> FilePath -> Loc -> PSt
-start c0 hn fp lc = ST hn fp lc Nothing c0 Nothing Nothing Nothing Nothing
+start :: HubName -> FilePath -> Loc -> PSt
+start hn fp lc = ST hn fp lc Nothing Nothing Nothing Nothing Nothing
 
 final :: Poss PSt -> Poss Hub
 final (NOPE er) = NOPE er
@@ -142,14 +141,14 @@ final (YUP  st) =
 	    gl <- get_gl
 	    return $ HUB hn hf hc cb mb_hp gl mb_ur
 	  where
-		get_hc = maybe (NOPE  hc_err) YUP mb_hc
-		get_cb = maybe (YUP $ c0    ) YUP mb_cb
-		get_gl = maybe (NOPE  gl_err) YUP mb_gl
+		get_hc = maybe (NOPE  hc_err         ) YUP mb_hc
+		get_cb = maybe (YUP $ defaultCabalBin) YUP mb_cb
+		get_gl = maybe (NOPE  gl_err         ) YUP mb_gl
 
 		hc_err = err lc "Hub doesn't specify a GHC bin directory"
 		gl_err = err lc "Hub doesn't specify a global package directory"
 
-		ST hn hf lc mb_hc c0 mb_cb mb_hp mb_gl mb_ur = st
+		ST hn hf lc mb_hc mb_cb mb_hp mb_gl mb_ur = st
 
 trial :: PSt -> Node -> (PSt -> Node -> Maybe(Poss PSt)) -> Poss PSt -> Poss PSt
 trial st nd f ps = maybe ps id $ f st nd

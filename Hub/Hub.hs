@@ -4,6 +4,7 @@ module Hub.Hub
     , HubType(..)
     , homeHub
     , hubBin
+    , defaultCabalBin
     , defaultHubPath
     , globalHubDir
     , userHubDirs
@@ -56,10 +57,11 @@ data HubType
 homeHub :: FilePath
 homeHub = "home"
 
-hubBin, defaultHubPath, globalHubDir :: FilePath
-hc_bin_res, hp_bin_res               :: String
+globalHubDir, hubBin, defaultCabalBin, defaultHubPath :: FilePath
+hc_bin_res, hp_bin_res :: String
 globalHubDir     = "/usr/hs/hub"
 hubBin           = "/usr/hs/bin"
+defaultCabalBin  = "/usr/hs/cabal" 
 defaultHubPath   = "/usr/hs/default.hub"
 hc_bin_res       = "/usr/hs/ghc/([a-z0-9.-_]+)/bin"
 hp_bin_res       = "/usr/hs/hp/([a-z0-9.-_]+)/bin"

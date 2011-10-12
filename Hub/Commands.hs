@@ -39,15 +39,15 @@ _name hub = putStrLn $ name__HUB hub
 
 _info :: Hub -> IO ()
 _info hub = putStr $ unlines $
-    [ printf "%s (%s hub)"                        name ht                                                             ] ++
-    [ printf "   Toolchain : GHC %s"              hc      |                         Just hc <- [bin2toolchain hc_bin] ] ++
-    [ printf "   Tools     : %s"                  hc_bin                                                              ] ++
-    [ printf "   Platform  : Haskell Platform %s" hp      | Just hp_bin <- [mb_hp], Just hp <- [bin2platform  hp_bin] ] ++ 
-    [ printf "   Apps      : %s"                  hp_bin  | Just hp_bin <- [mb_hp]                                    ] ++ 
-    [ printf "   Cabal     : %s/cabal"            ci_bin
+    [ printf "%s (%s hub)"                              name ht                                                             ] ++
+    [ printf "   Toolchain       : GHC %s"              hc      |                         Just hc <- [bin2toolchain hc_bin] ] ++
+    [ printf "   Tools           : %s"                  hc_bin                                                              ] ++
+    [ printf "   Platform        : Haskell Platform %s" hp      | Just hp_bin <- [mb_hp], Just hp <- [bin2platform  hp_bin] ] ++ 
+    [ printf "   Platform Tools  : %s"                  hp_bin  | Just hp_bin <- [mb_hp]                                    ] ++ 
+    [ printf "   Cabal           : %s/cabal"            ci_bin
     ,        "   Package DBs"
-    , printf "      global : %s"                  glb_db                                                              ] ++
-    [ printf "      user   : %s"                  usr_db  | Just usr_db <- [mb_ud]                                    ]
+    , printf "      global       : %s"                  glb_db                                                              ] ++
+    [ printf "      user         : %s"                  usr_db  | Just usr_db <- [mb_ud]                                    ]
   where
     ht     = if isGlobal name then "global" else "user"
     name   = name__HUB hub

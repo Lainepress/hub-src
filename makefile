@@ -1,4 +1,5 @@
 OD = dist/build/hub
+ID = /usr/hs/bin
 HC = mkdir -p $(OD); ghc -cpp --make -outputdir build -Wall
 
 all: hub
@@ -10,7 +11,8 @@ Hub/Help.hs: help.txt
 	runhaskell prep
 
 install:
-	cp $(OD)/hub /usr/hs/bin
+	mkdir -p $(ID)
+	cp $(OD)/hub $(ID)
 
 clean:
 	cabal clean
