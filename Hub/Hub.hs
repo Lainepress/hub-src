@@ -179,7 +179,7 @@ userHubAvailable :: HubName -> IO ()
 userHubAvailable hn = 
      do iuh <- isUserHub hn
         case iuh of
-          True  -> oops SysO "%s: hub already in use"
+          True  -> oops SysO $ printf "%s: hub already in use" hn
           False -> return ()
 
 

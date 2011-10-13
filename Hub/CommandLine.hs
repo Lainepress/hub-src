@@ -99,7 +99,7 @@ hub_dispatch as = case as of
     ["mv"     ,hn'] -> hub_pair Nothing     hn' >>= \hub -> return $ Just $ MvCL   hub hn'
     ["mv"  ,hn,hn'] -> hub_pair (Just   hn) hn' >>= \hub -> return $ Just $ MvCL   hub hn'
     ["rm"     ,hn'] -> readHub              hn' >>= \hub -> return $ Just $ RmCL   hub
-    ["swap",hn,hn'] -> hub_pair (Just   hn) hn' >>= \hub -> return $ Just $ MvCL   hub hn'
+    ["swap",hn,hn'] -> hub_swap         hn  hn' >>= \hub -> return $ Just $ SwapCL hub hn'
     _               ->                                      return   Nothing  
 
 usage :: String
@@ -165,17 +165,21 @@ prog_mp = Map.fromList [ (nmePROG pg,pg) | pg<-map p2prog [minBound..maxBound] ]
 current_hub :: IO Hub
 current_hub = which_hub >>= readHub
 
-hub_pair :: Maybe HubName -> HubName -> IO Hub
-hub_pair Nothing   hn' = which_hub >>= \hn -> hub_pair' hn hn'
-hub_pair (Just hn) hn' =                      hub_pair' hn hn' 
+hub_swap :: HubName -> HubName -> IO Hub
+hub_swap hn hn' = hub_pair' True hn hn'
 
-hub_pair' :: HubName -> HubName -> IO Hub
-hub_pair' hn hn' = 
+hub_pair :: Maybe HubName -> HubName -> IO Hub
+hub_pair Nothing   hn' = which_hub >>= \hn -> hub_pair' False hn hn'
+hub_pair (Just hn) hn' =                      hub_pair' False hn hn' 
+
+hub_pair' :: Bool -> HubName -> HubName -> IO Hub
+hub_pair' sw hn hn' = 
      do checkHubName AnyHT hn
         checkHubName UsrHT hn'
-        when (hn==hn') $ oops HubO $
-                                printf "%s: same source and destination" hn
-        userHubAvailable hn'
+        when (hn==hn') $
+            oops HubO $ printf "%s: same source and destination" hn
+        when (not sw) $
+            userHubAvailable hn'
         readHub hn
 
 which_hub :: IO HubName

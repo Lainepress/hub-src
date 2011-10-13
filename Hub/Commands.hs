@@ -103,10 +103,13 @@ _swap hub1 hn2 =
      do hub2 <- readHub hn2
         _    <- not_global hub1
         _    <- not_global hub2
-        (h_fp1,db1) <- userHubPaths $ name__HUB hub1
-        (h_fp2,db2) <- userHubPaths $ name__HUB hub2
-        swap_files  h_fp1 h_fp2 
-        swap_files' db1   db2   (swap_files h_fp1 h_fp2)
+        db1 <- snd `fmap` userHubPaths (name__HUB hub1)
+        db2 <- snd `fmap` userHubPaths (name__HUB hub2)
+        let hub1' = hub1 {name__HUB=name__HUB hub2,path__HUB=path__HUB hub2,usr_dbHUB=usr_dbHUB hub2}
+            hub2' = hub2 {name__HUB=name__HUB hub1,path__HUB=path__HUB hub1,usr_dbHUB=usr_dbHUB hub1}
+        dump hub1'
+        dump hub2'
+        swap_files db1 db2 
 
 pkg_init :: Hub -> FilePath -> IO ()
 pkg_init hub fp =
@@ -143,8 +146,8 @@ is_global hub =
 swap_files :: FilePath -> FilePath -> IO ()
 swap_files fp fp' = swap_files'' fp fp' $ oops SysO
 
-swap_files' :: FilePath -> FilePath -> IO () -> IO ()
-swap_files' fp fp' tdy = swap_files'' fp fp' $ \err -> tdy >> oops SysO err
+--swap_files' :: FilePath -> FilePath -> IO () -> IO ()
+--swap_files' fp fp' tdy = swap_files'' fp fp' $ \err -> tdy >> oops SysO err
 
 swap_files'' :: FilePath -> FilePath -> (String->IO ()) -> IO ()
 swap_files'' fp fp' h = catch (sw_files fp fp') $ \_ -> h err
