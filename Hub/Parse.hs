@@ -21,6 +21,7 @@ readHub hn =
                  True  -> return $ globalHubPath hn
                  False -> userHubPath hn
         checkHubName AnyHT hn
+        hubExists hn
         parse hn hf 
 
 

@@ -2,6 +2,9 @@ module Hub.Commands
     ( _default
     , _default_hub
     , _ls
+    , _get
+    , _set
+    , _unset
     , _name
     , _info
     , _path
@@ -13,6 +16,7 @@ module Hub.Commands
     , _swap
     ) where
 
+import           Char
 import           System.Cmd
 import           System.Exit
 import           System.FilePath
@@ -33,6 +37,26 @@ _default_hub (Just hb) = is_global hb >>= writeAFile defaultHubPath
 
 _ls :: IO ()
 _ls = do hns <- lsHubs AnyHT; putStr $ unlines hns
+
+_get :: IO ()
+_get =
+     do yup <- fileExists ".hub"
+        case yup of
+          False -> putStrLn "No hub set for this directory"
+          True  -> 
+             do hn <- trim `fmap` readAFile ".hub"
+                checkHubName AnyHT hn
+                putStrLn hn
+                
+_set :: Hub -> IO ()
+_set hub = writeAFile ".hub" $ name__HUB hub ++ "\n"
+
+_unset ::   IO ()
+_unset =
+     do yup <- fileExists ".hub"
+        case yup of
+          False -> putStrLn "No hub set for this directory"
+          True  -> removeFile ".hub"
 
 _name :: Hub -> IO ()
 _name hub = putStrLn $ name__HUB hub
@@ -169,3 +193,6 @@ mk_tmp i fp =
           False -> return fp' 
       where
         fp' = printf "%s-%d" fp i
+
+trim :: String -> String
+trim = reverse . dropWhile isSpace . reverse . dropWhile isSpace

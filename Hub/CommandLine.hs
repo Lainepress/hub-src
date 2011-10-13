@@ -8,14 +8,16 @@ module Hub.CommandLine
     , readHub
     ) where
 
-import           Monad
 import           Char
+import           Maybe
+import           Monad
 import           IO
 import           System
 import           System.Directory
 import           System.FilePath
 import qualified Data.Map       as Map
 import           Text.Printf
+import           Text.Regex
 import           Hub.Help
 import           Hub.Oops
 import           Hub.System
@@ -39,18 +41,21 @@ data CommandLine
     | HelpCL Bool String   -- False => help, True => usage
     | VrsnCL
     | DfltCL
-    | StDfCL Hub
+    | StDfCL  Hub
     | RsDfCL
     | LsCL
-    | NameCL Hub
-    | InfoCL Hub
-    | PathCL Hub
-    | XmlCL  Hub
-    | InitCL Hub HubName
-    | CpCL   Hub HubName
-    | MvCL   Hub HubName
-    | RmCL   Hub
-    | SwapCL Hub HubName
+    | GetCL
+    | SetCL   Hub
+    | UnsetCL
+    | NameCL  Hub
+    | InfoCL  Hub
+    | PathCL  Hub
+    | XmlCL   Hub
+    | InitCL  Hub HubName
+    | CpCL    Hub HubName
+    | MvCL    Hub HubName
+    | RmCL    Hub
+    | SwapCL  Hub HubName
                                                                 deriving (Show)
 
 data Prog = PROG {
@@ -77,6 +82,8 @@ prog as =
 hub_dispatch as = case as of
     ["--help"     ] ->                                      return $ Just $ HelpCL False help
     ["help"       ] ->                                      return $ Just $ HelpCL False help
+    ["--help",cd  ] -> lu_help cd               >>= \hlp -> return $ Just $ HelpCL False hlp
+    ["help"  ,cd  ] -> lu_help cd               >>= \hlp -> return $ Just $ HelpCL False hlp
     ["--version"  ] ->                                      return $ Just VrsnCL
     ["version"    ] ->                                      return $ Just VrsnCL
     ["--usage"    ] ->                                      return $ Just $ HelpCL False usage
@@ -85,6 +92,9 @@ hub_dispatch as = case as of
     ["default","-"] ->                                      return $ Just $ RsDfCL
     ["default",hn ] -> readHub          hn      >>= \hub -> return $ Just $ StDfCL hub
     ["ls"         ] ->                                      return $ Just $ LsCL
+    ["set"        ] ->                                      return $ Just $ GetCL
+    ["set","-"    ] ->                                      return $ Just $ UnsetCL
+    ["set",hn     ] -> readHub          hn      >>= \hub -> return $ Just $ SetCL  hub
     ["name"       ] -> current_hub              >>= \hub -> return $ Just $ NameCL hub
     ["info"       ] -> current_hub              >>= \hub -> return $ Just $ InfoCL hub
     ["info",hn    ] -> readHub          hn      >>= \hub -> return $ Just $ InfoCL hub
@@ -99,25 +109,27 @@ hub_dispatch as = case as of
     ["mv"     ,hn'] -> hub_pair Nothing     hn' >>= \hub -> return $ Just $ MvCL   hub hn'
     ["mv"  ,hn,hn'] -> hub_pair (Just   hn) hn' >>= \hub -> return $ Just $ MvCL   hub hn'
     ["rm"     ,hn'] -> readHub              hn' >>= \hub -> return $ Just $ RmCL   hub
-    ["swap",hn,hn'] -> hub_swap         hn  hn' >>= \hub -> return $ Just $ SwapCL hub hn'
+    ["swap",   hn'] -> hub_swap Nothing     hn' >>= \hub -> return $ Just $ SwapCL hub hn'
+    ["swap",hn,hn'] -> hub_swap (Just   hn) hn' >>= \hub -> return $ Just $ SwapCL hub hn'
     _               ->                                      return   Nothing  
 
 usage :: String
 usage = unlines
-    [ "hub [--]help"
+    [ "hub [--]help [<hub-command>]"
     , "    [--]version"
     , "    [--]usage"
     , "    default [<hub>|-]"
     , "    ls"    
+    , "    set  [<hub>|-]"
+    , "    info [<hub>]"
     , "    name"
-    , "    info [<hub>]"        -- ****
     , "    path [<hub>]"
     , "    xml  [<hub>]"
     , "    init [<hub>] <hub>"
     , "    cp   [<hub>] <hub>"
     , "    mv   [<hub>] <hub>"
     , "    rm           <hub>"
-    , "    swap  <hub>  <hub>"  -- ****
+    , "    swap [<hub>] <hub>"
     ]
 
 data P
@@ -130,12 +142,9 @@ data P
     | Hsc2hsP
     | RunghcP
     | RunhaskellP
-    | AlexP
-    | Basic_testsP
     | CabalP
-    | Extended_testsP
+    | AlexP
     | HappyP
-    | Terminal_testsP
                                             deriving (Eq,Ord,Bounded,Enum,Show)
 
 p2prog :: P -> Prog
@@ -152,21 +161,41 @@ p2prog p =
       RunhaskellP        -> PROG p "runhaskell"           HcPT
       CabalP             -> PROG p "cabal"                CiPT
       AlexP              -> PROG p "alex"                 HpPT
-      Basic_testsP       -> PROG p "basic-tests"          HpPT
-      Extended_testsP    -> PROG p "extended-tests"       HpPT
       HappyP             -> PROG p "happy"                HpPT
-      Terminal_testsP    -> PROG p "terminal-tests"       HpPT
 
 prog_mp :: Map.Map String Prog
 prog_mp = Map.fromList [ (nmePROG pg,pg) | pg<-map p2prog [minBound..maxBound] ]
 
 
+lu_help :: String -> IO String
+lu_help cd =
+        case sc_help cd $ lines help of
+          Nothing  -> oops HubO $ printf "%s: hub command not recognised" cd
+          Just hlp -> return hlp
+
+sc_help :: String -> [String] -> Maybe String
+sc_help _  []       = Nothing
+sc_help cd (ln:lns) =
+        case is_help_hdr cd ln of
+          True  -> Just $ unlines $ ln : takeWhile is_help_bdy lns
+          False -> sc_help cd lns
+
+is_help_hdr :: String -> String -> Bool
+is_help_hdr cmd = match $ mk_re $ printf "hub %s.*" cmd
+
+is_help_bdy :: String -> Bool
+is_help_bdy = not . match not_help_bd_re
+
+not_help_bd_re :: Regex
+not_help_bd_re = mk_re "hub.*"
+
       
 current_hub :: IO Hub
 current_hub = which_hub >>= readHub
 
-hub_swap :: HubName -> HubName -> IO Hub
-hub_swap hn hn' = hub_pair' True hn hn'
+hub_swap :: Maybe HubName -> HubName -> IO Hub
+hub_swap Nothing   hn' = which_hub >>= \hn -> hub_pair' True  hn hn'
+hub_swap (Just hn) hn' =                      hub_pair' True  hn hn'
 
 hub_pair :: Maybe HubName -> HubName -> IO Hub
 hub_pair Nothing   hn' = which_hub >>= \hn -> hub_pair' False hn hn'
@@ -178,6 +207,8 @@ hub_pair' sw hn hn' =
         checkHubName UsrHT hn'
         when (hn==hn') $
             oops HubO $ printf "%s: same source and destination" hn
+        when sw $
+            userHubExists    hn'
         when (not sw) $
             userHubAvailable hn'
         readHub hn
@@ -249,7 +280,11 @@ default_global_hub =
                 False -> userHubPath hn
         parse hn hf
 
+mk_re :: String -> Regex
+mk_re re_str = mkRegexWithOpts (printf "^%s$" re_str) False True
 
+match :: Regex -> String -> Bool
+match re = isJust . matchRegex re
 
 trim :: String -> String
 trim = reverse . dropWhile isSpace . reverse . dropWhile isSpace

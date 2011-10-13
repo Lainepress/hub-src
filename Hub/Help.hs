@@ -2,13 +2,13 @@ module Hub.Help(help) where
 
 help :: String
 help = unlines
-    [ "hub [--]help"
+    [ "hub help      (hub --help)"
     , ""
     , ""
-    , "hub [--]version"
+    , "hub version   (hub --version)"
     , ""
     , ""
-    , "hub [--]usage"
+    , "hub usage     (hub --usage)"
     , ""
     , ""
     , "hub default [<hub>|-]"

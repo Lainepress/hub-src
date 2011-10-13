@@ -9,11 +9,14 @@ module Hub.Hub
     , globalHubDir
     , userHubDirs
     , defaultGlobalHubName
+    , hubExists
     , lsHubs
     , isGlobal
     , globalHubPath
     , checkHubName
     , userHubAvailable
+    , userHubExists
+    , userHubName
     , isUserHub
     , createHubDirs
     , userHubPath
@@ -104,6 +107,16 @@ defaultGlobalHubName =
       where
         trim = reverse . dropWhile isSpace . reverse . dropWhile isSpace
 
+hubExists :: HubName -> IO ()
+hubExists hn =
+     do hf <- case isGlobal hn of
+                True  -> return $ globalHubPath hn
+                False -> userHubPath hn
+        ok <- fileExists hf
+        case ok of
+          True  -> return ()
+          False -> oops SysO $ printf "%s: no such hub" hn
+
 default_hub :: [HubName] -> Maybe HubName
 default_hub hns0 =
         case filter hp_hub hns of
@@ -177,10 +190,23 @@ is_hub_name ht hn =
 
 userHubAvailable :: HubName -> IO ()
 userHubAvailable hn = 
-     do iuh <- isUserHub hn
+     do userHubName hn
+        iuh <- isUserHub hn
         case iuh of
           True  -> oops SysO $ printf "%s: hub already in use" hn
           False -> return ()
+
+userHubExists :: HubName -> IO ()
+userHubExists hn = 
+     do userHubName hn
+        hubExists   hn
+
+userHubName :: HubName -> IO ()
+userHubName hn =
+        case isGlobal hn of
+          False -> return ()
+          True  -> oops SysO $ printf "%s: not a user hub" hn
+
 
 
 isUserHub :: HubName -> IO Bool
