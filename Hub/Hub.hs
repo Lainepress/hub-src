@@ -8,6 +8,7 @@ module Hub.Hub
     , defaultHubPath
     , globalHubDir
     , userHubDirs
+    , hubUserLib
     , defaultGlobalHubName
     , hubExists
     , lsHubs
@@ -60,6 +61,9 @@ data HubType
 homeHub :: FilePath
 homeHub = "home"
 
+package_config :: FilePath
+package_config = "package.config"
+
 globalHubDir, hubBin, defaultCabalBin, defaultHubPath :: FilePath
 hc_bin_res, hp_bin_res :: String
 globalHubDir     = "/usr/hs/hub"
@@ -73,22 +77,34 @@ userHubDirs :: IO (FilePath,FilePath)
 userHubDirs = 
      do hme <- home
         let hub = printf "%s/.hubrc/hub" hme
-            db  = printf "%s/.hubrc/db"  hme
-        return (hub,db)
+            lib = printf "%s/.hubrc/lib" hme
+        return (hub,lib)
 
+user_lib :: FilePath -> HubName -> FilePath
+user_lib hme hn = printf "%s/.hubrc/lib/%s" hme hn
 
+db_re :: String -> Regex
+db_re hme = mk_re $ printf "%s/.hubrc/lib/([^/]*)/%s/?" hme package_config
 
 hn2fp :: HubName -> FilePath
 hn2fp = (++ ".xml")
 
-hn2db :: HubName -> FilePath
-hn2db = id
-
 fp2hn :: FilePath -> Maybe HubName
 fp2hn = match xml_fn_re
 
+hubUserLib :: Hub -> IO (FilePath,FilePath)
+hubUserLib hub = 
+     do hme <- home
+        case usr_dbHUB hub of
+          Nothing -> oops SysO "no user DB speceified for this hub"
+          Just db -> case match (db_re hme) db of
+                       Just hn | hn==name__HUB hub
+                            -> return $ (user_lib hme hn,db)
+                       _    -> oops SysO "hub has non-standard user-database path"
+
 xml_fn_re :: Regex
 xml_fn_re = mk_re "(.*)\\.xml"
+
 
 
 defaultGlobalHubName :: IO HubName
@@ -215,17 +231,18 @@ isUserHub hn = userHubPath hn >>= fileExists
 
 createHubDirs :: IO ()
 createHubDirs =
-     do (hub,db) <- userHubDirs 
-        createDirectoryIfMissing True  hub
-        createDirectoryIfMissing False db
+     do (hub,lib) <- userHubDirs 
+        createDirectoryIfMissing True hub
+        createDirectoryIfMissing True lib
 
 userHubPath :: HubName -> IO FilePath
-userHubPath hn = fst `fmap` userHubPaths hn
+userHubPath hn = (\(h_fp,_,_)->h_fp) `fmap` userHubPaths hn
 
-userHubPaths :: HubName -> IO (FilePath,FilePath)
+userHubPaths :: HubName -> IO (FilePath,FilePath,FilePath)
 userHubPaths hn = 
-     do (hub,db) <- userHubDirs 
-        return (hub </> hn2fp hn,db</>hn2db hn)
+     do (hub,lib) <- userHubDirs
+        let h_l = lib </> hn
+        return (hub </> hn2fp hn, h_l, h_l </> package_config)
 
 
 fst_hubname_c, hubname_c :: HubType -> Char -> Bool

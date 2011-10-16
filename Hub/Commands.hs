@@ -89,28 +89,32 @@ _xml hub = readAFile (path__HUB hub) >>= putStr
 
 _init :: Hub -> HubName -> IO ()
 _init hub0 hn = 
-     do userHubAvailable hn
-        createHubDirs
-        (h_fp,p_fp) <- userHubPaths hn
-        pkg_init hub0 p_fp
-        let hub = hub0 { name__HUB=hn, path__HUB=h_fp, usr_dbHUB=Just p_fp }
+     do createHubDirs
+        userHubAvailable hn
+        (h_fp,lib,db) <- userHubPaths hn
+        createDirectoryIfMissing True lib
+        pkg_init hub0 db
+        let hub = hub0 { name__HUB=hn, path__HUB=h_fp, usr_dbHUB=Just db }
         dump hub 
 
 _cp :: Hub -> HubName -> IO ()
 _cp hub hn =
-     do db0 <- not_global hub
-        createHubDirs
-        (h_fp,db) <- userHubPaths hn
-        cpFileDir db0 db
+     do createHubDirs
+        _    <- not_global hub
+        lib0 <- fst `fmap` hubUserLib hub
+        (h_fp,lib,db) <- userHubPaths hn
+        cpFileDir lib0 lib
         let hub' = hub { name__HUB=hn, path__HUB=h_fp, usr_dbHUB=Just db }
         pkg_recache hub' db
         dump hub'
 
 _mv :: Hub -> HubName -> IO ()
 _mv hub hn =
-     do db0 <- not_global hub
-        (h_fp,db) <- userHubPaths hn
-        mvFileDir db0 db
+     do createHubDirs
+        _    <- not_global hub
+        lib0 <- fst `fmap` hubUserLib hub
+        (h_fp,lib,db) <- userHubPaths hn
+        mvFileDir lib0 lib
         removeFile $ path__HUB hub
         let hub' = hub { name__HUB=hn, path__HUB=h_fp, usr_dbHUB=Just db }
         dump hub'
@@ -118,22 +122,24 @@ _mv hub hn =
 _rm :: Hub -> IO ()
 _rm hub =
      do _ <- not_global hub
-        (h_fp,db) <- userHubPaths $ name__HUB hub
+        (h_fp,lib,_) <- userHubPaths $ name__HUB hub
         removeFile h_fp
-        removeRF   db
+        removeRF   lib
 
 _swap :: Hub -> HubName -> IO ()
 _swap hub1 hn2 =
      do hub2 <- readHub hn2
         _    <- not_global hub1
         _    <- not_global hub2
-        db1 <- snd `fmap` userHubPaths (name__HUB hub1)
-        db2 <- snd `fmap` userHubPaths (name__HUB hub2)
+        lib1 <- x_lib `fmap` userHubPaths (name__HUB hub1)
+        lib2 <- x_lib `fmap` userHubPaths (name__HUB hub2)
         let hub1' = hub1 {name__HUB=name__HUB hub2,path__HUB=path__HUB hub2,usr_dbHUB=usr_dbHUB hub2}
             hub2' = hub2 {name__HUB=name__HUB hub1,path__HUB=path__HUB hub1,usr_dbHUB=usr_dbHUB hub1}
         dump hub1'
         dump hub2'
-        swap_files db1 db2 
+        swap_files lib1 lib2
+      where
+        x_lib (_,lib,_) = lib
 
 pkg_init :: Hub -> FilePath -> IO ()
 pkg_init hub fp =

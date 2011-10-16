@@ -77,7 +77,7 @@ prog as =
           Nothing  -> return Nothing
           Just prg -> 
              do hub <- current_hub
-                return $ Just $ cabal_fixup hub prg as 
+                Just `fmap` cabal_fixup hub prg as 
 
 hub_dispatch as = case as of
     ["--help"     ] ->                                      return $ Just $ HelpCL False help
@@ -255,22 +255,23 @@ glb_which_hub = readFile defaultHubPath
 
 
 
-cabal_fixup :: Hub -> Prog -> [String] -> CommandLine
-cabal_fixup hub prg as = ProgCL hub prg as' 
+cabal_fixup :: Hub -> Prog -> [String] -> IO CommandLine
+cabal_fixup hub prg as = ProgCL hub prg `fmap` cf_as 
       where
-        as'  = case enmPROG prg of
-                 CabalP -> ci_fixup (usr_dbHUB hub) as
-                 _      -> as 
+        cf_as  = case enmPROG prg of
+                   CabalP -> ci_fixup hub as
+                   _      -> return as 
 
-ci_fixup :: Maybe FilePath -> [String] -> [String]
-ci_fixup mb as =
+ci_fixup :: Hub -> [String] -> IO [String]
+ci_fixup hub as =
+     do (lib,db) <- hubUserLib hub
         case as of
-          "install"  :as' -> "install"   : x_as ++ as'
-          "upgrade"  :as' -> "upgrade"   : x_as ++ as'
-          "configure":as' -> "configure" : x_as ++ as'
-          _               -> as
+          "install"  :as' -> return $ "install"   : x_as lib db ++ as'
+          "upgrade"  :as' -> return $ "upgrade"   : x_as lib db ++ as'
+          "configure":as' -> return $ "configure" : x_as lib db ++ as'
+          _               -> return   as
       where
-        x_as = maybe [] (\db->["--package-db="++db]) mb
+        x_as lib db = ["--libdir="++lib,"--package-db="++db]
 
 default_global_hub :: IO Hub
 default_global_hub =
