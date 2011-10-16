@@ -6,6 +6,8 @@ module Hub.System
     , removeRF
     , cpFileDir
     , mvFileDir
+    , symLink
+    , lock
     , readAFile
     , writeAFile
     ) where
@@ -37,6 +39,12 @@ cpFileDir = winstub
 mvFileDir :: FilePath -> FilePath -> IO ()
 mvFileDir = winstub
 
+symLink :: FilePath -> FilePath -> IO ()
+symLink = winstub
+
+lock :: FilePath -> IO () -> IO ()
+lock = winstub
+
 --fileAvailable :: FilePath -> IO Bool
 --fileAvailable = winstub
 
@@ -50,7 +58,11 @@ import System.Exit
 import System.Posix.Env
 import System.Posix.Process
 import System.Posix.Files
+import System.Posix.IO
+import GHC.IO.Device
 import Text.Printf
+
+
 
 exec :: String -> Bool -> [String] -> Maybe [(String,String)] -> IO ()
 exec = executeFile
@@ -88,6 +100,19 @@ mvFileDir fp fp' =
           ExitSuccess   -> return ()
           ExitFailure n -> oops SysO $
                                 printf "mv failure (return code=%d)" n  
+
+
+symLink :: FilePath -> FilePath -> IO ()
+symLink = createSymbolicLink
+
+lock :: FilePath -> IO () -> IO ()
+lock fp bdy = 
+     do fd <- openFd fp WriteOnly Nothing defaultFileFlags
+        -- putStrLn "acquiring lock"
+        waitToSetLock fd (WriteLock,AbsoluteSeek,0,0)
+        -- putStrLn "lock acquired"
+        bdy
+        closeFd fd
 
 #endif
 
