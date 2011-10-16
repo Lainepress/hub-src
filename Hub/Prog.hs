@@ -36,25 +36,25 @@ ci_go :: Hub -> [String] -> FilePath -> IO ()
 ci_go hub as exe =
      do (lkf,sdb,ddb) <- ghc_paths hub
         lock lkf $
-         do removeFile  sdb
-            symLink sdb ddb
+         do catch (removeFile  sdb) (\_ -> return ())
+            symLink ddb sdb
             go as exe            
 
 ghc_paths :: Hub -> IO (FilePath,FilePath,FilePath)
 ghc_paths hub =
         case bin2toolchain $ hc_binHUB hub of
           Nothing  -> oops PrgO "GHC bin path not recognised"
-          Just ghc -> return $ ghc_paths' ghc
+          Just ghc -> return $ ghc_paths' hub ghc
           
-ghc_paths' :: String -> (FilePath,FilePath,FilePath)
-ghc_paths' ghc = (lkf,sdb,ddb)
+ghc_paths' :: Hub -> String -> (FilePath,FilePath,FilePath)
+ghc_paths' hub ghc = (lkf,sdb,ddb)
       where
         lkf = lib </> "hub-cabal-lock.txt"
         sdb = lib </> mkd "package.conf"
-        ddb = "/usr/hs/db" </>  mkd ghc
+        ddb = glb_dbHUB hub
         lib = printf "/usr/hs/ghc/%s/lib/ghc-%s" ghc ghc
 
-        mkd = if old then (++".d") else id 
+        mkd = if old then id else (++".d") 
 
         old = case ghc of
                 '6':'.':'1':'0':'.':_ -> True
