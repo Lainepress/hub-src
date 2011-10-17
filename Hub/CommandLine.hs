@@ -155,13 +155,17 @@ prog_mp = Map.fromList [ (nmePROG pg,pg) | pg<-map p2prog [minBound..maxBound] ]
 
 
 lu_help :: String -> IO String
-lu_help "--usage"   = lu_help "usage"
-lu_help "--help"    = lu_help "help"
-lu_help "--version" = lu_help "version"
+lu_help "--usage"   = dd_help `fmap` lu_help "usage"
+lu_help "--help"    = dd_help `fmap` lu_help "help"
+lu_help "--version" = dd_help `fmap` lu_help "version"
 lu_help cd =
         case sc_help cd $ lines help of
           Nothing  -> oops HubO $ printf "%s: hub command not recognised" cd
           Just hlp -> return hlp
+
+dd_help :: String -> String
+dd_help ('h':'u':'b':' ':t) = "hub --" ++ t
+dd_help hlp                 = hlp
 
 sc_help :: String -> [String] -> Maybe String
 sc_help _  []       = Nothing

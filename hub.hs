@@ -1,15 +1,19 @@
 module Main(main) where 
 
 import IO
+import Monad
 import System
 import Text.Printf
+import Hub.Build
+import Hub.System
+import Hub.Hub
 import Hub.CommandLine
 import Hub.Prog
 import Hub.Commands
 
 
 version :: String
-version = "0.0"
+version = "0.1"
 
 
 main :: IO ()
@@ -42,4 +46,8 @@ _help False hlp = putStr hlp
 _help True  hlp = hPutStrLn stderr hlp >> exitWith (ExitFailure 1)
 
 _vrsn :: IO ()
-_vrsn = putStrLn $ printf "hub %s" version
+_vrsn =
+     do putStr $ printf "hub %s (%s)\n" version build
+        ex <- fileExists sysVersion
+        when ex $
+            readAFile sysVersion >>= putStr

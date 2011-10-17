@@ -4,9 +4,9 @@ help :: String
 help = unlines
     [ "      Hub Help Page"
     , "  "
-    , "      --usage   is an aliase for the 'usage'   command"
-    , "      --help    is an aliase for the 'help'    command"
-    , "      --version is an aliase for the 'version' command"
+    , "      hub --usage   is an aliase for the 'hub usage'   command"
+    , "      hub --help    is an aliase for the 'hub help'    command"
+    , "      hub --version is an aliase for the 'hub version' command"
     , ""
     , "hub usage"
     , ""

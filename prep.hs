@@ -1,12 +1,13 @@
 module Main(main) where
 
+import Time
 import Text.Printf
 
 main :: IO ()
 main =
      do cts <- readFile "help.txt"
         writeFile "Hub/Help.hs" $ mk_text_mod  "Hub.Help" "help" cts
-        ckt <- getClockTime >>= toCalendarTime
+        clt <- getClockTime >>= toCalendarTime
         writeFile "Hub/Build.hs" $ mk_time_mod "Hub.Build" "build" clt
 
 mk_time_mod :: String -> String -> CalendarTime -> String
