@@ -33,6 +33,9 @@ Executable hub
                     bytestring,
                     haskell98
     Other-modules:  Hub.System
+                    Hub.Oops
+                    Hub.Help
+                    Hub.Build
                     Hub.Hub
                     Hub.Parse
                     Hub.CommandLine

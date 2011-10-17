@@ -114,23 +114,10 @@ hub_dispatch as = case as of
     _               ->                                      return   Nothing  
 
 usage :: String
-usage = unlines
-    [ "hub [--]help [<hub-command>]"
-    , "    [--]version"
-    , "    [--]usage"
-    , "    default [<hub>|-]"
-    , "    ls"    
-    , "    set  [<hub>|-]"
-    , "    info [<hub>]"
-    , "    name"
-    , "    path [<hub>]"
-    , "    xml  [<hub>]"
-    , "    init [<hub>] <hub>"
-    , "    cp   [<hub>] <hub>"
-    , "    mv   [<hub>] <hub>"
-    , "    rm           <hub>"
-    , "    swap [<hub>] <hub>"
-    ]
+usage = unlines $ filter is_hdr $ lines help
+      where
+        is_hdr ('h':'u':'b':' ':_) = True
+        is_hdr _                   = False
 
 data P
     = GhcP
@@ -168,6 +155,9 @@ prog_mp = Map.fromList [ (nmePROG pg,pg) | pg<-map p2prog [minBound..maxBound] ]
 
 
 lu_help :: String -> IO String
+lu_help "--usage"   = lu_help "usage"
+lu_help "--help"    = lu_help "help"
+lu_help "--version" = lu_help "version"
 lu_help cd =
         case sc_help cd $ lines help of
           Nothing  -> oops HubO $ printf "%s: hub command not recognised" cd

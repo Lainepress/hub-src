@@ -17,6 +17,7 @@ module Hub.Commands
     ) where
 
 import           Char
+import           Monad
 import           System.Cmd
 import           System.Exit
 import           System.FilePath
@@ -32,7 +33,7 @@ _default :: IO ()
 _default = defaultGlobalHubName >>= putStrLn
 
 _default_hub :: Maybe Hub -> IO ()
-_default_hub Nothing   = removeRF defaultHubPath
+_default_hub Nothing   = fileExists defaultHubPath >>= \ex -> when ex $ removeFile defaultHubPath
 _default_hub (Just hb) = is_global hb >>= writeAFile defaultHubPath
 
 _ls :: IO ()

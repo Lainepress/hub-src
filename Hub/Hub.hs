@@ -3,10 +3,13 @@ module Hub.Hub
     , Hub(..)
     , HubType(..)
     , homeHub
-    , hubBin
-    , defaultCabalBin
+    , hubLib
+    , sysVersion
+    , sysDefaultHubPath
     , defaultHubPath
     , globalHubDir
+    , hubBin
+    , defaultCabalBin
     , userHubDirs
     , hubUserLib
     , defaultGlobalHubName
@@ -26,9 +29,10 @@ module Hub.Hub
     , bin2platform
     ) where
 
-import           Data.Maybe
-import           Data.List
+import           IO
 import           Char
+import           List
+import           Data.Maybe
 import           System
 import           System.Directory
 import           System.FilePath
@@ -64,14 +68,18 @@ homeHub = "home"
 package_config :: FilePath
 package_config = "package.config"
 
-globalHubDir, hubBin, defaultCabalBin, defaultHubPath :: FilePath
+hubLib, sysVersion, sysDefaultHubPath, defaultHubPath, 
+        globalHubDir, hubBin, defaultCabalBin :: FilePath
 hc_bin_res, hp_bin_res :: String
-globalHubDir     = "/usr/hs/hub"
-hubBin           = "/usr/hs/bin"
-defaultCabalBin  = "/usr/hs/cabal" 
-defaultHubPath   = "/usr/hs/default.hub"
-hc_bin_res       = "/usr/hs/ghc/([a-z0-9.-_]+)/bin"
-hp_bin_res       = "/usr/hs/hp/([a-z0-9.-_]+)/bin"
+hubLib            = "/usr/hs/lib"
+sysVersion        = "/usr/hs/lib/version.txt"
+sysDefaultHubPath = "/usr/hs/lib/sys-default.hub"
+defaultHubPath    = "/usr/hs/lib/the-default.hub"
+globalHubDir      = "/usr/hs/hub"
+hubBin            = "/usr/hs/bin"
+defaultCabalBin   = "/usr/hs/cabal" 
+hc_bin_res        = "/usr/hs/ghc/([a-z0-9.-_]+)/bin"
+hp_bin_res        = "/usr/hs/hp/([a-z0-9.-_]+)/bin"
 
 userHubDirs :: IO (FilePath,FilePath)
 userHubDirs = 
@@ -108,20 +116,38 @@ xml_fn_re = mk_re "(.*)\\.xml"
 
 
 defaultGlobalHubName :: IO HubName
-defaultGlobalHubName = 
-     do ds <- fileExists defaultHubPath
-        case ds of
-          True  ->
-             do hn <- trim `fmap` readAFile defaultHubPath
-                checkHubName GlbHT hn
-                return hn
-          False ->
-             do hns <- lsHubs GlbHT
-                case default_hub hns of
-                  Nothing -> oops SysO "no global hubs!"
-                  Just hn -> return hn
+defaultGlobalHubName = sel
+        [ usr_df     -- user-spec default
+        , sys_df     -- system    default (may not be installed)
+        , lhp_df     -- looks like the latest H.P. (guess)
+        , lst_df     -- lexigographical maximum 
+        ]
       where
-        trim = reverse . dropWhile isSpace . reverse . dropWhile isSpace
+        sel []        = oops SysO "no global hubs!"
+        sel (p:ps)    =
+                 do ei <- try $ trim `fmap` p
+                    case ei of
+                      Left  _  -> sel ps
+                      Right hn -> 
+                         do ex <- fileExists $ globalHubPath hn
+                            case ex of
+                              True  -> return hn
+                              False -> sel ps
+
+        usr_df        = readAFile defaultHubPath
+
+        sys_df        = readAFile sysDefaultHubPath
+
+        lhp_df        = mx_fr $ gmatch hp_hub_re
+        
+        lst_df        = mx_fr $ const True
+
+        mx_fr  p      = (filter p `fmap` lsHubs GlbHT) >>= mx 
+
+        mx     []     = ioError $ userError "Hub.Hub: internal error"
+        mx     (x:xs) = return  $ foldl max x xs
+                
+        hp_hub_re     = mk_re "20[0-9][0-9]\\.[0-9]\\.[0-9]\\.[0-9]"
 
 hubExists :: HubName -> IO ()
 hubExists hn =
@@ -133,27 +159,6 @@ hubExists hn =
           True  -> return ()
           False -> oops SysO $ printf "%s: no such hub" hn
 
-default_hub :: [HubName] -> Maybe HubName
-default_hub hns0 =
-        case filter hp_hub hns of
-          [] -> case hns of
-                  []   -> Nothing
-                  hn:_ -> Just hn
-          hn:_ -> Just hn
-      where
-        hns     = sortBy dec hns0
-        
-        dec x y = case compare x y of
-                    GT -> LT
-                    EQ -> EQ
-                    LT -> GT
-
-        hp_hub = isJust . matchRegex hp_hub_re 
-        
-hp_hub_re :: Regex
-hp_hub_re = mk_re "20[0-9][0-9]\\.[0-9]\\.[0-9]\\.[0-9]"
-
-
 lsHubs :: HubType -> IO [HubName]
 lsHubs GlbHT = ls_glb_hubs
 lsHubs UsrHT = ls_usr_hubs
@@ -163,14 +168,14 @@ lsHubs AnyHT =
         return $ g_hns ++ u_hns
 
 ls_glb_hubs :: IO [HubName]
-ls_glb_hubs = chk `fmap` getDirectoryContents globalHubDir
+ls_glb_hubs = (sort . chk) `fmap` getDirectoryContents globalHubDir
       where
         chk fps = [ hn | fp<-fps, Just hn<-[fp2hn fp], is_hub_name GlbHT hn ]
 
 ls_usr_hubs :: IO [HubName]
 ls_usr_hubs = 
      do dp <- fst `fmap` userHubDirs
-        chk `fmap` getDirectoryContents dp
+        (sort . chk) `fmap` getDirectoryContents dp
       where
         chk fps = [ hn | fp<-fps, Just hn<-[fp2hn fp], is_hub_name UsrHT hn ]
 
@@ -249,7 +254,7 @@ fst_hubname_c, hubname_c :: HubType -> Char -> Bool
 fst_hubname_c AnyHT c = glb_first_hub_name_c c || usr_first_hub_name_c c
 fst_hubname_c GlbHT c = glb_first_hub_name_c c
 fst_hubname_c UsrHT c = usr_first_hub_name_c c
-hubname_c     _     c = c `elem` "_." || isAlpha c || isDigit c
+hubname_c     _     c = c `elem` "_-." || isAlpha c || isDigit c
 
 glb_first_hub_name_c, usr_first_hub_name_c :: Char -> Bool
 glb_first_hub_name_c c = isDigit c
@@ -266,10 +271,16 @@ bin2platform  = match $ mk_re hp_bin_res
 mk_re :: String -> Regex
 mk_re re_str = mkRegexWithOpts (printf "^%s$" re_str) False True
 
+gmatch :: Regex -> String -> Bool
+gmatch re st = isJust $ matchRegex re st
+
 match :: Regex -> String -> Maybe String
 match re st = case matchRegex re st of
                 Just [se] -> Just se
-                _         -> Nothing 
+                _         -> Nothing
+
+trim :: String -> String
+trim = reverse . dropWhile isSpace . reverse . dropWhile isSpace
 
 
 home :: IO FilePath
