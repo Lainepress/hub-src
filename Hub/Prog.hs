@@ -1,5 +1,6 @@
 module Hub.Prog (_prog) where
 
+import IO
 import System.Directory
 import System.FilePath
 import Text.Printf
@@ -34,6 +35,13 @@ set_pkg_path hub = setEnv "GHC_PACKAGE_PATH" pth True
 
 ci_go :: Hub -> [String] -> FilePath -> IO ()
 ci_go hub as exe =
+     do ei <- try $ fileExists "/usr/hs/lib/safe-cabal"
+        case ei of
+          Right True -> ci_go' hub as exe
+          _          -> go         as exe
+
+ci_go' :: Hub -> [String] -> FilePath -> IO ()
+ci_go' hub as exe =
      do (lkf,sdb,ddb) <- ghc_paths hub
         lock lkf $
          do catch (removeFile  sdb) (\_ -> return ())
