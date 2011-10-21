@@ -1,13 +1,15 @@
 module Hub.System
     ( setEnv
-    , exec
     , fileExists
     , fileDirExists
     , removeRF
     , cpFileDir
     , mvFileDir
     , symLink
-    , lock
+    , inc
+    , tidyDir
+    , exec
+    , go
     , readAFile
     , writeAFile
     ) where
@@ -42,8 +44,17 @@ mvFileDir = winstub
 symLink :: FilePath -> FilePath -> IO ()
 symLink = winstub
 
-lock :: FilePath -> IO () -> IO ()
-lock = winstub
+inc :: FilePath -> IO Int
+inc = winstub 
+
+go :: [String] -> FilePath -> IO a
+go = winstub
+
+exec :: [String] -> FilePath -> IO ExitCode
+exec = winstub
+
+tidyDir :: FilePath -> IO ()
+tidyDir = winstub
 
 --fileAvailable :: FilePath -> IO Bool
 --fileAvailable = winstub
@@ -53,19 +64,18 @@ winstub = error "winstub"
 
 #else
 
+import Monad
+import Directory
 import System.Cmd
 import System.Exit
 import System.Posix.Env
-import System.Posix.Process
 import System.Posix.Files
+import System.Posix.Process
 import System.Posix.IO
 import GHC.IO.Device
 import Text.Printf
 
 
-
-exec :: String -> Bool -> [String] -> Maybe [(String,String)] -> IO ()
-exec = executeFile
 
 fileExists :: FilePath -> IO Bool
 fileExists fp = flip catch (\_->return False) $
@@ -105,15 +115,45 @@ mvFileDir fp fp' =
 symLink :: FilePath -> FilePath -> IO ()
 symLink = createSymbolicLink
 
-lock :: FilePath -> IO () -> IO ()
-lock fp bdy = 
-     do fd <- openFd fp WriteOnly Nothing defaultFileFlags
+
+go :: [String] -> FilePath -> IO a
+go as exe   = executeFile exe True as Nothing
+
+exec :: [String] -> FilePath -> IO ExitCode
+exec as exe = rawSystem exe as
+
+
+inc :: FilePath -> IO Int
+inc fp = 
+     do fd <- openFd fp ReadWrite (Just stdFileMode) defaultFileFlags
         -- putStrLn "acquiring lock"
         waitToSetLock fd (WriteLock,AbsoluteSeek,0,0)
-        -- putStrLn "lock acquired"
-        bdy
+        --putStrLn "lock acquired"
+        i <- rd_i fd
+        _ <- fdSeek fd AbsoluteSeek 0
+        _ <- fdWrite fd $ show $ i+1
         closeFd fd
+        return i
+      where
+        rd_i fd =
+             do (s,_) <- catch (fdRead fd 64) (\_->return ("",0))
+                return $ maybe 0 id $ readMB s
 
+tidyDir :: FilePath -> IO ()
+tidyDir dp = flip catch (\_->return ()) $
+     do e <- all dots `fmap` getDirectoryContents dp 
+        when e $ removeDirectory dp
+      where
+        dots "."  = True
+        dots ".." = True
+        dots _    = False
+        
+readMB :: Read a => String -> Maybe a
+readMB str =
+    case [ x | (x,t)<-reads str, ("","")<-lex t ] of
+      [x] -> Just x
+      _   -> Nothing
+                 
 #endif
 
 readAFile :: FilePath -> IO String

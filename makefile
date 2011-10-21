@@ -4,10 +4,10 @@ HC = mkdir -p $(OD); ghc -cpp --make -outputdir build -Wall
 
 all: hub
 
-hub: Hub/Help.hs
+hub: prep
 	$(HC) -cpp -Wall --make -o $(OD)/hub hub.hs
 
-Hub/Help.hs: help.txt
+prep:
 	runhaskell prep
 
 install:

@@ -64,15 +64,15 @@ _name hub = putStrLn $ name__HUB hub
 
 _info :: Hub -> IO ()
 _info hub = putStr $ unlines $
-    [ printf "%s (%s hub)"                              name ht                                                             ] ++
-    [ printf "   Toolchain       : GHC %s"              hc      |                         Just hc <- [bin2toolchain hc_bin] ] ++
-    [ printf "   Tools           : %s"                  hc_bin                                                              ] ++
-    [ printf "   Platform        : Haskell Platform %s" hp      | Just hp_bin <- [mb_hp], Just hp <- [bin2platform  hp_bin] ] ++ 
-    [ printf "   Platform Tools  : %s"                  hp_bin  | Just hp_bin <- [mb_hp]                                    ] ++ 
-    [ printf "   Cabal           : %s/cabal"            ci_bin
+    [ printf "%s (%s hub)"                     name ht                                                             ] ++
+    [ printf "   GHC              : %s" hc             |                         Just hc <- [bin2toolchain hc_bin] ] ++
+    [ printf "   Haskell Platform : %s" hp             | Just hp_bin <- [mb_hp], Just hp <- [bin2platform  hp_bin] ] ++ 
+    [ printf "   Tools            : %s"        hc_bin                                                              ] ++
+    [ printf "   Platform Tools   : %s"        hp_bin  | Just hp_bin <- [mb_hp]                                    ] ++ 
+    [ printf "   Cabal            : %s/cabal"  ci_bin
     ,        "   Package DBs"
-    , printf "      global       : %s"                  glb_db                                                              ] ++
-    [ printf "      user         : %s"                  usr_db  | Just usr_db <- [mb_ud]                                    ]
+    , printf "      global        : %s"        glb_db                                                              ] ++
+    [ printf "      user          : %s"        usr_db  | Just usr_db <- [mb_ud]                                    ]
   where
     ht     = if isGlobal name then "global" else "user"
     name   = name__HUB hub
@@ -106,7 +106,6 @@ _cp hub hn =
         (h_fp,lib,db) <- userHubPaths hn
         cpFileDir lib0 lib
         let hub' = hub { name__HUB=hn, path__HUB=h_fp, usr_dbHUB=Just db }
-        pkg_recache hub' db
         dump hub'
 
 _mv :: Hub -> HubName -> IO ()
@@ -145,16 +144,6 @@ _swap hub1 hn2 =
 pkg_init :: Hub -> FilePath -> IO ()
 pkg_init hub fp =
      do ec <- rawSystem ghc_pkg ["init",fp]
-        case ec of
-          ExitSuccess   -> return ()
-          ExitFailure n -> oops HubO $
-                                printf "ghc-pkg failure (return code=%d)" n  
-      where
-        ghc_pkg = hc_binHUB hub </> "ghc-pkg"
-
-pkg_recache :: Hub -> FilePath -> IO ()
-pkg_recache hub fp = 
-     do ec <- rawSystem ghc_pkg ["recache","-f",fp]
         case ec of
           ExitSuccess   -> return ()
           ExitFailure n -> oops HubO $

@@ -11,6 +11,7 @@ module Hub.Hub
     , hubBin
     , defaultCabalBin
     , userHubDirs
+    , allocate
     , hubUserLib
     , defaultGlobalHubName
     , hubExists
@@ -84,9 +85,18 @@ hp_bin_res        = "/usr/hs/hp/([a-z0-9.-_]+)/bin"
 userHubDirs :: IO (FilePath,FilePath)
 userHubDirs = 
      do hme <- home
-        let hub = printf "%s/.hubrc/hub" hme
-            lib = printf "%s/.hubrc/lib" hme
+        let hub =                       printf "%s/.hubrc/hub" hme
+            lib =                       printf "%s/.hubrc/lib" hme
         return (hub,lib)
+
+allocate :: IO FilePath
+allocate =
+     do hme <- home
+        createDirectoryIfMissing True $ printf "%s/.hubrc/heap"             hme
+        i <- inc                      $ printf "%s/.hubrc/heap/counter.txt" hme
+        let pth =                       printf "%s/.hubrc/heap/%d"          hme i
+        createDirectoryIfMissing True   pth
+        return pth
 
 user_lib :: FilePath -> HubName -> FilePath
 user_lib hme hn = printf "%s/.hubrc/lib/%s" hme hn

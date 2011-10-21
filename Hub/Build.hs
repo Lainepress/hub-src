@@ -1,4 +1,4 @@
 module Hub.Build(build) where
 
 build :: String
-build = "Mon Oct 17 18:26:48 BST 2011"
+build = "Fri Oct 21 04:11:27 BST 2011"

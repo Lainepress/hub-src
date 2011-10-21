@@ -37,7 +37,7 @@ commandLine =
 
 
 data CommandLine
-    = ProgCL Hub Prog [String]
+    = ProgCL Hub (Prog,[String])
     | HelpCL Bool String   -- False => help, True => usage
     | VrsnCL
     | DfltCL
@@ -64,7 +64,7 @@ data Prog = PROG {
     typPROG :: ProgType
     }                                                           deriving (Show)
 
-data ProgType = HcPT | CiPT | HpPT
+data ProgType = HcPT | CiPT (Maybe FilePath) | HpPT
                                                                 deriving (Show)
 
 
@@ -91,7 +91,7 @@ hub_dispatch as = case as of
     ["default"    ] ->                                      return $ Just $ DfltCL
     ["default","-"] ->                                      return $ Just $ RsDfCL
     ["default",hn ] -> readHub          hn      >>= \hub -> return $ Just $ StDfCL hub
-    ["ls"         ] ->                                      return $ Just $ LsCL
+    ["ls"         ] -> createHubDirs            >>= \_   -> return $ Just $ LsCL
     ["set"        ] ->                                      return $ Just $ GetCL
     ["set","-"    ] ->                                      return $ Just $ UnsetCL
     ["set",hn     ] -> readHub          hn      >>= \hub -> return $ Just $ SetCL  hub
@@ -146,7 +146,7 @@ p2prog p =
       Hsc2hsP            -> PROG p "hsc2hs"               HcPT
       RunghcP            -> PROG p "runghc"               HcPT
       RunhaskellP        -> PROG p "runhaskell"           HcPT
-      CabalP             -> PROG p "cabal"                CiPT
+      CabalP             -> PROG p "cabal"               (CiPT Nothing)
       AlexP              -> PROG p "alex"                 HpPT
       HappyP             -> PROG p "happy"                HpPT
 
@@ -250,22 +250,28 @@ glb_which_hub = readFile defaultHubPath
 
 
 cabal_fixup :: Hub -> Prog -> [String] -> IO CommandLine
-cabal_fixup hub prg as = ProgCL hub prg `fmap` cf_as 
+cabal_fixup hub prg as = ProgCL hub `fmap` cf_as 
       where
         cf_as  = case enmPROG prg of
-                   CabalP -> ci_fixup hub as
-                   _      -> return as 
+                   CabalP -> ci_fixup hub prg as
+                   _      -> return (prg,as) 
 
-ci_fixup :: Hub -> [String] -> IO [String]
-ci_fixup hub as =
-     do (lib,db) <- hubUserLib hub
+ci_fixup :: Hub -> Prog -> [String] -> IO (Prog,[String])
+ci_fixup hub prg as =
+     do db <- snd `fmap` hubUserLib hub
         case as of
-          "install"  :as' -> return $ "install"   : x_as lib db ++ as'
-          "upgrade"  :as' -> return $ "upgrade"   : x_as lib db ++ as'
-          "configure":as' -> return $ "configure" : x_as lib db ++ as'
-          _               -> return   as
+          "install"  :as' -> alloc db "install"   as'
+          "upgrade"  :as' -> alloc db "upgrade"   as'
+          "configure":as' -> alloc db "configure" as'
+          _               -> return (prg,as)
       where
-        x_as lib db = ["--libdir="++lib,"--package-db="++db]
+        alloc db cmd as' =
+             do ln <- allocate
+                let prg' = prg { typPROG = CiPT (Just ln) }
+                return ( prg' , cmd : _ld ln : _pd db : as' )                                 
+
+        _ld ln = "--libdir="     ++ ln
+        _pd db = "--package-db=" ++ db
 
 default_global_hub :: IO Hub
 default_global_hub =
