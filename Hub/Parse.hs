@@ -5,7 +5,7 @@ module Hub.Parse
     , PSt(..) -- kill warnings
     ) where
 
-import           Char
+import           Data.Char
 import           Text.Printf
 import qualified Data.ByteString          as B
 import qualified Text.XML.Expat.Annotated as X

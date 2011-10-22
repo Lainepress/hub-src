@@ -16,8 +16,9 @@ module Hub.Commands
     , _swap
     ) where
 
-import           Char
-import           Monad
+import qualified Control.Exception      as E
+import           Data.Char
+import           Control.Monad
 import           System.Cmd
 import           System.Exit
 import           System.FilePath
@@ -170,7 +171,7 @@ swap_files fp fp' = swap_files'' fp fp' $ oops SysO
 --swap_files' fp fp' tdy = swap_files'' fp fp' $ \err -> tdy >> oops SysO err
 
 swap_files'' :: FilePath -> FilePath -> (String->IO ()) -> IO ()
-swap_files'' fp fp' h = catch (sw_files fp fp') $ \_ -> h err
+swap_files'' fp fp' h = catchIO (sw_files fp fp') $ \_ -> h err
       where
         err = printf "Failed to swap %s and %s (permissions?)" fp fp' 
 
@@ -192,3 +193,6 @@ mk_tmp i fp =
 
 trim :: String -> String
 trim = reverse . dropWhile isSpace . reverse . dropWhile isSpace
+
+catchIO :: IO a -> (IOError->IO a) -> IO a
+catchIO = E.catch

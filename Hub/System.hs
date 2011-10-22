@@ -64,26 +64,27 @@ winstub = error "winstub"
 
 #else
 
-import Monad
-import Directory
+import           Control.Monad
+import qualified Control.Exception      as E
+import           System.Directory
+import System.IO
 import System.Cmd
 import System.Exit
 import System.Posix.Env
 import System.Posix.Files
 import System.Posix.Process
 import System.Posix.IO
-import GHC.IO.Device
 import Text.Printf
 
 
 
 fileExists :: FilePath -> IO Bool
-fileExists fp = flip catch (\_->return False) $
+fileExists fp = flip E.catch (hdl_ioe False) $
      do st <- getFileStatus fp
         return $ isRegularFile st
 
 fileDirExists :: FilePath -> IO Bool
-fileDirExists fp = flip catch (\_->return False) $
+fileDirExists fp = flip E.catch (hdl_ioe False) $
      do st <- getFileStatus fp
         return $ isRegularFile st || isDirectory st
         
@@ -136,11 +137,11 @@ inc fp =
         return i
       where
         rd_i fd =
-             do (s,_) <- catch (fdRead fd 64) (\_->return ("",0))
+             do (s,_) <- E.catch (fdRead fd 64) (hdl_ioe ("",0))
                 return $ maybe 0 id $ readMB s
 
 tidyDir :: FilePath -> IO ()
-tidyDir dp = flip catch (\_->return ()) $
+tidyDir dp = flip E.catch (hdl_ioe ()) $
      do e <- all dots `fmap` getDirectoryContents dp 
         when e $ removeDirectory dp
       where
@@ -153,7 +154,10 @@ readMB str =
     case [ x | (x,t)<-reads str, ("","")<-lex t ] of
       [x] -> Just x
       _   -> Nothing
-                 
+
+hdl_ioe :: a -> IOError -> IO a
+hdl_ioe x _ = return x
+
 #endif
 
 readAFile :: FilePath -> IO String

@@ -1,21 +1,23 @@
 module Main(main) where
 
-import Time
+import System.Locale
+import Data.Time
 import Text.Printf
 
 main :: IO ()
 main =
      do cts <- readFile "help.txt"
         writeFile "Hub/Help.hs" $ mk_text_mod  "Hub.Help" "help" cts
-        clt <- getClockTime >>= toCalendarTime
-        writeFile "Hub/Build.hs" $ mk_time_mod "Hub.Build" "build" clt
+        ztm <- getZonedTime
+        writeFile "Hub/Build.hs" $ mk_time_mod "Hub.Build" "build" ztm
 
-mk_time_mod :: String -> String -> CalendarTime -> String
-mk_time_mod mn fn clt = unlines
+mk_time_mod :: String -> String -> ZonedTime -> String
+mk_time_mod mn fn zt = unlines
                    [ printf "module %s(%s) where" mn fn
                    ,        ""
                    , printf "%s :: String" fn
-                   , printf "%s = %s"      fn $ show $ calendarTimeToString clt
+                   , printf "%s = %s"      fn $ show $
+                                    formatTime defaultTimeLocale "%F  %T %z" zt                                    
                    ]
 
 mk_text_mod :: String -> String -> String -> String

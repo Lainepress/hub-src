@@ -8,11 +8,11 @@ module Hub.CommandLine
     , readHub
     ) where
 
-import           Char
-import           Maybe
-import           Monad
-import           IO
-import           System
+import qualified Control.Exception      as E
+import           Data.Char
+import           Data.Maybe
+import           Control.Monad
+import           System.Environment
 import           System.Directory
 import           System.FilePath
 import qualified Data.Map       as Map
@@ -209,7 +209,7 @@ hub_pair' sw hn hn' =
 
 which_hub :: IO HubName
 which_hub =
-     do ei <- try $ getEnv "HUB"
+     do ei <- tryIO $ getEnv "HUB"
         hn <- case ei of
                 Left  _ -> trim `fmap` dir_which_hub True
                 Right s -> trim `fmap` env_which_hub s
@@ -232,7 +232,7 @@ dir_which_hub def_usr =
       where
         w_h [] | def_usr   = usr_which_hub
                | otherwise = oops HubO "no hub specified"
-        w_h (d:ds)         = catch (here (d:ds)) (\_ -> w_h ds)
+        w_h (d:ds)         = catchIO (here (d:ds)) (\_ -> w_h ds)
         
         here r_ds  = readAFile (joinPath $ reverse $ ".hub":r_ds)
 
@@ -289,3 +289,9 @@ match re = isJust . matchRegex re
 
 trim :: String -> String
 trim = reverse . dropWhile isSpace . reverse . dropWhile isSpace
+
+tryIO :: IO a -> IO (Either IOError a)
+tryIO = E.try
+
+catchIO :: IO a -> (IOError->IO a) -> IO a
+catchIO = E.catch

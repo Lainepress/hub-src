@@ -30,11 +30,11 @@ module Hub.Hub
     , bin2platform
     ) where
 
-import           IO
-import           Char
-import           List
+import qualified Control.Exception      as E
+import           Data.Char
+import           Data.List
 import           Data.Maybe
-import           System
+import           System.Environment
 import           System.Directory
 import           System.FilePath
 import           Text.Printf
@@ -135,7 +135,7 @@ defaultGlobalHubName = sel
       where
         sel []        = oops SysO "no global hubs!"
         sel (p:ps)    =
-                 do ei <- try $ trim `fmap` p
+                 do ei <- tryIO $ trim `fmap` p
                     case ei of
                       Left  _  -> sel ps
                       Right hn -> 
@@ -294,5 +294,10 @@ trim = reverse . dropWhile isSpace . reverse . dropWhile isSpace
 
 
 home :: IO FilePath
-home = catch (getEnv "HOME") $ \_ -> return "/"
+home = catchIO (getEnv "HOME") $ \_ -> return "/"
 
+tryIO :: IO a -> IO (Either IOError a)
+tryIO = E.try
+
+catchIO :: IO a -> (IOError->IO a) -> IO a
+catchIO = E.catch

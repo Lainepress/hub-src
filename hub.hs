@@ -1,8 +1,8 @@
 module Main(main) where 
 
-import IO
-import Monad
-import System
+import Control.Monad
+import System.IO
+import System.Exit
 import Text.Printf
 import Hub.Build
 import Hub.System

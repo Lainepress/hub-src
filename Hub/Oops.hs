@@ -3,8 +3,9 @@ module Hub.Oops
     , oops
     ) where
 
-import IO
-import System
+import System.IO
+import System.Exit
+import System.Environment
 import System.FilePath
 import Text.Printf
 
