@@ -38,7 +38,7 @@ _default_hub Nothing   = fileExists defaultHubPath >>= \ex -> when ex $ removeFi
 _default_hub (Just hb) = is_global hb >>= writeAFile defaultHubPath
 
 _ls :: IO ()
-_ls = do hns <- lsHubs AnyHT; putStr $ unlines hns
+_ls = do hns <- lsHubs HubHT; putStr $ unlines hns
 
 _get :: IO ()
 _get =
@@ -47,11 +47,11 @@ _get =
           False -> putStrLn "No hub set for this directory"
           True  -> 
              do hn <- trim `fmap` readAFile ".hub"
-                checkHubName AnyHT hn
+                checkHubName HubHT hn
                 putStrLn hn
                 
 _set :: Hub -> IO ()
-_set hub = writeAFile ".hub" $ name__HUB hub ++ "\n"
+_set hub = writeAFile ".hub" $ hubName hub ++ "\n"
 
 _unset ::   IO ()
 _unset =
@@ -70,12 +70,16 @@ _info hub = putStr $ unlines $
     [ printf "   Haskell Platform : %s" hp             | Just hp_bin <- [mb_hp], Just hp <- [bin2platform  hp_bin] ] ++ 
     [ printf "   Tools            : %s"        hc_bin                                                              ] ++
     [ printf "   Platform Tools   : %s"        hp_bin  | Just hp_bin <- [mb_hp]                                    ] ++ 
-    [ printf "   Cabal            : %s/cabal"  ci_bin
-    ,        "   Package DBs"
-    , printf "      global        : %s"        glb_db                                                              ] ++
-    [ printf "      user          : %s"        usr_db  | Just usr_db <- [mb_ud]                                    ]
+    [ printf "   Cabal            : %s/cabal"  ci_bin                                                              ] ++
+    [        "   Package DBs"                          |                         type__HUB hub/=NveHT              ] ++
+    [ printf "      global        : %s"        glb_db  |                         type__HUB hub/=NveHT              ] ++
+    [ printf "      user          : %s"        usr_db  | Just usr_db <- [mb_ud], type__HUB hub/=NveHT              ]
   where
-    ht     = if isGlobal name then "global" else "user"
+    ht     = case type__HUB hub of
+                NveHT -> "native"
+                GlbHT -> "global"
+                UsrHT -> "user"
+                _     -> ""
     name   = name__HUB hub
     hc_bin = hc_binHUB hub
     ci_bin = ci_binHUB hub
@@ -129,9 +133,8 @@ _rm hub =
 
 _swap :: Hub -> HubName -> IO ()
 _swap hub1 hn2 =
-     do hub2 <- readHub hn2
-        _    <- not_global hub1
-        _    <- not_global hub2
+     do _    <- not_global hub1
+        hub2 <- readHub UsrHT hn2
         lib1 <- x_lib `fmap` userHubPaths (name__HUB hub1)
         lib2 <- x_lib `fmap` userHubPaths (name__HUB hub2)
         let hub1' = hub1 {name__HUB=name__HUB hub2,path__HUB=path__HUB hub2,usr_dbHUB=usr_dbHUB hub2}

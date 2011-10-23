@@ -10,6 +10,7 @@ module Hub.Hub
     , globalHubDir
     , hubBin
     , defaultCabalBin
+    , hubGccBin
     , hubBinutilsBin
     , userHubDirs
     , allocate
@@ -20,6 +21,7 @@ module Hub.Hub
     , isGlobal
     , globalHubPath
     , checkHubName
+    , checkHubName'
     , userHubAvailable
     , userHubExists
     , userHubName
@@ -27,6 +29,7 @@ module Hub.Hub
     , createHubDirs
     , userHubPath
     , userHubPaths
+    , hubName
     , bin2toolchain
     , bin2platform
     ) where
@@ -48,6 +51,7 @@ type HubName = String
 
 
 data Hub = HUB {
+    type__HUB :: HubType,
     name__HUB :: HubName,
     path__HUB :: FilePath,
     hc_binHUB :: FilePath,
@@ -60,9 +64,11 @@ data Hub = HUB {
 
 data HubType
     = AnyHT
-    | GlbHT
+    | NveHT     -- Global      Hub with poss. native prefix designator ('-')
+    | HubHT     -- Global/User Hub
+    | GlbHT     --        User Hub
     | UsrHT
-                                                                deriving (Show)
+                                                         deriving (Eq,Ord,Show)
 
 homeHub :: FilePath
 homeHub = "home"
@@ -70,8 +76,8 @@ homeHub = "home"
 package_config :: FilePath
 package_config = "package.config"
 
-hubLib, sysVersion, sysDefaultHubPath, defaultHubPath, 
-        globalHubDir, hubBin, defaultCabalBin, hubBinutilsBin :: FilePath
+hubLib, sysVersion, sysDefaultHubPath, defaultHubPath, globalHubDir, hubBin,
+                        defaultCabalBin, hubGccBin, hubBinutilsBin :: FilePath
 hc_bin_res, hp_bin_res :: String
 hubLib            = "/usr/hs/lib"
 sysVersion        = "/usr/hs/lib/version.txt"
@@ -80,6 +86,7 @@ defaultHubPath    = "/usr/hs/lib/the-default.hub"
 globalHubDir      = "/usr/hs/hub"
 hubBin            = "/usr/hs/bin"
 defaultCabalBin   = "/usr/hs/cabal" 
+hubGccBin         = "/usr/hs/gcc/bin"
 hubBinutilsBin    = "/usr/hs/binutils/bin"
 hc_bin_res        = "/usr/hs/ghc/([a-z0-9.-_]+)/bin"
 hp_bin_res        = "/usr/hs/hp/([a-z0-9.-_]+)/bin"
@@ -124,8 +131,6 @@ hubUserLib hub =
 
 xml_fn_re :: Regex
 xml_fn_re = mk_re "(.*)\\.xml"
-
-
 
 defaultGlobalHubName :: IO HubName
 defaultGlobalHubName = sel
@@ -172,9 +177,11 @@ hubExists hn =
           False -> oops SysO $ printf "%s: no such hub" hn
 
 lsHubs :: HubType -> IO [HubName]
+lsHubs AnyHT = lsHubs HubHT          -- hmn, probably shouldn't happen
+lsHubs NveHT = lsHubs GlbHT          -- nor this
 lsHubs GlbHT = ls_glb_hubs
 lsHubs UsrHT = ls_usr_hubs
-lsHubs AnyHT =
+lsHubs HubHT =
      do g_hns <- ls_glb_hubs
         u_hns <- ls_usr_hubs 
         return $ g_hns ++ u_hns
@@ -206,12 +213,17 @@ globalHubPath hn = globalHubDir </> hn2fp hn
 -- tests for presence of Hub
 
 checkHubName :: HubType -> HubName -> IO ()
-checkHubName ht hn
-    | is_hub_name ht hn = return ()
+checkHubName ht hn = (const ()) `fmap` checkHubName' ht hn
+
+checkHubName' :: HubType -> HubName -> IO (HubType,HubName)
+checkHubName' ht hn
+    | is_hub_name ht hn = return $ hub_name_type hn
     | otherwise         = oops SysO $ printf "%s: invalid %shub name" hn ht_s
       where
         ht_s =  case ht of
                   AnyHT -> ""
+                  HubHT -> "regular "
+                  NveHT -> "native/global "
                   GlbHT -> "global "
                   UsrHT -> "user "
 
@@ -262,16 +274,32 @@ userHubPaths hn =
         return (hub </> hn2fp hn, h_l, h_l </> package_config)
 
 
-fst_hubname_c, hubname_c :: HubType -> Char -> Bool
-fst_hubname_c AnyHT c = glb_first_hub_name_c c || usr_first_hub_name_c c
+fst_hubname_c :: HubType -> Char -> Bool
+fst_hubname_c AnyHT c = glb_first_hub_name_c c || usr_first_hub_name_c c || nve_first_hub_name_c c
+fst_hubname_c NveHT c = glb_first_hub_name_c c                           || nve_first_hub_name_c c
+fst_hubname_c HubHT c = glb_first_hub_name_c c || usr_first_hub_name_c c
 fst_hubname_c GlbHT c = glb_first_hub_name_c c
-fst_hubname_c UsrHT c = usr_first_hub_name_c c
+fst_hubname_c UsrHT c =                           usr_first_hub_name_c c
+
+hubname_c :: HubType -> Char -> Bool
 hubname_c     _     c = c `elem` "_-." || isAlpha c || isDigit c
 
-glb_first_hub_name_c, usr_first_hub_name_c :: Char -> Bool
+hubName :: Hub -> HubName
+hubName hub = case type__HUB hub of
+                NveHT -> '-':name__HUB hub
+                _     ->     name__HUB hub
+
+hub_name_type :: HubName -> (HubType,HubName)
+hub_name_type []                             = (HubHT,"" ) -- codifying error
+hub_name_type (h:t) | nve_first_hub_name_c h = (NveHT,  t)
+                    | glb_first_hub_name_c h = (GlbHT,h:t)
+                    | usr_first_hub_name_c h = (UsrHT,h:t)
+                    | otherwise              = (AnyHT,h:t) -- codifying error
+
+nve_first_hub_name_c, glb_first_hub_name_c, usr_first_hub_name_c :: Char -> Bool
+nve_first_hub_name_c c = c == '-'
 glb_first_hub_name_c c = isDigit c
 usr_first_hub_name_c c = c `elem` "_." || isAlpha c
-
 
 
 bin2toolchain, bin2platform :: FilePath -> Maybe String
