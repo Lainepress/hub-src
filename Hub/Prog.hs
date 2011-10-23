@@ -2,6 +2,7 @@ module Hub.Prog (_prog) where
 
 import System.Exit
 import System.FilePath
+import System.Environment
 import Text.Printf
 import Hub.Oops
 import Hub.System
@@ -25,13 +26,16 @@ _prog hub prog as =
 
 set_hub_pkg_path :: Hub -> IO ()
 set_hub_pkg_path hub = 
-     do setEnv "HUB"              hnm True
-        setEnv "GHC_PACKAGE_PATH" pth True
+     do pth <- mk_pth `fmap` getEnv "PATH" 
+        setEnv "HUB"              hnm True
+        setEnv "GHC_PACKAGE_PATH" ppt True
+        setEnv "PATH"             pth True
       where
         hnm        =                    name__HUB hub
-        pth        = maybe glb mk_pth $ usr_dbHUB hub
+        ppt        = maybe glb mk_ppt $ usr_dbHUB hub
         
-        mk_pth usr = printf "%s:%s" usr glb
+        mk_pth pt0 = printf "%s:%s" hubBinutilsBin pt0
+        mk_ppt usr = printf "%s:%s" usr            glb
 
         glb        = glb_dbHUB hub
 
