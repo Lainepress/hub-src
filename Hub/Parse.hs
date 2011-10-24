@@ -1,5 +1,6 @@
 module Hub.Parse
     ( readHub
+    , parse
     , dump
     , PSt(..) -- kill warnings
     ) where
@@ -12,14 +13,26 @@ import           Hub.Oops
 import           Hub.Hub
 
 
-readHub :: HubType -> HubName -> IO Hub
-readHub ht_sp hn0 = 
-     do (ht,hn) <- checkHubName' ht_sp hn0
+
+
+readHub :: HubName -> IO Hub
+readHub hn = 
+     do hf <-  case isGlobal hn  of
+                 True  -> return $ globalHubPath hn
+                 False -> userHubPath hn
+        checkHubName AnyHT hn
         hubExists hn
-        hf <-  case ht of
-                 UsrHT -> userHubPath hn
-                 _     -> return $ globalHubPath hn
-        parse ht hn hf
+        parse hn hf 
+
+
+parse :: HubName -> FilePath -> IO Hub
+parse hn hf =
+     do cts <- B.readFile hf
+     	case parse' cts of
+     	  YUP  tr -> case check hn hf tr of
+     	               NOPE er -> fail_err hn hf er
+     	               YUP  hb -> return hb
+     	  NOPE er -> fail_err hn hf er
 
 dump :: Hub -> IO ()
 dump hub = B.writeFile path xml_bs
@@ -47,14 +60,6 @@ dump hub = B.writeFile path xml_bs
         glbdb    = glb_dbHUB hub
         mb_usrdb = usr_dbHUB hub
         
-parse :: HubType -> HubName -> FilePath -> IO Hub
-parse ht hn hf =
-     do cts <- B.readFile hf
-        case parse' cts of
-          YUP  tr -> case check ht hn hf tr of
-                       NOPE er -> fail_err hn hf er
-                       YUP  hb -> return hb
-          NOPE er -> fail_err hn hf er
 
 
 fail_err :: HubName -> FilePath -> Err -> IO a
@@ -100,9 +105,9 @@ loc0 = X.XMLParseLocation 1 0 0 0
 parse' :: B.ByteString -> Poss Node
 parse' = ei2ps . X.parse' X.defaultParseOptions
 
-check :: HubType -> HubName -> FilePath -> Node -> Poss Hub
-check ht hn hf (X.Element "hub" [] ns lc) = 
-                                final ht $ foldl chk (YUP $ start hn hf lc) ns 
+check :: HubName -> FilePath -> Node -> Poss Hub
+check hn hf (X.Element "hub" [] ns lc) = 
+                                final $ foldl chk (YUP $ start hn hf lc) ns 
           where
             chk (NOPE er) _  = NOPE er
             chk (YUP  st) nd = foldr (trial st nd) (NOPE $ unrecognised st nd)
@@ -113,7 +118,7 @@ check ht hn hf (X.Element "hub" [] ns lc) =
                     , chk_glbdb
                     , chk_usrdb
                     ]
-check _  _  _  _ = NOPE $ err loc0 "expected simple <hub>...</hub>"
+check _  _  _ = NOPE $ err loc0 "expected simple <hub>...</hub>"
 
 data PSt = ST {
     handlST :: HubName,
@@ -129,13 +134,13 @@ data PSt = ST {
 start :: HubName -> FilePath -> Loc -> PSt
 start hn fp lc = ST hn fp lc Nothing Nothing Nothing Nothing Nothing
 
-final :: HubType -> Poss PSt -> Poss Hub
-final _  (NOPE er) = NOPE er
-final ht (YUP  st) = 
+final :: Poss PSt -> Poss Hub
+final (NOPE er) = NOPE er
+final (YUP  st) = 
 	 do hc <- get_hc
 	    cb <- get_cb
 	    gl <- get_gl
-	    return $ HUB ht hn hf hc cb mb_hp gl mb_ur
+	    return $ HUB hn hf hc cb mb_hp gl mb_ur
 	  where
 		get_hc = maybe (NOPE  hc_err         ) YUP mb_hc
 		get_cb = maybe (YUP $ defaultCabalBin) YUP mb_cb
@@ -238,3 +243,10 @@ simple_node _ (X.Text _) _ _
 
 trim :: String -> String
 trim = reverse . dropWhile isSpace . reverse . dropWhile isSpace
+
+{-
+test :: IO ()
+test = 
+     do h <- parse "test" "test.xml"
+        print h
+-}
