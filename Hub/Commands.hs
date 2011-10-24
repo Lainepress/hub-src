@@ -70,10 +70,10 @@ _info hub = putStr $ unlines $
     [ printf "   Haskell Platform : %s" hp             | Just hp_bin <- [mb_hp], Just hp <- [bin2platform  hp_bin] ] ++ 
     [ printf "   Tools            : %s"        hc_bin                                                              ] ++
     [ printf "   Platform Tools   : %s"        hp_bin  | Just hp_bin <- [mb_hp]                                    ] ++ 
-    [ printf "   Cabal            : %s/cabal"  ci_bin
-    ,        "   Package DBs"
-    , printf "      global        : %s"        glb_db                                                              ] ++
-    [ printf "      user          : %s"        usr_db  | Just usr_db <- [mb_ud]                                    ]
+    [ printf "   Cabal            : %s/cabal"  ci_bin                                                              ] ++
+    [        "   Package DBs"                          |                         not(isGlobalHub hub)              ] ++
+    [ printf "      global        : %s"        glb_db  |                         not(isGlobalHub hub)              ] ++
+    [ printf "      user          : %s"        usr_db  | Just usr_db <- [mb_ud], not(isGlobalHub hub)              ]
   where
     ht     = if isGlobal name then "global" else "user"
     name   = name__HUB hub

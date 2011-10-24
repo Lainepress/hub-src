@@ -211,7 +211,7 @@ which_hub :: IO HubName
 which_hub =
      do ei <- tryIO $ getEnv "HUB"
         hn <- case ei of
-                Left  _ -> trim `fmap` dir_which_hub True
+                Left  _ -> trim `fmap` dir_which_hub False
                 Right s -> trim `fmap` env_which_hub s
         checkHubName AnyHT hn
         return hn
@@ -222,7 +222,7 @@ env_which_hub str =
           "--default" -> dir_which_hub True
           "--dir    " -> dir_which_hub False
           "--user"    -> usr_which_hub
-          "--global"  -> glb_which_hub
+          "--global"  -> defaultGlobalHubName
           _           -> return str
 
 dir_which_hub :: Bool -> IO HubName
@@ -231,7 +231,7 @@ dir_which_hub def_usr =
         w_h ds
       where
         w_h [] | def_usr   = usr_which_hub
-               | otherwise = oops HubO "no hub specified"
+               | otherwise = defaultGlobalHubName
         w_h (d:ds)         = catchIO (here (d:ds)) (\_ -> w_h ds)
         
         here r_ds  = readAFile (joinPath $ reverse $ ".hub":r_ds)
@@ -244,17 +244,14 @@ usr_which_hub =
           False -> default_global_hub >>= \hub -> _init hub homeHub
         return homeHub
 
-glb_which_hub :: IO HubName
-glb_which_hub = readFile defaultHubPath
-
 
 
 cabal_fixup :: Hub -> Prog -> [String] -> IO CommandLine
 cabal_fixup hub prg as = ProgCL hub `fmap` cf_as 
       where
         cf_as  = case enmPROG prg of
-                   CabalP -> ci_fixup hub prg as
-                   _      -> return (prg,as) 
+                   CabalP | not $ isGlobalHub hub -> ci_fixup hub prg as
+                   _                              -> return (prg,as) 
 
 ci_fixup :: Hub -> Prog -> [String] -> IO (Prog,[String])
 ci_fixup hub prg as =
