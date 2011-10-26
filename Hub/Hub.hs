@@ -300,10 +300,6 @@ match re st = case matchRegex re st of
                 Just [se] -> Just se
                 _         -> Nothing
 
-trim :: String -> String
-trim = reverse . dropWhile isSpace . reverse . dropWhile isSpace
-
-
 home :: IO FilePath
 home = catchIO (getEnv "HOME") $ \_ -> return "/"
 

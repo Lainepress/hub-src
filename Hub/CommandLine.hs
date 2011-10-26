@@ -9,7 +9,6 @@ module Hub.CommandLine
     ) where
 
 import qualified Control.Exception      as E
-import           Data.Char
 import           Data.Maybe
 import           Control.Monad
 import           System.Environment
@@ -283,9 +282,6 @@ mk_re re_str = mkRegexWithOpts (printf "^%s$" re_str) False True
 
 match :: Regex -> String -> Bool
 match re = isJust . matchRegex re
-
-trim :: String -> String
-trim = reverse . dropWhile isSpace . reverse . dropWhile isSpace
 
 tryIO :: IO a -> IO (Either IOError a)
 tryIO = E.try

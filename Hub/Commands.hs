@@ -17,7 +17,6 @@ module Hub.Commands
     ) where
 
 import qualified Control.Exception      as E
-import           Data.Char
 import           Control.Monad
 import           System.Cmd
 import           System.Exit
@@ -190,9 +189,6 @@ mk_tmp i fp =
           False -> return fp' 
       where
         fp' = printf "%s-%d" fp i
-
-trim :: String -> String
-trim = reverse . dropWhile isSpace . reverse . dropWhile isSpace
 
 catchIO :: IO a -> (IOError->IO a) -> IO a
 catchIO = E.catch
