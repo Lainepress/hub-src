@@ -10,12 +10,16 @@ module Hub.Hub
     , globalHubDir
     , hubBin
     , defaultCabalBin
+    , hubGccBin    
+    , hubBinutilsBin
     , userHubDirs
     , allocate
     , hubUserLib
     , defaultGlobalHubName
     , hubExists
     , lsHubs
+    , hubName
+    , isGlobalHub
     , isGlobal
     , globalHubPath
     , checkHubName
@@ -69,8 +73,8 @@ homeHub = "home"
 package_config :: FilePath
 package_config = "package.config"
 
-hubLib, sysVersion, sysDefaultHubPath, defaultHubPath, 
-        globalHubDir, hubBin, defaultCabalBin :: FilePath
+hubLib, sysVersion, sysDefaultHubPath, defaultHubPath, globalHubDir, hubBin,
+                        defaultCabalBin, hubGccBin, hubBinutilsBin :: FilePath
 hc_bin_res, hp_bin_res :: String
 hubLib            = "/usr/hs/lib"
 sysVersion        = "/usr/hs/lib/version.txt"
@@ -79,6 +83,8 @@ defaultHubPath    = "/usr/hs/lib/the-default.hub"
 globalHubDir      = "/usr/hs/hub"
 hubBin            = "/usr/hs/bin"
 defaultCabalBin   = "/usr/hs/cabal" 
+hubGccBin         = "/usr/hs/gcc/bin"
+hubBinutilsBin    = "/usr/hs/binutils/bin"
 hc_bin_res        = "/usr/hs/ghc/([a-z0-9.-_]+)/bin"
 hp_bin_res        = "/usr/hs/hp/([a-z0-9.-_]+)/bin"
 
@@ -192,6 +198,11 @@ ls_usr_hubs =
 
 
 
+hubName :: Hub -> HubName
+hubName hub = name__HUB hub
+
+isGlobalHub :: Hub -> Bool
+isGlobalHub = isGlobal . name__HUB
 
 isGlobal :: HubName -> Bool
 isGlobal (c:_) = isDigit c
@@ -288,10 +299,6 @@ match :: Regex -> String -> Maybe String
 match re st = case matchRegex re st of
                 Just [se] -> Just se
                 _         -> Nothing
-
-trim :: String -> String
-trim = reverse . dropWhile isSpace . reverse . dropWhile isSpace
-
 
 home :: IO FilePath
 home = catchIO (getEnv "HOME") $ \_ -> return "/"

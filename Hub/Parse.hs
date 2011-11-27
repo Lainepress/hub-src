@@ -241,9 +241,6 @@ simple_node _ (X.Text _) _ _
                 = Nothing
 
 
-trim :: String -> String
-trim = reverse . dropWhile isSpace . reverse . dropWhile isSpace
-
 {-
 test :: IO ()
 test = 

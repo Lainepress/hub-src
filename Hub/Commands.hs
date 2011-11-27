@@ -17,7 +17,6 @@ module Hub.Commands
     ) where
 
 import qualified Control.Exception      as E
-import           Data.Char
 import           Control.Monad
 import           System.Cmd
 import           System.Exit
@@ -70,10 +69,10 @@ _info hub = putStr $ unlines $
     [ printf "   Haskell Platform : %s" hp             | Just hp_bin <- [mb_hp], Just hp <- [bin2platform  hp_bin] ] ++ 
     [ printf "   Tools            : %s"        hc_bin                                                              ] ++
     [ printf "   Platform Tools   : %s"        hp_bin  | Just hp_bin <- [mb_hp]                                    ] ++ 
-    [ printf "   Cabal            : %s/cabal"  ci_bin
-    ,        "   Package DBs"
-    , printf "      global        : %s"        glb_db                                                              ] ++
-    [ printf "      user          : %s"        usr_db  | Just usr_db <- [mb_ud]                                    ]
+    [ printf "   Cabal            : %s/cabal"  ci_bin                                                              ] ++
+    [        "   Package DBs"                          |                         not(isGlobalHub hub)              ] ++
+    [ printf "      global        : %s"        glb_db  |                         not(isGlobalHub hub)              ] ++
+    [ printf "      user          : %s"        usr_db  | Just usr_db <- [mb_ud], not(isGlobalHub hub)              ]
   where
     ht     = if isGlobal name then "global" else "user"
     name   = name__HUB hub
@@ -190,9 +189,6 @@ mk_tmp i fp =
           False -> return fp' 
       where
         fp' = printf "%s-%d" fp i
-
-trim :: String -> String
-trim = reverse . dropWhile isSpace . reverse . dropWhile isSpace
 
 catchIO :: IO a -> (IOError->IO a) -> IO a
 catchIO = E.catch

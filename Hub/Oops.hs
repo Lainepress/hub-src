@@ -1,8 +1,10 @@
 module Hub.Oops
     ( Oops(..)
     , oops
+    , trim
     ) where
 
+import Data.Char
 import System.IO
 import System.Exit
 import System.Environment
@@ -37,4 +39,6 @@ oops o0 msg =
 refineO :: String -> Oops -> Oops
 refineO "hub" _ = HubO
 refineO _     o = o
-        
+
+trim :: String -> String
+trim = reverse . dropWhile isSpace . reverse . dropWhile isSpace
