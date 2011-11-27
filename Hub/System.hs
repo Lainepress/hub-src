@@ -117,7 +117,7 @@ symLink :: FilePath -> FilePath -> IO ()
 symLink = createSymbolicLink
 
 
-go :: [String] -> FilePath -> IO a
+go :: [String] -> FilePath -> IO ()
 go as exe   = executeFile exe True as Nothing
 
 exec :: [String] -> FilePath -> IO ExitCode
