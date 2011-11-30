@@ -11,8 +11,8 @@ prep:
 	runhaskell prep
 
 install:
-	mkdir -p $(ID)
-	cp $(OD)/hub $(ID)
+	mkdir -p $(DESTDIR)$(ID)
+	cp $(OD)/hub $(DESTDIR)$(ID)
 
 clean:
 	cabal clean

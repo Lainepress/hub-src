@@ -1,3 +1,4 @@
+Hub/Build.hs
 .project
 dist
 build
@@ -5,4 +6,4 @@ System
 *~
 *.hi
 *.o
-.hub
+
