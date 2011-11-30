@@ -66,10 +66,8 @@ _info :: Hub -> IO ()
 _info hub = putStr $ unlines $
     [ printf "%s (%s hub)"                     name ht                                                             ] ++
     [ printf "   GHC              : %s" hc             |                         Just hc <- [bin2toolchain hc_bin] ] ++
-    [ printf "   Haskell Platform : %s" hp             | Just hp_bin <- [mb_hp], Just hp <- [bin2platform  hp_bin] ] ++ 
+    [ printf "   Haskell Platform : %s" hp             | Just usr_db <- [mb_ud], Just hp <- [db2platform   usr_db] ] ++ 
     [ printf "   Tools            : %s"        hc_bin                                                              ] ++
-    [ printf "   Platform Tools   : %s"        hp_bin  | Just hp_bin <- [mb_hp]                                    ] ++ 
-    [ printf "   Cabal            : %s/cabal"  ci_bin                                                              ] ++
     [        "   Package DBs"                          |                         not(isGlobalHub hub)              ] ++
     [ printf "      global        : %s"        glb_db  |                         not(isGlobalHub hub)              ] ++
     [ printf "      user          : %s"        usr_db  | Just usr_db <- [mb_ud], not(isGlobalHub hub)              ]
@@ -77,8 +75,6 @@ _info hub = putStr $ unlines $
     ht     = if isGlobal name then "global" else "user"
     name   = name__HUB hub
     hc_bin = hc_binHUB hub
-    ci_bin = ci_binHUB hub
-    mb_hp  = hp_binHUB hub
     glb_db = glb_dbHUB hub
     mb_ud  = usr_dbHUB hub
 

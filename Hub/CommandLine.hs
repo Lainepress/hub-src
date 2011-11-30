@@ -63,7 +63,7 @@ data Prog = PROG {
     typPROG :: ProgType
     }                                                           deriving (Show)
 
-data ProgType = HcPT | CiPT (Maybe FilePath) | HpPT
+data ProgType = HcPT | CiPT (Maybe FilePath) | TlPT
                                                                 deriving (Show)
 
 
@@ -122,7 +122,6 @@ data P
     = GhcP
     | GhciP
     | Ghc_pkgP
-    | HaddockP
     | Hp2psP
     | HpcP
     | Hsc2hsP
@@ -131,6 +130,7 @@ data P
     | CabalP
     | AlexP
     | HappyP
+    | HaddockP
                                             deriving (Eq,Ord,Bounded,Enum,Show)
 
 p2prog :: P -> Prog
@@ -146,8 +146,8 @@ p2prog p =
       RunghcP            -> PROG p "runghc"               HcPT
       RunhaskellP        -> PROG p "runhaskell"           HcPT
       CabalP             -> PROG p "cabal"               (CiPT Nothing)
-      AlexP              -> PROG p "alex"                 HpPT
-      HappyP             -> PROG p "happy"                HpPT
+      AlexP              -> PROG p "alex"                 TlPT
+      HappyP             -> PROG p "happy"                TlPT
 
 prog_mp :: Map.Map String Prog
 prog_mp = Map.fromList [ (nmePROG pg,pg) | pg<-map p2prog [minBound..maxBound] ]

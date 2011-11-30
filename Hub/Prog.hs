@@ -5,7 +5,6 @@ import System.Exit
 import System.FilePath
 import System.Environment
 import Text.Printf
-import Hub.Oops
 import Hub.System
 import Hub.Hub
 import Hub.CommandLine
@@ -15,15 +14,9 @@ _prog :: Hub -> Prog -> [String] -> IO ()
 _prog hub prog as =
      do set_hub_pkg_path hub
         case typPROG prog of
-          HcPT    -> go                     as $ hc_binHUB hub </> nmePROG prog
-          CiPT mb -> ci_go mb               as $ ci_binHUB hub </> nmePROG prog
-          HpPT    -> chk_hp $ \hp_bin -> go as $ hp_bin        </> nmePROG prog
-      where
-        chk_hp f = maybe nhp_err f $ hp_binHUB hub
-        
-        nhp_err  = oops PrgO $
-                        printf "Hub %s does not hava a Haskell Platform"
-                                                            (name__HUB hub) 
+          HcPT    -> go       as $ hc_binHUB hub </> nmePROG prog
+          CiPT mb -> ci_go mb as $ tl_binHUB hub </> nmePROG prog
+          TlPT    -> go       as $ tl_binHUB hub </> nmePROG prog
 
 set_hub_pkg_path :: Hub -> IO ()
 set_hub_pkg_path hub = 

@@ -42,9 +42,7 @@ dump hub = B.writeFile path xml_bs
         xml      = unlines $
             [        "<hub>" 
             , printf "  <hcbin>%s</hcbin>" hcbin
-            , printf "  <cibin>%s</cibin>" cibin
-            ] ++
-            [ printf "  <hpbin>%s</hpbin>" hpbin | Just hpbin<-[mb_hpbin]
+            , printf "  <tlbin>%s</tlbin>" tlbin
             ] ++
             [ printf "  <glbdb>%s</glbdb>" glbdb
             ] ++
@@ -55,8 +53,7 @@ dump hub = B.writeFile path xml_bs
                 
         path     = path__HUB hub
         hcbin    = hc_binHUB hub
-        cibin    = ci_binHUB hub
-        mb_hpbin = hp_binHUB hub
+        tlbin    = tl_binHUB hub
         glbdb    = glb_dbHUB hub
         mb_usrdb = usr_dbHUB hub
         
@@ -113,8 +110,8 @@ check hn hf (X.Element "hub" [] ns lc) =
             chk (YUP  st) nd = foldr (trial st nd) (NOPE $ unrecognised st nd)
                     [ chk_wspce
                     , chk_hcbin
+                    , chk_tlbin
                     , chk_cibin
-                    , chk_hpbin
                     , chk_glbdb
                     , chk_usrdb
                     ]
@@ -125,31 +122,30 @@ data PSt = ST {
     hpathST :: FilePath,	
 	locwfST :: Loc,
 	hcbinST :: Maybe FilePath,
-	cibinST :: Maybe FilePath,
-	hpbinST :: Maybe FilePath,
+	tlbinST :: Maybe FilePath,
 	glbdbST :: Maybe FilePath,
 	usrdbST :: Maybe FilePath
 	}															deriving (Show)
 
 start :: HubName -> FilePath -> Loc -> PSt
-start hn fp lc = ST hn fp lc Nothing Nothing Nothing Nothing Nothing
+start hn fp lc = ST hn fp lc Nothing Nothing Nothing Nothing
 
 final :: Poss PSt -> Poss Hub
 final (NOPE er) = NOPE er
 final (YUP  st) = 
 	 do hc <- get_hc
-	    cb <- get_cb
+	    tl <- get_tl
 	    gl <- get_gl
-	    return $ HUB hn hf hc cb mb_hp gl mb_ur
+	    return $ HUB hn hf hc tl gl mb_ur
 	  where
-		get_hc = maybe (NOPE  hc_err         ) YUP mb_hc
-		get_cb = maybe (YUP $ defaultCabalBin) YUP mb_cb
-		get_gl = maybe (NOPE  gl_err         ) YUP mb_gl
+		get_hc = maybe (NOPE  hc_err  ) YUP mb_hc
+		get_tl = maybe (YUP $ toolsBin) YUP mb_tl
+		get_gl = maybe (NOPE  gl_err  ) YUP mb_gl
 
 		hc_err = err lc "Hub doesn't specify a GHC bin directory"
 		gl_err = err lc "Hub doesn't specify a global package directory"
 
-		ST hn hf lc mb_hc mb_cb mb_hp mb_gl mb_ur = st
+		ST hn hf lc mb_hc mb_tl mb_gl mb_ur = st
 
 trial :: PSt -> Node -> (PSt -> Node -> Maybe(Poss PSt)) -> Poss PSt -> Poss PSt
 trial st nd f ps = maybe ps id $ f st nd
@@ -160,7 +156,7 @@ unrecognised st (X.Text    tx       ) = err lc $ printf "unexpected text: %s" tx
                                                         where
                                                           lc = locwfST st
 
-chk_wspce, chk_hcbin, chk_cibin, chk_hpbin,
+chk_wspce, chk_hcbin, chk_tlbin, chk_cibin,
                          chk_glbdb, chk_usrdb :: PSt -> Node -> Maybe(Poss PSt)
 
 chk_wspce st nd =
@@ -179,19 +175,18 @@ chk_hcbin st0 nd = simple_node st0 nd "hcbin" chk
                           Nothing -> YUP (st{hcbinST=Just arg})
                           Just _  -> NOPE $ err lc "<hcbin> respecified"
 
-chk_cibin st0 nd = simple_node st0 nd "cibin" chk
+chk_tlbin st0 nd = simple_node st0 nd "tlbin" chk
               where
                 chk st lc arg =
-                        case cibinST st of
-                          Nothing -> YUP (st{cibinST=Just arg})
+                        case tlbinST st of
+                          Nothing -> YUP (st{tlbinST=Just arg})
                           Just _  -> NOPE $ err lc "<cibin> re-specified"
 
-chk_hpbin st0 nd = simple_node st0 nd "hpbin" chk
+-- legacy (pre-0.3) construction
+
+chk_cibin st0 nd = simple_node st0 nd "cibin" chk
               where
-                chk st lc arg =
-                        case hpbinST st of
-                          Nothing -> YUP (st{hpbinST=Just arg})
-                          Just _  -> NOPE $ err lc "<hpbin> respecified"
+                chk st _ _ = YUP st
 
 chk_glbdb st0 nd = simple_node st0 nd "glbdb" chk
               where

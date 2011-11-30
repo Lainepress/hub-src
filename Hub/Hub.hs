@@ -9,7 +9,7 @@ module Hub.Hub
     , defaultHubPath
     , globalHubDir
     , hubBin
-    , defaultCabalBin
+    , toolsBin
     , hubGccBin    
     , hubBinutilsBin
     , userHubDirs
@@ -31,7 +31,7 @@ module Hub.Hub
     , userHubPath
     , userHubPaths
     , bin2toolchain
-    , bin2platform
+    , db2platform
     ) where
 
 import qualified Control.Exception      as E
@@ -54,8 +54,7 @@ data Hub = HUB {
     name__HUB :: HubName,
     path__HUB :: FilePath,
     hc_binHUB :: FilePath,
-    ci_binHUB :: FilePath,
-    hp_binHUB :: Maybe FilePath,
+    tl_binHUB :: FilePath,
     glb_dbHUB :: FilePath,
     usr_dbHUB :: Maybe FilePath
     }                                                           deriving (Show)
@@ -74,19 +73,19 @@ package_config :: FilePath
 package_config = "package.config"
 
 hubLib, sysVersion, sysDefaultHubPath, defaultHubPath, globalHubDir, hubBin,
-                        defaultCabalBin, hubGccBin, hubBinutilsBin :: FilePath
-hc_bin_res, hp_bin_res :: String
+                                toolsBin, hubGccBin, hubBinutilsBin :: FilePath
+hc_bin_res, hp_db_res :: String
 hubLib            = "/usr/hs/lib"
 sysVersion        = "/usr/hs/lib/version.txt"
 sysDefaultHubPath = "/usr/hs/lib/sys-default.hub"
 defaultHubPath    = "/usr/hs/lib/the-default.hub"
 globalHubDir      = "/usr/hs/hub"
 hubBin            = "/usr/hs/bin"
-defaultCabalBin   = "/usr/hs/cabal" 
+toolsBin          = "/usr/hs/tools" 
 hubGccBin         = "/usr/hs/gcc/bin"
 hubBinutilsBin    = "/usr/hs/binutils/bin"
 hc_bin_res        = "/usr/hs/ghc/([a-z0-9.-_]+)/bin"
-hp_bin_res        = "/usr/hs/hp/([a-z0-9.-_]+)/bin"
+hp_db_res         = "/usr/hs/db/(20[a-z0-9.-_]+)(.db)?/bin"
 
 userHubDirs :: IO (FilePath,FilePath)
 userHubDirs = 
@@ -283,9 +282,9 @@ usr_first_hub_name_c c = c `elem` "_." || isAlpha c
 
 
 
-bin2toolchain, bin2platform :: FilePath -> Maybe String
+bin2toolchain, db2platform :: FilePath -> Maybe String
 bin2toolchain = match $ mk_re hc_bin_res
-bin2platform  = match $ mk_re hp_bin_res
+db2platform   = match $ mk_re hp_db_res
 
 
 
@@ -297,8 +296,8 @@ gmatch re st = isJust $ matchRegex re st
 
 match :: Regex -> String -> Maybe String
 match re st = case matchRegex re st of
-                Just [se] -> Just se
-                _         -> Nothing
+                Just (se:_) -> Just se
+                _           -> Nothing
 
 home :: IO FilePath
 home = catchIO (getEnv "HOME") $ \_ -> return "/"
