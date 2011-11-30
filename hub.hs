@@ -4,7 +4,6 @@ import Control.Monad
 import System.IO
 import System.Exit
 import Text.Printf
-import Hub.Build
 import Hub.System
 import Hub.Hub
 import Hub.CommandLine
@@ -47,7 +46,7 @@ _help True  hlp = hPutStrLn stderr hlp >> exitWith (ExitFailure 1)
 
 _vrsn :: IO ()
 _vrsn =
-     do putStr $ printf "hub %s (%s)\n" version build
+     do putStr $ printf "hub %s\n" version
         ex <- fileExists sysVersion
         when ex $
             readAFile sysVersion >>= putStr
