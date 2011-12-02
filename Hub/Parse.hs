@@ -111,9 +111,11 @@ check hn hf (X.Element "hub" [] ns lc) =
                     [ chk_wspce
                     , chk_hcbin
                     , chk_tlbin
-                    , chk_cibin
                     , chk_glbdb
                     , chk_usrdb
+                    -- depracated (no warnings yet)
+                    , chk_hpbin
+                    , chk_cibin
                     ]
 check _  _  _ = NOPE $ err loc0 "expected simple <hub>...</hub>"
 
@@ -156,8 +158,9 @@ unrecognised st (X.Text    tx       ) = err lc $ printf "unexpected text: %s" tx
                                                         where
                                                           lc = locwfST st
 
-chk_wspce, chk_hcbin, chk_tlbin, chk_cibin,
-                         chk_glbdb, chk_usrdb :: PSt -> Node -> Maybe(Poss PSt)
+chk_wspce, chk_hcbin, chk_tlbin,
+        chk_glbdb, chk_usrdb,
+        chk_hpbin, chk_cibin :: PSt -> Node -> Maybe(Poss PSt)
 
 chk_wspce st nd =
         case nd of
@@ -182,12 +185,6 @@ chk_tlbin st0 nd = simple_node st0 nd "tlbin" chk
                           Nothing -> YUP (st{tlbinST=Just arg})
                           Just _  -> NOPE $ err lc "<cibin> re-specified"
 
--- legacy (pre-0.3) construction
-
-chk_cibin st0 nd = simple_node st0 nd "cibin" chk
-              where
-                chk st _ _ = YUP st
-
 chk_glbdb st0 nd = simple_node st0 nd "glbdb" chk
               where
                 chk st lc arg =
@@ -201,6 +198,13 @@ chk_usrdb st0 nd = simple_node st0 nd "usrdb" chk
                         case usrdbST st of
                           Nothing -> YUP (st{usrdbST=Just arg})
                           Just _  -> NOPE $ err lc "<usrdb> respecified"
+
+-- depracated (pre-0.3) constructions
+
+chk_hpbin st0 nd = simple_node st0 nd "hpbin" $ \st _ _ -> YUP st
+
+chk_cibin st0 nd = simple_node st0 nd "cibin" $ \st _ _ -> YUP st
+
 
 simple_node :: PSt -> Node -> Tag -> (PSt->Loc->String->Poss PSt)
                                                         -> Maybe (Poss PSt)

@@ -12,7 +12,7 @@ import Hub.Commands
 
 
 version :: String
-version = "0.3"
+version = "0.4"
 
 
 main :: IO ()
