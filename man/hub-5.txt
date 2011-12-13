@@ -1,0 +1,89 @@
+hub(5)
+======
+
+
+NAME
+----
+hub - syntax of XML files used to configure Haskell hubs
+
+
+DESCRIPTION
+-----------
+
+A Hub configuration file is an XML file containing a
+`<hub>` node containing an `<hcbin>` and `<glbdb>` node, and
+if and only if it is a user hub, a `<usrdb>` node.
+
+`<hcbin>`::
+
+    The path of the `bin` directory containing the `ghc` tools
+    to be used with the hub.
+    
+`<glbdb>`::
+
+    The path of the global package database to be used with the
+    hub.
+
+`<usrdb>`::
+
+    The path of the user package database to be used with the
+    hub.
+
+
+EXAMPLE 1
+---------
+
+Hub configuration file for global hub `2010.2.0.1`:
+
+----
+    <hub>
+      <hcbin>/usr/hs/ghc/7.0.3/bin</hcbin>
+      <glbdb>/usr/hs/db/2011.2.0.1.d</glbdb>
+    </hub>
+----
+
+
+EXAMPLE 2
+---------
+
+Hub configuration file for hub `home`, a user hub based
+on the global hub `2010.2.0.1`:
+
+----
+    <hub>
+      <hcbin>/usr/hs/ghc/7.0.3/bin</hcbin>
+      <glbdb>/usr/hs/db/2011.2.0.1.d</glbdb>
+      <usrdb>/home/joe/.hubrc/lib/home/package.config</usrdb>
+    </hub>
+----
+
+
+FILES
+-----
+
+`~/.hubrc/hub/<u-hub>.xml`::
+
+	Contains the hub-spefification file for user hub <u-hub>.
+
+`/usr/hs/hub/<g-hub>.xml`::
+
+    XML configuration file for global hub <g-hub>.
+
+
+SEE ALSO
+--------
+
+hub(1)::
+
+	The hub command for managing and configuring user hubs.
+
+
+http://justhub.org::
+
+	The home page of the JustHub distribution contains
+	introductory material and links to wikis and articles.
+
+
+AUTHOR
+------
+Chris Dornan <chris@chrisdornan.com>

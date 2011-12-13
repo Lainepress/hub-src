@@ -1,0 +1,72 @@
+.\" ** You probably do not want to edit this file directly **
+.\" It was generated using the DocBook XSL Stylesheets (version 1.69.1).
+.\" Instead of manually editing it, you probably should edit the DocBook XML
+.\" source for it and then use the DocBook XSL Stylesheets to regenerate it.
+.TH "HUB" "5" "12/13/2011" "\ " "\ "
+.\" disable hyphenation
+.nh
+.\" disable justification (adjust text to left margin only)
+.ad l
+.SH "NAME"
+hub \- syntax of XML files used to configure Haskell hubs
+.SH "DESCRIPTION"
+A Hub configuration file is an XML file containing a <hub> node containing an <hcbin> and <glbdb> node, and if and only if it is a user hub, a <usrdb> node.
+.sp
+.TP
+<hcbin>
+The path of the
+bin
+directory containing the
+ghc
+tools to be used with the hub.
+.TP
+<glbdb>
+The path of the global package database to be used with the hub.
+.TP
+<usrdb>
+The path of the user package database to be used with the hub.
+.SH "EXAMPLE 1"
+Hub configuration file for global hub 2010.2.0.1:
+.sp
+.sp
+.nf
+    <hub>
+      <hcbin>/usr/hs/ghc/7.0.3/bin</hcbin>
+      <glbdb>/usr/hs/db/2011.2.0.1.d</glbdb>
+    </hub>
+.fi
+.SH "EXAMPLE 2"
+Hub configuration file for hub home, a user hub based on the global hub 2010.2.0.1:
+.sp
+.sp
+.nf
+    <hub>
+      <hcbin>/usr/hs/ghc/7.0.3/bin</hcbin>
+      <glbdb>/usr/hs/db/2011.2.0.1.d</glbdb>
+      <usrdb>/home/joe/.hubrc/lib/home/package.config</usrdb>
+    </hub>
+.fi
+.SH "FILES"
+.TP
+~/.hubrc/hub/<u\-hub>.xml
+Contains the hub\-spefification file for user hub <u\-hub>.
+.TP
+/usr/hs/hub/<g\-hub>.xml
+XML configuration file for global hub <g\-hub>.
+.SH "SEE ALSO"
+.TP
+hub(1)
+The hub command for managing and configuring user hubs.
+.TP
+[1]\&\fIhttp://justhub.org\fR
+The home page of the JustHub distribution contains introductory material and links to wikis and articles.
+.SH "AUTHOR"
+Chris Dornan <[2]\&\fIchris@chrisdornan.com\fR>
+.sp
+.SH "REFERENCES"
+.TP 3
+1.\ http://justhub.org
+\%http://justhub.org
+.TP 3
+2.\ chris@chrisdornan.com
+\%mailto:chris@chrisdornan.com
