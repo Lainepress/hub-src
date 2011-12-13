@@ -1,4 +1,7 @@
-all: hub.1 hub.5
+all: hub.1.gz hub.5.gz
+
+%.gz: %
+	gzip -c $< >$@
 
 %.html: %.xml
 	xmlto -m manpage-normal.xsl  html $^

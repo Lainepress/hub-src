@@ -11,8 +11,9 @@ prep:
 	runhaskell prep
 
 install:
-	mkdir -p $(DESTDIR)$(ID)
-	cp $(OD)/hub $(DESTDIR)$(ID)
+	install -D $(OD)/hub    $(DESTDIR)$(ID)
+	install -D man/hub.1.gz $(DESTDIR)/usr/share/man/man1/hub.1.gz
+	install -D man/hub.5.gz $(DESTDIR)/usr/share/man/man5/hub.5.gz
 
 clean:
 	cabal clean
