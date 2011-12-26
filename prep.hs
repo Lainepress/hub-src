@@ -7,7 +7,7 @@ import Text.Printf
 main :: IO ()
 main =
      do cts <- readFile "help.txt"
-        writeFile "Hub/Help.hs" $ mk_text_mod  "Hub.Help" "help" cts
+        writeFile "Hub/HelpText.hs" $ mk_text_mod  "Hub.HelpText" "helpText" cts
 
 mk_text_mod :: String -> String -> String -> String
 mk_text_mod mn fn cts = 

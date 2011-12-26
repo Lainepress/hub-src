@@ -5,24 +5,18 @@ module Hub.CommandLine
     , P(..)
     , ProgType(..)
     , p2prog
-    , readHub
     ) where
 
-import qualified Control.Exception      as E
-import           Data.Maybe
+import           Text.Printf
 import           Control.Monad
 import           System.Environment
-import           System.Directory
 import           System.FilePath
 import qualified Data.Map       as Map
-import           Text.Printf
-import           Text.Regex
 import           Hub.Help
 import           Hub.Oops
-import           Hub.System
 import           Hub.Hub
-import           Hub.Parse
-import           Hub.Commands
+import           Hub.Directory
+import           Hub.Discover
 
 
 commandLine :: IO CommandLine
@@ -75,48 +69,42 @@ prog as =
         case Map.lookup p_s prog_mp of
           Nothing  -> return Nothing
           Just prg -> 
-             do hub <- current_hub
+             do hub <- discover Nothing
                 Just `fmap` cabal_fixup hub prg as 
 
 hub_dispatch as = case as of
-    ["--help"     ] ->                                      return $ Just $ HelpCL False help
-    ["help"       ] ->                                      return $ Just $ HelpCL False help
-    ["--help",cd  ] -> lu_help cd               >>= \hlp -> return $ Just $ HelpCL False hlp
-    ["help"  ,cd  ] -> lu_help cd               >>= \hlp -> return $ Just $ HelpCL False hlp
-    ["--version"  ] ->                                      return $ Just VrsnCL
-    ["version"    ] ->                                      return $ Just VrsnCL
-    ["--usage"    ] ->                                      return $ Just $ HelpCL False usage
-    ["usage"      ] ->                                      return $ Just $ HelpCL False usage
-    ["default"    ] ->                                      return $ Just $ DfltCL
-    ["default","-"] ->                                      return $ Just $ RsDfCL
-    ["default",hn ] -> readHub          hn      >>= \hub -> return $ Just $ StDfCL hub
-    ["ls"         ] -> createHubDirs            >>= \_   -> return $ Just $ LsCL
-    ["set"        ] ->                                      return $ Just $ GetCL
-    ["set","-"    ] ->                                      return $ Just $ UnsetCL
-    ["set",hn     ] -> readHub          hn      >>= \hub -> return $ Just $ SetCL  hub
-    ["name"       ] -> current_hub              >>= \hub -> return $ Just $ NameCL hub
-    ["info"       ] -> current_hub              >>= \hub -> return $ Just $ InfoCL hub
-    ["info",hn    ] -> readHub          hn      >>= \hub -> return $ Just $ InfoCL hub
-    ["path"       ] -> current_hub              >>= \hub -> return $ Just $ PathCL hub
-    ["path",hn    ] -> readHub          hn      >>= \hub -> return $ Just $ PathCL hub
-    ["xml"        ] -> current_hub              >>= \hub -> return $ Just $ XmlCL  hub
-    ["xml" ,hn    ] -> readHub          hn      >>= \hub -> return $ Just $ XmlCL  hub
-    ["init"   ,hn'] -> hub_pair Nothing     hn' >>= \hub -> return $ Just $ InitCL hub hn'
-    ["init",hn,hn'] -> hub_pair (Just   hn) hn' >>= \hub -> return $ Just $ InitCL hub hn'
-    ["cp"     ,hn'] -> hub_pair Nothing     hn' >>= \hub -> return $ Just $ CpCL   hub hn'
-    ["cp"  ,hn,hn'] -> hub_pair (Just   hn) hn' >>= \hub -> return $ Just $ CpCL   hub hn'
-    ["mv"     ,hn'] -> hub_pair Nothing     hn' >>= \hub -> return $ Just $ MvCL   hub hn'
-    ["mv"  ,hn,hn'] -> hub_pair (Just   hn) hn' >>= \hub -> return $ Just $ MvCL   hub hn'
-    ["rm"     ,hn'] -> readHub              hn' >>= \hub -> return $ Just $ RmCL   hub
-    ["swap",   hn'] -> hub_swap Nothing     hn' >>= \hub -> return $ Just $ SwapCL hub hn'
-    ["swap",hn,hn'] -> hub_swap (Just   hn) hn' >>= \hub -> return $ Just $ SwapCL hub hn'
-    _               ->                                      return   Nothing  
-
-usage :: String
-usage = unlines $ filter is_hdr $ lines help
-      where
-        is_hdr ('h':'u':'b':' ':_) = True
-        is_hdr _                   = False
+    ["--help"     ] ->                                       return $ Just $ HelpCL False helpText
+    ["help"       ] ->                                       return $ Just $ HelpCL False helpText
+    ["--help",cd  ] -> help cd                   >>= \hlp -> return $ Just $ HelpCL False hlp
+    ["help"  ,cd  ] -> help cd                   >>= \hlp -> return $ Just $ HelpCL False hlp
+    ["--version"  ] ->                                       return $ Just   VrsnCL
+    ["version"    ] ->                                       return $ Just   VrsnCL
+    ["--usage"    ] ->                                       return $ Just $ HelpCL False usage
+    ["usage"      ] ->                                       return $ Just $ HelpCL False usage
+    ["default"    ] ->                                       return $ Just $ DfltCL
+    ["default","-"] ->                                       return $ Just $ RsDfCL
+    ["default",hn ] -> discover (Just   hn)      >>= \hub -> return $ Just $ StDfCL hub
+    ["ls"         ] -> initDirectory             >>= \_   -> return $ Just $ LsCL
+    ["set"        ] ->                                       return $ Just $ GetCL
+    ["set","-"    ] ->                                       return $ Just $ UnsetCL
+    ["set",hn     ] -> discover (Just   hn)      >>= \hub -> return $ Just $ SetCL  hub
+    ["name"       ] -> discover Nothing          >>= \hub -> return $ Just $ NameCL hub
+    ["info"       ] -> discover Nothing          >>= \hub -> return $ Just $ InfoCL hub
+    ["info",hn    ] -> discover (Just   hn)      >>= \hub -> return $ Just $ InfoCL hub
+    ["path"       ] -> discover Nothing          >>= \hub -> return $ Just $ PathCL hub
+    ["path",hn    ] -> discover (Just   hn)      >>= \hub -> return $ Just $ PathCL hub
+    ["xml"        ] -> discover Nothing          >>= \hub -> return $ Just $ XmlCL  hub
+    ["xml" ,hn    ] -> discover (Just   hn)      >>= \hub -> return $ Just $ XmlCL  hub
+    ["init"   ,hn'] -> hub_pair Nothing     hn'  >>= \hub -> return $ Just $ InitCL hub hn'
+    ["init",hn,hn'] -> hub_pair (Just   hn) hn'  >>= \hub -> return $ Just $ InitCL hub hn'
+    ["cp"     ,hn'] -> hub_pair Nothing     hn'  >>= \hub -> return $ Just $ CpCL   hub hn'
+    ["cp"  ,hn,hn'] -> hub_pair (Just   hn) hn'  >>= \hub -> return $ Just $ CpCL   hub hn'
+    ["mv"     ,hn'] -> hub_pair Nothing     hn'  >>= \hub -> return $ Just $ MvCL   hub hn'
+    ["mv"  ,hn,hn'] -> hub_pair (Just   hn) hn'  >>= \hub -> return $ Just $ MvCL   hub hn'
+    ["rm"     ,hn'] -> discover       (Just hn') >>= \hub -> return $ Just $ RmCL   hub
+    ["swap",   hn'] -> hub_swap Nothing     hn'  >>= \hub -> return $ Just $ SwapCL hub hn'
+    ["swap",hn,hn'] -> hub_swap (Just   hn) hn'  >>= \hub -> return $ Just $ SwapCL hub hn'
+    _               ->                                       return   Nothing  
 
 data P
     = GhcP
@@ -153,108 +141,35 @@ prog_mp :: Map.Map String Prog
 prog_mp = Map.fromList [ (nmePROG pg,pg) | pg<-map p2prog [minBound..maxBound] ]
 
 
-lu_help :: String -> IO String
-lu_help "--usage"   = dd_help `fmap` lu_help "usage"
-lu_help "--help"    = dd_help `fmap` lu_help "help"
-lu_help "--version" = dd_help `fmap` lu_help "version"
-lu_help cd =
-        case sc_help cd $ lines help of
-          Nothing  -> oops HubO $ printf "%s: hub command not recognised" cd
-          Just hlp -> return hlp
+hub_pair, hub_swap :: Maybe HubName -> HubName -> IO Hub
+hub_pair = hub_pair' False
+hub_swap = hub_pair' True
 
-dd_help :: String -> String
-dd_help ('h':'u':'b':' ':t) = "hub --" ++ t
-dd_help hlp                 = hlp
-
-sc_help :: String -> [String] -> Maybe String
-sc_help _  []       = Nothing
-sc_help cd (ln:lns) =
-        case is_help_hdr cd ln of
-          True  -> Just $ unlines $ ln : takeWhile is_help_bdy lns
-          False -> sc_help cd lns
-
-is_help_hdr :: String -> String -> Bool
-is_help_hdr cmd = match $ mk_re $ printf "hub %s.*" cmd
-
-is_help_bdy :: String -> Bool
-is_help_bdy = not . match not_help_bd_re
-
-not_help_bd_re :: Regex
-not_help_bd_re = mk_re "hub.*"
-
-      
-current_hub :: IO Hub
-current_hub = which_hub >>= readHub
-
-hub_swap :: Maybe HubName -> HubName -> IO Hub
-hub_swap Nothing   hn' = which_hub >>= \hn -> hub_pair' True  hn hn'
-hub_swap (Just hn) hn' =                      hub_pair' True  hn hn'
-
-hub_pair :: Maybe HubName -> HubName -> IO Hub
-hub_pair Nothing   hn' = which_hub >>= \hn -> hub_pair' False hn hn'
-hub_pair (Just hn) hn' =                      hub_pair' False hn hn' 
-
-hub_pair' :: Bool -> HubName -> HubName -> IO Hub
-hub_pair' sw hn hn' = 
-     do checkHubName AnyHT hn
-        checkHubName UsrHT hn'
+hub_pair' :: Bool -> Maybe HubName -> HubName -> IO Hub
+hub_pair' sw mb_hn hn' = 
+     do hub <- discover mb_hn
+        let hn = name__HUB hub
+        _ <- checkHubName [UsrHK,GlbHK] hn
+        _ <- checkHubName [UsrHK      ] hn'
         when (hn==hn') $
-            oops HubO $ printf "%s: same source and destination" hn
+            oops HubO $ printf "%s: same source and destination" hn'
         when sw $
             userHubExists    hn'
         when (not sw) $
             userHubAvailable hn'
-        readHub hn
-
-which_hub :: IO HubName
-which_hub =
-     do ei <- tryIO $ getEnv "HUB"
-        hn <- case ei of
-                Left  _ -> trim `fmap` dir_which_hub False
-                Right s -> trim `fmap` env_which_hub s
-        checkHubName AnyHT hn
-        return hn
-
-env_which_hub :: String -> IO HubName
-env_which_hub str =
-        case str of
-          "--default" -> dir_which_hub True
-          "--dir    " -> dir_which_hub False
-          "--user"    -> usr_which_hub
-          "--global"  -> defaultGlobalHubName
-          _           -> return str
-
-dir_which_hub :: Bool -> IO HubName
-dir_which_hub def_usr = 
-     do ds <- (reverse.splitDirectories) `fmap` getCurrentDirectory
-        w_h ds
-      where
-        w_h [] | def_usr   = usr_which_hub
-               | otherwise = defaultGlobalHubName
-        w_h (d:ds)         = catchIO (here (d:ds)) (\_ -> w_h ds)
-        
-        here r_ds  = readAFile (joinPath $ reverse $ ".hub":r_ds)
-
-usr_which_hub :: IO HubName
-usr_which_hub =
-     do yup <- isUserHub homeHub
-        case yup of
-          True  -> return ()
-          False -> default_global_hub >>= \hub -> _init hub homeHub
-        return homeHub
-
+        return hub
 
 
 cabal_fixup :: Hub -> Prog -> [String] -> IO CommandLine
 cabal_fixup hub prg as = ProgCL hub `fmap` cf_as 
       where
         cf_as  = case enmPROG prg of
-                   CabalP | not $ isGlobalHub hub -> ci_fixup hub prg as
-                   _                              -> return (prg,as) 
+                   CabalP | kind__HUB hub /= GlbHK -> ci_fixup hub prg as
+                   _                               -> return (prg,as) 
 
 ci_fixup :: Hub -> Prog -> [String] -> IO (Prog,[String])
 ci_fixup hub prg as =
-     do db <- snd `fmap` hubUserLib hub
+     do db <- hubUserPackageDBPath hub
         case as of
           "install"  :as' -> alloc db "install"   as'
           "upgrade"  :as' -> alloc db "upgrade"   as'
@@ -269,22 +184,3 @@ ci_fixup hub prg as =
         _ld ln = "--libdir="     ++ ln
         _pd db = "--package-db=" ++ db
 
-default_global_hub :: IO Hub
-default_global_hub =
-     do hn <- defaultGlobalHubName
-        hf <- case isGlobal hn of
-                True  -> return $ globalHubPath hn
-                False -> userHubPath hn
-        parse hn hf
-
-mk_re :: String -> Regex
-mk_re re_str = mkRegexWithOpts (printf "^%s$" re_str) False True
-
-match :: Regex -> String -> Bool
-match re = isJust . matchRegex re
-
-tryIO :: IO a -> IO (Either IOError a)
-tryIO = E.try
-
-catchIO :: IO a -> (IOError->IO a) -> IO a
-catchIO = E.catch

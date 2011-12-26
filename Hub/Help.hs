@@ -1,103 +1,57 @@
-module Hub.Help(help) where
+module Hub.Help
+    ( help
+    , helpText
+    , usage
+    ) where
 
-help :: String
-help = unlines
-    [ "      Hub Help Page"
-    , "  "
-    , "      hub --usage   is an aliase for the 'hub usage'   command"
-    , "      hub --help    is an aliase for the 'hub help'    command"
-    , "      hub --version is an aliase for the 'hub version' command"
-    , ""
-    , "hub usage"
-    , ""
-    , "      Lists the syntax of all the hub commands."
-    , ""
-    , "hub help    [<hub-command>]"
-    , ""
-    , "      Lists the help for a command or all commands if none specified."
-    , ""
-    , "      See \"hub usage\" for a command-syntax summary."
-    , ""
-    , "hub version"
-    , ""
-    , "      Lists the version information."
-    , ""
-    , "hub default [<g-hub>|-]"
-    , ""
-    , "      (Needs to be run as root.)"
-    , "    "
-    , "      If no arguments are given then this command lists the  the default global"
-    , "      hub for the system (i.e., the default global hub used to set up each"
-    , "      user's 'home' hub)."
-    , "       "
-    , "      If a global hub <g-hub> is specified then <g-hub> will become the"
-    , "      default global hub."
-    , "      "
-    , "      If a '-' is specified then any older default settings are discarded and"
-    , "      the system default re-established."
-    , ""
-    , "hub ls"
-    , ""
-    , "      Lists your user hubs and all of the global hubs."
-    , ""
-    , "hub set     [<hub>|-]"
-    , ""
-    , "      Sets the 'current' hub for a directory and its sub-directories."
-    , "      "
-    , "      The HUB environment variable can be set to a hub name to override this"
-    , "      setting."
-    , ""
-    , "hub info    [<hub>]"
-    , ""
-    , "      Lists the vital stats for the named or current hub."
-    , "      "
-    , "      (See 'hub set' on how to set the current hub.)"
-    , ""
-    , "hub name"
-    , ""
-    , "      Lists the name of the current hub."
-    , "    "
-    , "      (See 'hub set' on how to set the current hub.)"
-    , ""
-    , "hub path    [<hub>]"
-    , ""
-    , "      Lists the  path of the XML file defining the named or current hub."
-    , "    "
-    , "      (See 'hub set' on how to set the current hub.)"
-    , ""
-    , "hub xml     [<hub>]"
-    , ""
-    , "      Lists the contents of the XML file defining the named or current hub."
-    , "    "
-    , "      (See 'hub set' on how to set the current hub.)"
-    , ""
-    , "hub init    [<hub>]   <u-hub'>"
-    , ""
-    , "      Creates an empty user hub, <u-hub'>. The new hub inherits the global"
-    , "      hub of <hub> (or the current hub)."
-    , "    "
-    , "      (See 'hub set' on how to set the current hub.)"
-    , ""
-    , "hub cp      [<u-hub>] <u-hub'>"
-    , ""
-    , "      Duplicates the user <u-hub> (or the current hib) in <u-hub'>."
-    , "    "
-    , "      (See 'hub set' on how to set the current hub.)"
-    , ""
-    , "hub mv      [<u-hub>] <u-hub'>"
-    , ""
-    , "      Renames user hub <u-hub> (or the current hub) to <u-hub'>."
-    , "    "
-    , "      (See 'hub set' on how to set the current hub.)"
-    , ""
-    , "hub rm       <u-hub>"
-    , ""
-    , "      Deletes user hub <hub>."
-    , ""
-    , "hub swap    [<u-hub>] <u-hub'>"
-    , ""
-    , "      Swaps the contents of user hub <u-hub> (or the current hub) with"
-    , "      user hub <u-hub'>."
-    , "    "
-    , "      (See 'hub set' on how to set the current hub.)"
-    ]
+import           Data.Maybe
+import           Text.Printf
+import           Text.Regex
+import           Hub.HelpText
+import           Hub.Oops
+
+
+help :: String -> IO String
+help ""          = return helpText
+help "--usage"   = dd_help `fmap` help "usage"
+help "--help"    = dd_help `fmap` help "help"
+help "--version" = dd_help `fmap` help "version"
+help cd =
+        case sc_help cd $ lines helpText of
+          Nothing  -> oops HubO $ printf "%s: hub command not recognised" cd
+          Just hlp -> return hlp
+
+dd_help :: String -> String
+dd_help ('h':'u':'b':' ':t) = "hub --" ++ t
+dd_help hlp                 = hlp
+
+sc_help :: String -> [String] -> Maybe String
+sc_help _  []       = Nothing
+sc_help cd (ln:lns) =
+        case is_help_hdr cd ln of
+          True  -> Just $ unlines $ ln : takeWhile is_help_bdy lns
+          False -> sc_help cd lns
+
+is_help_hdr :: String -> String -> Bool
+is_help_hdr cmd = match $ mk_re $ printf "hub %s.*" cmd
+
+is_help_bdy :: String -> Bool
+is_help_bdy = not . match not_help_bd_re
+
+not_help_bd_re :: Regex
+not_help_bd_re = mk_re "hub.*"
+
+
+
+usage :: String
+usage = unlines $ filter is_hdr $ lines helpText
+      where
+        is_hdr ('h':'u':'b':' ':_) = True
+        is_hdr _                   = False
+
+
+mk_re :: String -> Regex
+mk_re re_str = mkRegexWithOpts (printf "^%s$" re_str) False True
+
+match :: Regex -> String -> Bool
+match re = isJust . matchRegex re

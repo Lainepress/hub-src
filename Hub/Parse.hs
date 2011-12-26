@@ -1,6 +1,5 @@
 module Hub.Parse
-    ( readHub
-    , parse
+    ( parse
     , dump
     , PSt(..) -- kill warnings
     ) where
@@ -11,25 +10,15 @@ import qualified Data.ByteString          as B
 import qualified Text.XML.Expat.Annotated as X
 import           Hub.Oops
 import           Hub.Hub
+import           Hub.FilePaths
 
 
 
-
-readHub :: HubName -> IO Hub
-readHub hn = 
-     do hf <-  case isGlobal hn  of
-                 True  -> return $ globalHubPath hn
-                 False -> userHubPath hn
-        checkHubName AnyHT hn
-        hubExists hn
-        parse hn hf 
-
-
-parse :: HubName -> FilePath -> IO Hub
-parse hn hf =
+parse :: FilePath -> HubName -> FilePath -> HubKind -> IO Hub
+parse dy hn hf hk =
      do cts <- B.readFile hf
      	case parse' cts of
-     	  YUP  tr -> case check hn hf tr of
+     	  YUP  tr -> case check dy hn hf hk tr of
      	               NOPE er -> fail_err hn hf er
      	               YUP  hb -> return hb
      	  NOPE er -> fail_err hn hf er
@@ -102,9 +91,9 @@ loc0 = X.XMLParseLocation 1 0 0 0
 parse' :: B.ByteString -> Poss Node
 parse' = ei2ps . X.parse' X.defaultParseOptions
 
-check :: HubName -> FilePath -> Node -> Poss Hub
-check hn hf (X.Element "hub" [] ns lc) = 
-                                final $ foldl chk (YUP $ start hn hf lc) ns 
+check :: FilePath -> HubName -> FilePath -> HubKind -> Node -> Poss Hub
+check dy hn hf hk (X.Element "hub" [] ns lc) = 
+                                final dy hk $ foldl chk (YUP $ start hn hf lc) ns 
           where
             chk (NOPE er) _  = NOPE er
             chk (YUP  st) nd = foldr (trial st nd) (NOPE $ unrecognised st nd)
@@ -117,7 +106,7 @@ check hn hf (X.Element "hub" [] ns lc) =
                     , chk_hpbin
                     , chk_cibin
                     ]
-check _  _  _ = NOPE $ err loc0 "expected simple <hub>...</hub>"
+check _  _  _  _  _ = NOPE $ err loc0 "expected simple <hub>...</hub>"
 
 data PSt = ST {
     handlST :: HubName,
@@ -132,13 +121,13 @@ data PSt = ST {
 start :: HubName -> FilePath -> Loc -> PSt
 start hn fp lc = ST hn fp lc Nothing Nothing Nothing Nothing
 
-final :: Poss PSt -> Poss Hub
-final (NOPE er) = NOPE er
-final (YUP  st) = 
+final :: FilePath -> HubKind -> Poss PSt -> Poss Hub
+final _  _  (NOPE er) = NOPE er
+final dy hk (YUP  st) = 
 	 do hc <- get_hc
 	    tl <- get_tl
 	    gl <- get_gl
-	    return $ HUB hn hf hc tl gl mb_ur
+	    return $ HUB hn hk hf hc tl gl mb_dy mb_ur
 	  where
 		get_hc = maybe (NOPE  hc_err  ) YUP mb_hc
 		get_tl = maybe (YUP $ toolsBin) YUP mb_tl
@@ -146,6 +135,8 @@ final (YUP  st) =
 
 		hc_err = err lc "Hub doesn't specify a GHC bin directory"
 		gl_err = err lc "Hub doesn't specify a global package directory"
+		
+		mb_dy  = fmap (const dy) mb_ur
 
 		ST hn hf lc mb_hc mb_tl mb_gl mb_ur = st
 

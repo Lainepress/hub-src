@@ -5,7 +5,7 @@ import System.IO
 import System.Exit
 import Text.Printf
 import Hub.System
-import Hub.Hub
+import Hub.FilePaths
 import Hub.CommandLine
 import Hub.Prog
 import Hub.Commands

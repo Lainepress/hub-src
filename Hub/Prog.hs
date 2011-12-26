@@ -5,6 +5,7 @@ import System.Exit
 import System.FilePath
 import System.Environment
 import Text.Printf
+import Hub.FilePaths
 import Hub.System
 import Hub.Hub
 import Hub.CommandLine
@@ -22,11 +23,11 @@ set_hub_pkg_path :: Hub -> IO ()
 set_hub_pkg_path hub = 
      do pth <- mk_pth `fmap` getEnv "PATH" 
         setEnv'                              "HUB"              hnm True
-        when (not $ isGlobalHub hub) $
+        when (kind__HUB hub/=GlbHK) $
              do setEnv'                      "GHC_PACKAGE_PATH" ppt True
                 setEnv'                      "PATH"             pth True
       where
-        hnm        =                    hubName hub
+        hnm        =                    name__HUB hub
         ppt        = maybe glb mk_ppt $ usr_dbHUB hub
         
         mk_pth pt0 = printf "%s:%s:%s" hubGccBin hubBinutilsBin pt0
