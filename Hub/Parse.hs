@@ -229,11 +229,3 @@ simple_node st (X.Element tg' as ks lc) tg cont
                         lns_er = printf "<%s> should be on a single line" tg
 simple_node _ (X.Text _) _ _
                 = Nothing
-
-
-{-
-test :: IO ()
-test = 
-     do h <- parse "test" "test.xml"
-        print h
--}

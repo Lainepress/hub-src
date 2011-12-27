@@ -94,58 +94,13 @@ _init hub0 hn = initDirectory >> createHub False hub0 hn
 _cp :: Hub -> HubName -> IO ()
 _cp hub hn = initDirectory >> createHub True hub hn
 
-{-     
-     
-     do initHub
-     
-     initDirectory
-        _    <- not_global hub
-        lib0 <- fst `fmap` hubUserLib hub
-        (h_fp,lib,db) <- userHubPaths hn
-        cpFileDir lib0 lib
-        let hub' = hub { name__HUB=hn, path__HUB=h_fp, usr_dbHUB=Just db }
-        dump hub'
--}
-
 _mv :: Hub -> HubName -> IO ()
 _mv hub hn = initDirectory >> renameHub hub hn
 
-{-
-     do initDirectory
-        _    <- not_global hub
-        lib0 <- fst `fmap` hubUserLib hub
-        (h_fp,lib,db) <- userHubPaths hn
-        mvFileDir lib0 lib
-        removeFile $ path__HUB hub
-        let hub' = hub { name__HUB=hn, path__HUB=h_fp, usr_dbHUB=Just db }
-        dump hub'
--}
-
 _rm :: Hub -> IO ()
 _rm = deleteHub
-{-
-     do _ <- not_global hub
-        (h_fp,lib,_) <- userHubPaths $ name__HUB hub
-        removeFile h_fp
-        removeRF   lib
--}
 
 _swap :: Hub -> HubName -> IO ()
 _swap hub1 hn2 =
      do hub2 <- discover $ Just hn2
         swapHub hub1 hub2
-     
-{-
-        _    <- not_global hub1
-        _    <- not_global hub2
-        lib1 <- x_lib `fmap` userHubPaths (name__HUB hub1)
-        lib2 <- x_lib `fmap` userHubPaths (name__HUB hub2)
-        let hub1' = hub1 {name__HUB=name__HUB hub2,path__HUB=path__HUB hub2,usr_dbHUB=usr_dbHUB hub2}
-            hub2' = hub2 {name__HUB=name__HUB hub1,path__HUB=path__HUB hub1,usr_dbHUB=usr_dbHUB hub1}
-        dump hub1'
-        dump hub2'
-        swap_files lib1 lib2
-      where
-        x_lib (_,lib,_) = lib
--}
-

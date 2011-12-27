@@ -2,8 +2,8 @@ module Hub.Hub
     ( Hub(..)
     , HubName
     , HubKind(..)
-    , checkHubName
     , prettyHubKind
+    , checkHubName
     , isHubName
     , hubUserPackageDBPath
     ) where
@@ -50,6 +50,13 @@ isHubName hn =
           c:cs | all hubname_c cs -> fst_hubname_c c 
           _                       -> Nothing
 
+hubUserPackageDBPath :: Hub -> IO FilePath
+hubUserPackageDBPath hub =
+        case usr_dbHUB hub of
+          Nothing -> oops PrgO $ printf "%s: not a user hub" $ name__HUB hub
+          Just db -> return db
+
+
 fst_hubname_c :: Char -> Maybe HubKind
 fst_hubname_c c | glb_first_hub_name_c c = Just GlbHK
                 | usr_first_hub_name_c c = Just UsrHK
@@ -62,8 +69,3 @@ glb_first_hub_name_c, usr_first_hub_name_c :: Char -> Bool
 glb_first_hub_name_c c = isDigit c
 usr_first_hub_name_c c = c `elem` "_." || isAlpha c
 
-hubUserPackageDBPath :: Hub -> IO FilePath
-hubUserPackageDBPath hub =
-        case usr_dbHUB hub of
-          Nothing -> oops PrgO $ printf "%s: not a user hub" $ name__HUB hub
-          Just db -> return db

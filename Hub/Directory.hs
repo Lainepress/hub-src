@@ -1,25 +1,21 @@
 module Hub.Directory
     ( initDirectory
-    , directoryPath
-    , HubKind(..)
     , userHubExists
     , userHubAvailable
     , hubExists
     , isUserHub
     , userHubPath
-    , globalHubPath
-    , allocate
-    
+    , globalHubPath    
     , defaultGlobalHubName
     , lsHubs
     , bin2toolchain
     , db2platform
-
     , createHub
     , renameHub
     , deleteHub
     , swapHub
-    
+    , defaultDirectoryPath
+    , allocate
     ) where
 
 
@@ -41,19 +37,23 @@ import           Hub.Hub
 import           Hub.Parse
 
 
+-- ensure the default directory structure in user's home directory
+-- is initialised
+
 initDirectory :: IO ()
 initDirectory =
      do (hub,lib) <- user_hub_dirs 
         createDirectoryIfMissing True hub
         createDirectoryIfMissing True lib
 
-directoryPath :: IO FilePath
-directoryPath = home >>= \hme -> return $ printf "%s/.hubrc" hme
-
--- check that a hub name denotes a named user hub that either exists or
--- or has not been created
+-- check that a hub name denotes a named user hub that either 
+-- exists (userHubExists) or or has not been created (userHubAvailable)
 
 userHubExists, userHubAvailable :: HubName -> IO ()
+
+userHubExists hn = 
+     do _ <- checkHubName [UsrHK] hn
+        hubExists   hn
 
 userHubAvailable hn = 
      do _ <- checkHubName [UsrHK] hn
@@ -62,9 +62,7 @@ userHubAvailable hn =
           True  -> oops SysO $ printf "%s: hub already in use" hn
           False -> return ()
 
-userHubExists hn = 
-     do _ <- checkHubName [UsrHK] hn
-        hubExists   hn
+-- check that the named hub exists
 
 hubExists :: HubName -> IO ()
 hubExists hn =
@@ -77,10 +75,13 @@ hubExists hn =
           True  -> return ()
           False -> oops SysO $ printf "%s: no such hub" hn
 
-
+-- test whether a user hub exists
 
 isUserHub :: HubName -> IO Bool
 isUserHub hn = userHubPath hn >>= fileExists
+
+-- generate the path of the Hub XML config file file for a
+-- user hub (userHubPath) and global hub (globalHubPath)
 
 userHubPath :: HubName -> IO FilePath
 userHubPath hn = (\(h_fp,_,_)->h_fp) `fmap` user_hub_paths hn
@@ -89,8 +90,7 @@ globalHubPath :: HubName -> FilePath
 globalHubPath hn = globalHubDir </> hn2fp hn
 
 
-
-
+-- get the default global hub name
 
 defaultGlobalHubName :: IO HubName
 defaultGlobalHubName = sel
@@ -126,8 +126,7 @@ defaultGlobalHubName = sel
                 
         hp_hub_re     = mk_re "20[0-9][0-9]\\.[0-9]\\.[0-9]\\.[0-9]"
 
-tryIO :: IO a -> IO (Either IOError a)
-tryIO = E.try
+-- list hubs
 
 lsHubs :: [HubKind] -> IO [HubName]
 lsHubs hks = concat `fmap` mapM ls (sort hks)
@@ -135,26 +134,13 @@ lsHubs hks = concat `fmap` mapM ls (sort hks)
         ls GlbHK = ls_glb_hubs
         ls UsrHK = ls_usr_hubs
 
-ls_glb_hubs :: IO [HubName]
-ls_glb_hubs = (sort . chk) `fmap` getDirectoryContents globalHubDir
-      where
-        chk fps = [ hn | fp<-fps, Just hn<-[fp2hn fp], isHubName hn==Just GlbHK ]
-
-ls_usr_hubs :: IO [HubName]
-ls_usr_hubs = 
-     do dp <- fst `fmap` user_hub_dirs
-        (sort . chk) `fmap` getDirectoryContents dp
-      where
-        chk fps = [ hn | fp<-fps, Just hn<-[fp2hn fp], isHubName hn==Just UsrHK ]
-
-
+-- convert 'bin' and 'db' paths to corresponding toolchai8ns and platforms 
 
 bin2toolchain, db2platform :: FilePath -> Maybe String
 bin2toolchain = match $ mk_re hcBinREs
 db2platform   = match $ mk_re hpDbREs
 
-
-
+-- create/copy, rename, delete and swap hubs
 
 createHub :: Bool -> Hub -> HubName -> IO ()
 createHub cp hub0 hn =
@@ -197,40 +183,12 @@ swapHub hub1 hub2 =
         dump hub2'
         swap_files lib1 lib2
 
+-- return the path of the default directory
 
+defaultDirectoryPath :: IO FilePath
+defaultDirectoryPath = home >>= \hme -> return $ printf "%s/.hubrc" hme
 
-
-
-
-
-pkg_init :: Hub -> FilePath -> IO ()
-pkg_init hub fp =
-     do ec <- rawSystem ghc_pkg ["init",fp]
-        case ec of
-          ExitSuccess   -> return ()
-          ExitFailure n -> oops HubO $
-                                printf "ghc-pkg failure (return code=%d)" n  
-      where
-        ghc_pkg = hc_binHUB hub </> "ghc-pkg"
-
-not_global :: Hub -> IO ()
-not_global hub = when (kind__HUB hub==GlbHK) $
-                    oops HubO $ printf "%s: is a global hub"  $name__HUB hub
-
-{-
-is_global :: Hub -> IO ()
-is_global hub = when (kind__HUB hub/=GlbHK) $
-                    oops HubO $ printf "%s: not a global hub" $name__HUB hub
--}
-
-
-
-
-package_config :: FilePath
-package_config = "package.config"
-
-
-
+-- allocate a library directory from the heap
 
 allocate :: IO FilePath
 allocate =
@@ -240,6 +198,18 @@ allocate =
         let pth =                       printf "%s/.hubrc/heap/%d"          hme i
         createDirectoryIfMissing True   pth
         return pth
+
+
+
+--
+-- Directory Structure 
+--
+-- (see also 'efaultDirectoryPath' & 'allocate' above)
+--
+
+
+package_config :: FilePath
+package_config = "package.config"
 
 user_lib :: FilePath -> HubName -> FilePath
 user_lib hme hn = printf "%s/.hubrc/lib/%s" hme hn
@@ -256,6 +226,40 @@ fp2hn = match xml_fn_re
 xml_fn_re :: Regex
 xml_fn_re = mk_re "(.*)\\.xml"
 
+
+
+--
+-- Listing Hubs
+--
+
+
+ls_glb_hubs :: IO [HubName]
+ls_glb_hubs = (sort . chk) `fmap` getDirectoryContents globalHubDir
+      where
+        chk fps = [ hn | fp<-fps, Just hn<-[fp2hn fp], isHubName hn==Just GlbHK ]
+
+ls_usr_hubs :: IO [HubName]
+ls_usr_hubs = 
+     do dp <- fst `fmap` user_hub_dirs
+        (sort . chk) `fmap` getDirectoryContents dp
+      where
+        chk fps = [ hn | fp<-fps, Just hn<-[fp2hn fp], isHubName hn==Just UsrHK ]
+
+
+
+--
+-- invoking ghc-pkg
+--
+
+pkg_init :: Hub -> FilePath -> IO ()
+pkg_init hub fp =
+     do ec <- rawSystem ghc_pkg ["init",fp]
+        case ec of
+          ExitSuccess   -> return ()
+          ExitFailure n -> oops HubO $
+                                printf "ghc-pkg failure (return code=%d)" n  
+      where
+        ghc_pkg = hc_binHUB hub </> "ghc-pkg"
 
 
 
@@ -284,6 +288,8 @@ hub_user_lib hub =
                        _    -> oops SysO "hub has non-standard user-database path"
         
         
+
+
 swap_files :: FilePath -> FilePath -> IO ()
 swap_files fp fp' = swap_files'' fp fp' $ oops SysO
 
@@ -311,14 +317,46 @@ mk_tmp i fp =
       where
         fp' = printf "%s-%d" fp i
 
+
+
+--
+-- Ensure Hub is not Global
+--
+
+
+not_global :: Hub -> IO ()
+not_global hub = when (kind__HUB hub==GlbHK) $
+                    oops HubO $ printf "%s: is a global hub"  $name__HUB hub
+
+
+
+--
+-- Get HOME Environment Variable
+--
+
+
 home :: IO FilePath
 home = catchIO (getEnv "HOME") $ \_ -> return "/"
+
+
+
+--
+-- 'try' and 'catch' specialised for IO
+--
+
+
+tryIO :: IO a -> IO (Either IOError a)
+tryIO = E.try
 
 
 catchIO :: IO a -> (IOError->IO a) -> IO a
 catchIO = E.catch
 
 
+
+--
+-- Regular Expression Utilities
+--
 
 
 mk_re :: String -> Regex
@@ -331,7 +369,4 @@ match :: Regex -> String -> Maybe String
 match re st = case matchRegex re st of
                 Just (se:_) -> Just se
                 _           -> Nothing
-
-
-
         

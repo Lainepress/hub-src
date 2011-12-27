@@ -16,6 +16,7 @@ import           Hub.Directory
 home_hub ::HubName
 home_hub = "home" 
 
+
 discover :: Maybe HubName -> IO Hub
 discover Nothing   = which_hub >>= read_hub
 discover (Just hn) = read_hub hn
@@ -28,7 +29,7 @@ read_hub hn =
         hf <-  case isHubName hn==Just GlbHK  of
                  True  -> return $ globalHubPath hn
                  False -> userHubPath hn
-        dy <- directoryPath
+        dy <- defaultDirectoryPath
         parse dy hn hf hk 
 
 which_hub :: IO HubName
@@ -74,7 +75,7 @@ default_global_hub =
         hf <- case isHubName hn==Just GlbHK of
                 True  -> return $ globalHubPath hn
                 False -> userHubPath hn
-        dy <- directoryPath
+        dy <- defaultDirectoryPath
         parse dy hn hf GlbHK
 
 
