@@ -6,10 +6,15 @@ module Hub.Hub
     , checkHubName
     , isHubName
     , hubUserPackageDBPath
+    , ghcPkg
+    , cabal
     ) where
 
 import Data.Char
 import Text.Printf
+import System.Exit
+import System.FilePath
+import Hub.System
 import Hub.Oops
 
 
@@ -57,6 +62,15 @@ hubUserPackageDBPath hub =
           Just db -> return db
 
 
+ghcPkg, cabal :: ExecCtrl -> Hub -> [String] -> IO ()
+ghcPkg ec hub as = exec_prog ec hub "ghc-pkg" as
+cabal  ec hub as = exec_prog ec hub "cabal"   as
+
+
+--
+-- Validating Hub Names
+--
+
 fst_hubname_c :: Char -> Maybe HubKind
 fst_hubname_c c | glb_first_hub_name_c c = Just GlbHK
                 | usr_first_hub_name_c c = Just UsrHK
@@ -69,3 +83,17 @@ glb_first_hub_name_c, usr_first_hub_name_c :: Char -> Bool
 glb_first_hub_name_c c = isDigit c
 usr_first_hub_name_c c = c `elem` "_." || isAlpha c
 
+
+--
+-- Executing Programs
+--
+
+exec_prog :: ExecCtrl -> Hub -> String -> [String] -> IO ()
+exec_prog ec hub pr as =
+     do ex <- execProg ec pr as
+        case ex of
+          ExitSuccess   -> return ()
+          ExitFailure n -> oops HubO $
+                                printf "%s failure (return code=%d)" pp n  
+      where
+        pp = hc_binHUB hub </> pr

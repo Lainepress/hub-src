@@ -17,6 +17,7 @@ import           Hub.Oops
 import           Hub.Hub
 import           Hub.Directory
 import           Hub.Discover
+import           Hub.PackageDB
 
 
 commandLine :: IO CommandLine
@@ -34,21 +35,25 @@ data CommandLine
     | HelpCL Bool String   -- False => help, True => usage
     | VrsnCL
     | DfltCL
-    | StDfCL  Hub
+    | StDfCL    Hub
     | RsDfCL
     | LsCL
     | GetCL
-    | SetCL   Hub
+    | SetCL     Hub
     | UnsetCL
-    | NameCL  Hub
-    | InfoCL  Hub
-    | PathCL  Hub
-    | XmlCL   Hub
-    | InitCL  Hub HubName
-    | CpCL    Hub HubName
-    | MvCL    Hub HubName
-    | RmCL    Hub
-    | SwapCL  Hub HubName
+    | NameCL    Hub
+    | InfoCL    Hub
+    | PathCL    Hub
+    | XmlCL     Hub
+    | InitCL    Hub HubName
+    | CpCL      Hub HubName
+    | MvCL      Hub HubName
+    | RmCL      Hub
+    | SwapCL    Hub HubName
+    | GcCL
+    | ListCL    Hub
+    | InstallCL Hub [PkgName]
+    | EraseCL   Hub [PkgName]
                                                                 deriving (Show)
 
 data Prog = PROG {
@@ -104,6 +109,11 @@ hub_dispatch as = case as of
     ["rm"     ,hn'] -> discover       (Just hn') >>= \hub -> return $ Just $ RmCL   hub
     ["swap",   hn'] -> hub_swap Nothing     hn'  >>= \hub -> return $ Just $ SwapCL hub hn'
     ["swap",hn,hn'] -> hub_swap (Just   hn) hn'  >>= \hub -> return $ Just $ SwapCL hub hn'
+    ["gc"         ] ->                                       return $ Just $ GcCL
+    ["list"       ] -> discover Nothing          >>= \hub -> return $ Just $ ListCL hub
+    ["list",hn    ] -> discover (Just   hn)      >>= \hub -> return $ Just $ ListCL hub
+    "install":hn:pkn:pkns -> discover (Just hn)  >>= \hub -> return $ Just $ InstallCL hub $ pkn:pkns
+    "erase"  :hn:pkn:pkns -> discover (Just hn)  >>= \hub -> return $ Just $ EraseCL   hub $ pkn:pkns
     _               ->                                       return   Nothing  
 
 data P
@@ -177,7 +187,7 @@ ci_fixup hub prg as =
           _               -> return (prg,as)
       where
         alloc db cmd as' =
-             do ln <- allocate
+             do ln <- allocateDefaultDirectory
                 let prg' = prg { typPROG = CiPT (Just ln) }
                 return ( prg' , cmd : _ld ln : _pd db : as' )                                 
 

@@ -1,5 +1,5 @@
 Name:               hub
-Version:            0.0.1
+Version:            0.5
 Copyright:          Chris Dornan, 2011
 Maintainer:         Chris Dornan <chris@chrisdornan.com>
 Author:             Chris Dornan <chris@chrisdornan.com>
@@ -32,13 +32,18 @@ Executable hub
                     process,
                     bytestring,
                     haskell98
-    Other-modules:  Hub.System
-                    Hub.Oops
-                    Hub.Help
-                    Hub.Hub
-                    Hub.Parse
-                    Hub.CommandLine
-                    Hub.Prog
+    Other-modules:  Hub.CommandLine
                     Hub.Commands
+                    Hub.Directory
+                    Hub.Discover
+                    Hub.FilePaths
+                    Hub.Help
+                    Hub.HelpText
+                    Hub.Hub
+                    Hub.Oops
+                    Hub.PackageDB
+                    Hub.Parse
+                    Hub.Prog
+                    Hub.System
     GHC-options:    -Wall
     Extensions:     CPP

@@ -15,7 +15,8 @@ module Hub.Directory
     , deleteHub
     , swapHub
     , defaultDirectoryPath
-    , allocate
+    , allocateDefaultDirectory
+    , gcDefaultDirectory
     ) where
 
 
@@ -23,8 +24,6 @@ import qualified Control.Exception      as E
 import           Control.Monad
 import           Data.List
 import           Data.Maybe
-import           System.Cmd
-import           System.Exit
 import           System.FilePath
 import           System.Directory
 import           System.Environment
@@ -35,6 +34,7 @@ import           Hub.Oops
 import           Hub.System
 import           Hub.Hub
 import           Hub.Parse
+import           Hub.PackageDB
 
 
 -- ensure the default directory structure in user's home directory
@@ -42,9 +42,10 @@ import           Hub.Parse
 
 initDirectory :: IO ()
 initDirectory =
-     do (hub,lib) <- user_hub_dirs 
+     do (hub,lib) <- user_hub_dirs
         createDirectoryIfMissing True hub
         createDirectoryIfMissing True lib
+        
 
 -- check that a hub name denotes a named user hub that either 
 -- exists (userHubExists) or or has not been created (userHubAvailable)
@@ -147,10 +148,13 @@ createHub cp hub0 hn =
      do userHubAvailable hn
         (h_fp,lib,db) <- user_hub_paths hn
         createDirectoryIfMissing True lib
-        (_,db0) <- hub_user_lib hub0
+        
         case cp of
-          True  -> cpFileDir db0 db
-          False -> pkg_init hub0 db
+          True  -> 
+             do (_,db0) <- hub_user_lib hub0
+                cpFileDir db0 db
+          False ->
+                pkg_init hub0 db
         let hub = hub0 { name__HUB=hn, path__HUB=h_fp, usr_dbHUB=Just db }
         dump hub 
 
@@ -188,10 +192,10 @@ swapHub hub1 hub2 =
 defaultDirectoryPath :: IO FilePath
 defaultDirectoryPath = home >>= \hme -> return $ printf "%s/.hubrc" hme
 
--- allocate a library directory from the heap
+-- allocate a library directory from the heap in the default directory
 
-allocate :: IO FilePath
-allocate =
+allocateDefaultDirectory :: IO FilePath
+allocateDefaultDirectory =
      do hme <- home
         createDirectoryIfMissing True $ printf "%s/.hubrc/heap"             hme
         i <- inc                      $ printf "%s/.hubrc/heap/counter.txt" hme
@@ -199,12 +203,18 @@ allocate =
         createDirectoryIfMissing True   pth
         return pth
 
+-- GC the default directory
+
+gcDefaultDirectory :: IO ()
+gcDefaultDirectory = undefined importLibraryDirs
+
 
 
 --
 -- Directory Structure 
 --
--- (see also 'efaultDirectoryPath' & 'allocate' above)
+-- (see also 'defaultDirectoryPath', 'allocateDefaultDirectory' and
+-- gcDefaultDirectory above)
 --
 
 
@@ -252,15 +262,7 @@ ls_usr_hubs =
 --
 
 pkg_init :: Hub -> FilePath -> IO ()
-pkg_init hub fp =
-     do ec <- rawSystem ghc_pkg ["init",fp]
-        case ec of
-          ExitSuccess   -> return ()
-          ExitFailure n -> oops HubO $
-                                printf "ghc-pkg failure (return code=%d)" n  
-      where
-        ghc_pkg = hc_binHUB hub </> "ghc-pkg"
-
+pkg_init hub fp = ghcPkg (EC InheritRS InheritRS) hub ["init",fp]
 
 
 user_hub_paths :: HubName -> IO (FilePath,FilePath,FilePath)
@@ -275,7 +277,6 @@ user_hub_dirs =
         let hub = printf "%s/.hubrc/hub" hme
             lib = printf "%s/.hubrc/lib" hme
         return (hub,lib)
-
 
 hub_user_lib :: Hub -> IO (FilePath,FilePath)
 hub_user_lib hub = 

@@ -14,15 +14,21 @@ module Hub.Commands
     , _mv
     , _rm
     , _swap
+    , _gc
+    , _list
+    , _install
+    , _erase
     ) where
 
 import           Control.Monad
 import           System.Directory
 import           Text.Printf
+import qualified Data.Map           as Map
 import           Hub.FilePaths
 import           Hub.Oops
 import           Hub.System
 import           Hub.Hub
+import           Hub.PackageDB
 import           Hub.Directory
 import           Hub.Discover
 
@@ -104,3 +110,31 @@ _swap :: Hub -> HubName -> IO ()
 _swap hub1 hn2 =
      do hub2 <- discover $ Just hn2
         swapHub hub1 hub2
+
+_gc :: IO () 
+_gc = gcDefaultDirectory
+
+_list :: Hub -> IO ()
+_list hub =
+     do --cts <- package_dump hub
+        --putStr cts
+
+        mp <- packageDB hub
+        let f (nm,pk) = printf "---\n%s\n----\n%s\n\n" nm (show pk)
+        putStr $ unlines $ map f $ Map.toList mp
+
+        -- invoke ghc-pkg list
+
+_install :: Hub -> [PkgName] -> IO ()
+_install hub pkns =
+        -- invoke cabal install
+        undefined hub pkns
+
+_erase :: Hub -> [PkgName] -> IO ()
+_erase hub pkns0 = 
+     do pkns <- eraseClosure hub pkns0
+        -- list pks to be deleted
+        -- get confirmation
+        -- unregister the packages
+        -- run a GC
+        undefined pkns

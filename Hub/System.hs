@@ -1,5 +1,6 @@
 module Hub.System
-    ( setEnv
+    ( tmpFile
+    , setEnv
     , fileExists
     , fileDirExists
     , removeRF
@@ -10,21 +11,28 @@ module Hub.System
     , tidyDir
     , exec
     , go
+    , ExecCtrl(..)
+    , RedirectStream(..)
+    , execProg
     , readAFile
     , writeAFile
     ) where
 
 import qualified Data.ByteString as B
 import Hub.Oops
+import System.Process
 
 
 #if mingw32_HOST_OS==1
 
+dev_null :: FilePath
+dev_null = winstub
+
+tmpFile :: IO Int
+tmpFile = winstub 
+
 setEnv :: String -> String -> Bool -> IO ()
 setEnv = winstub
-
-exec :: String -> Bool -> [String] -> Maybe [(String,String)] -> IO ()
-exec = winstub
 
 fileExists :: FilePath -> IO Bool
 fileExists = winstub
@@ -68,7 +76,6 @@ import           Control.Monad
 import qualified Control.Exception      as E
 import           System.Directory
 import System.IO
-import System.Cmd
 import System.Exit
 import System.Posix.Env
 import System.Posix.Files
@@ -77,6 +84,15 @@ import System.Posix.IO
 import Text.Printf
 
 
+dev_null :: FilePath
+dev_null = "/dev/null"
+
+-- allocate a temporary file
+
+tmpFile :: FilePath -> IO FilePath
+tmpFile fn =
+     do pid <- getProcessID
+        return $ printf "/tmp/hub-%d-%s" (fromIntegral pid :: Int) fn
 
 fileExists :: FilePath -> IO Bool
 fileExists fp = flip E.catch (hdl_ioe False) $
@@ -123,7 +139,6 @@ go as exe   = executeFile exe True as Nothing
 exec :: [String] -> FilePath -> IO ExitCode
 exec as exe = rawSystem exe as
 
-
 inc :: FilePath -> IO Int
 inc fp = 
      do fd <- openFd fp ReadWrite (Just stdFileMode) defaultFileFlags
@@ -160,10 +175,40 @@ hdl_ioe x _ = return x
 
 #endif
 
+data ExecCtrl = EC {
+    redirctOutEC :: RedirectStream,
+    redirctErrEC :: RedirectStream
+    }                                                           deriving (Show)
+
+data RedirectStream
+    = InheritRS
+    | DiscardRS
+    | RedirctRS FilePath
+                                                                deriving (Show)
+
+execProg :: ExecCtrl -> FilePath -> [String] -> IO ExitCode
+execProg ec pr as =
+     do so <- get_ss $ redirctOutEC ec
+        se <- get_ss $ redirctErrEC ec
+        let cp = (proc pr as) { std_out = so, std_err = se }
+        (_,_,_,ph) <- createProcess cp
+        ex <- waitForProcess ph
+        clse so
+        clse se
+        return ex
+      where
+        get_ss  InheritRS     = return Inherit
+        get_ss  DiscardRS     = get_ss (RedirctRS dev_null)
+        get_ss (RedirctRS fp) = UseHandle `fmap` openFile fp WriteMode
+
+        clse (UseHandle h) = hClose h
+        clse _             = return ()
+
 readAFile :: FilePath -> IO String
 readAFile fp =
      do bs <- B.readFile fp
         return $ map (toEnum.fromEnum) $ B.unpack bs 
 
 writeAFile :: FilePath -> String -> IO ()
-writeAFile fp cts = B.writeFile fp $ B.pack $ map (toEnum.fromEnum) cts
+writeAFile = writeFile
+-- writeAFile fp cts = B.writeFile fp $ B.pack $ map (toEnum.fromEnum) cts

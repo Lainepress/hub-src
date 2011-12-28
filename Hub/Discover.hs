@@ -18,8 +18,9 @@ home_hub = "home"
 
 
 discover :: Maybe HubName -> IO Hub
-discover Nothing   = which_hub >>= read_hub
-discover (Just hn) = read_hub hn
+discover Nothing               = which_hub >>= read_hub
+discover (Just hn) | hn=="^"   = discover Nothing
+                   | otherwise = read_hub hn
 
 
 read_hub :: HubName -> IO Hub
