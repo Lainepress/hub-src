@@ -52,8 +52,8 @@ data CommandLine
     | SwapCL    Hub HubName
     | GcCL
     | ListCL    Hub
-    | InstallCL Hub [PkgName]
-    | EraseCL   Hub [PkgName]
+    | InstallCL Hub [PkgNick]
+    | EraseCL   Hub [PkgNick]
                                                                 deriving (Show)
 
 data Prog = PROG {
@@ -112,8 +112,10 @@ hub_dispatch as = case as of
     ["gc"         ] ->                                       return $ Just $ GcCL
     ["list"       ] -> discover Nothing          >>= \hub -> return $ Just $ ListCL hub
     ["list",hn    ] -> discover (Just   hn)      >>= \hub -> return $ Just $ ListCL hub
-    "install":hn:pkn:pkns -> discover (Just hn)  >>= \hub -> return $ Just $ InstallCL hub $ pkn:pkns
-    "erase"  :hn:pkn:pkns -> discover (Just hn)  >>= \hub -> return $ Just $ EraseCL   hub $ pkn:pkns
+    "install"     :   p:ps -> hub_pks  Nothing  p ps >>= \(hub,pkns) -> return $ Just $ InstallCL hub $ pkns
+    "install-into":hn:p:ps -> hub_pks (Just hn) p ps >>= \(hub,pkns) -> return $ Just $ InstallCL hub $ pkns
+    "erase"       :   p:ps -> hub_pks  Nothing  p ps >>= \(hub,pkns) -> return $ Just $ EraseCL   hub $ pkns
+    "erase-from"  :hn:p:ps -> hub_pks (Just hn) p ps >>= \(hub,pkns) -> return $ Just $ EraseCL   hub $ pkns
     _               ->                                       return   Nothing  
 
 data P
@@ -169,6 +171,11 @@ hub_pair' sw mb_hn hn' =
             userHubAvailable hn'
         return hub
 
+hub_pks :: Maybe HubName -> String -> [String] -> IO (Hub,[PkgNick])
+hub_pks mb p ps =
+     do hub  <- discover mb
+        pkns <- mapM parsePkgNick (p:ps)
+        return (hub,pkns)
 
 cabal_fixup :: Hub -> Prog -> [String] -> IO CommandLine
 cabal_fixup hub prg as = ProgCL hub `fmap` cf_as 
@@ -194,3 +201,4 @@ ci_fixup hub prg as =
         _ld ln = "--libdir="     ++ ln
         _pd db = "--package-db=" ++ db
 
+        

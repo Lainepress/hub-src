@@ -120,21 +120,22 @@ _list hub =
         --putStr cts
 
         mp <- packageDB hub
-        let f (nm,pk) = printf "---\n%s\n----\n%s\n\n" nm (show pk)
+        let f (nm,pk) = printf "---\n%s\n----\n%s\n\n" (show nm) (show pk)
         putStr $ unlines $ map f $ Map.toList mp
 
         -- invoke ghc-pkg list
 
-_install :: Hub -> [PkgName] -> IO ()
+_install :: Hub -> [PkgNick] -> IO ()
 _install hub pkns =
         -- invoke cabal install
         undefined hub pkns
 
-_erase :: Hub -> [PkgName] -> IO ()
+_erase :: Hub -> [PkgNick] -> IO ()
 _erase hub pkns0 = 
      do pkns <- eraseClosure hub pkns0
+        putStr $ unlines $ map prettyPkgNick pkns
         -- list pks to be deleted
         -- get confirmation
         -- unregister the packages
         -- run a GC
-        undefined pkns
+        --undefined pkns

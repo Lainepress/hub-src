@@ -1,16 +1,27 @@
 module Hub.PackageDB
-    ( PkgName
+    ( PkgNick(..)
+    , PkgName
+    , PkgVrsn
+    , PkgHash
+    , parsePkgNick
+    , prettyPkgNick
     , eraseClosure
     , importLibraryDirs
+    , PkgIden(..)
     , Package(..)
-    , PRef(..)
     , packageDB
+    
+    , DepGraph(..)
+    , dep_graph
     ) where
 
 import           Data.Char
+import           Data.List
+import           Data.Array
 import qualified Data.Map               as Map
 import qualified Data.ByteString        as B
 import qualified Data.ByteString.UTF8   as U
+import           Data.Graph.Inductive
 import           Text.Printf
 import           System.Directory
 import           Hub.System
@@ -18,33 +29,155 @@ import           Hub.Oops
 import           Hub.Hub
 
 
+
+-- Package as identified on the CL
+
+data PkgNick = PKN {
+    namePKN :: PkgName,
+    vrsnPKN :: Maybe PkgVrsn
+    }                                                    deriving (Eq,Ord,Show)
+
+data PkgIden = PKI {
+    namePKI :: PkgName,
+    vrsnPKI :: PkgVrsn,
+    idenPKI :: PkgHash
+    }                                                    deriving (Eq,Ord,Show)
+
 type PkgName = String
+type PkgVrsn = String
+type PkgHash = String
 
 
-eraseClosure :: Hub -> [PkgName] -> IO [PkgName]
-eraseClosure hub pkns = undefined hub pkns packageDB
+
+eraseClosure :: Hub -> [PkgNick] -> IO [PkgNick]
+eraseClosure hub pkns =
+     do pdb  <- packageDB hub
+     -- putStrLn $ printf "---\n%s\n--\n\n" $ show $ flip suc 1 $ grev $ trc $ graphDG $ dep_graph pdb
+        pkis <- erase_closure pdb `fmap` mapM (resolve_pkg_nick pdb) pkns
+      --putStrLn $ printf "----\nDEBUG\n%s\n----\n\n" $ show dg
+        return $ map pki2pkn pkis 
 
 importLibraryDirs :: Hub -> IO [FilePath]
 importLibraryDirs hub = undefined hub packageDB
 
 
 
+parsePkgNick :: String -> IO PkgNick
+parsePkgNick s =
+        case is_val of
+          True  | is_vr     -> return $ PKN nm (Just vr)
+                | otherwise -> return $ PKN s   Nothing
+          False             -> oops HubO $ printf "%s: invalid package name" s
+      where
+        is_val      = case s of
+                        []   -> False
+                        c:cs -> fval_c c && all sval_c cs
+      
+        is_vr       = not (null nm) && not (null vr) && all vr_c vr 
+      
+        nm          = reverse r_nm
+        vr          = reverse r_vr
+      
+        r_nm        = cl_d rst2
+        (r_vr,rst2) = break ('-'==) $ reverse s
+
+        cl_d ('-':t) = t
+        cl_d x       = x
+
+        vr_c '.'     = True
+        vr_c c       = isDigit c
+
+        fval_c c     = isAlpha c || c=='_'
+        sval_c c     = isAlpha c || isDigit c || c `elem` "-_.=+#~" 
+
+prettyPkgNick :: PkgNick -> String
+prettyPkgNick pkn =
+        case vrsnPKN pkn of
+          Nothing -> namePKN pkn
+          Just vr -> printf "%s-%s" (namePKN pkn) vr
+
+pki2pkn :: PkgIden -> PkgNick
+pki2pkn pki = PKN (namePKI pki) (Just(vrsnPKI pki))
+
+
+--
+-- Calculating the Erase Closure
+--
+
+erase_closure :: PackageDB -> [PkgIden] -> [PkgIden]
+erase_closure pdb pkis = map v2pki $ (\\ vs) $ usort $ concat $ map (pre gr) vs  
+      where
+        vs      = [ v | Just v<-map pki2mbv pkis ] 
+        pki2mbv = flip Map.lookup $ assgnDG dg
+        v2pki   = (arrayDG dg!)
+        gr      = trc $ graphDG dg
+        dg      = dep_graph pdb
+
+usort :: Ord a => [a] -> [a]
+usort = foldr no_dups [] . sort
+      where
+        no_dups x []      = [x]
+        no_dups x (x':xs) = if x==x' then x:xs else x:x':xs
+
+
+--
+-- Building the Dependency Graph
+--
+
+data DepGraph = DG {
+    assgnDG :: Map.Map PkgIden Int,
+    arrayDG :: Array Int PkgIden,
+    graphDG :: Gr PkgIden ()
+    }                                                           deriving (Show)
+
+dep_graph :: PackageDB -> DepGraph
+dep_graph pdb = DG asgn arry (mkGraph ndes edgs)
+      where
+        ndes = map (\(x,y)->(y,x)) $ Map.toList asgn
+        
+        edgs = [ (x',y',()) | (x,y)<-deps,
+                        Just x'<-[Map.lookup x asgn],
+                        Just y'<-[Map.lookup y asgn] ]
+                
+        deps = [ (idPKG pkg,dep) | pkg<-Map.elems pdb, dep<-dependsPKG pkg ]
+
+        arry = listArray (0,Map.size asgn-1) $ Map.keys asgn
+
+        asgn = Map.fromList $ zip (sort $ Map.keys pdb) [0..]
+
+
+--
+-- Resolving Package Nicks into Package Ids
+--
+
+resolve_pkg_nick :: PackageDB -> PkgNick -> IO PkgIden
+resolve_pkg_nick pdb pkn =
+        case match_pkg_nick pdb pkn of
+          []    -> oops HubO $ printf "%s: does not match any user packages in the hub" $ prettyPkgNick pkn
+          [pki] -> return pki
+          _     -> oops HubO $ printf "%s: matches multiple user packages in the hub"   $ prettyPkgNick pkn
+
+match_pkg_nick :: PackageDB -> PkgNick -> [PkgIden]
+match_pkg_nick pdb pkn =
+            [ pki | pki <- Map.keys pdb,
+                        namePKN pkn==namePKI pki
+                                    && maybe True (==vrsnPKI pki) (vrsnPKN pkn)] 
+
+
+--
+-- Reconstructing the Package DB
+--
+
+type PackageDB = Map.Map PkgIden Package
+
 data Package = PKG {
-    refPKG          :: PRef,
+    idPKG           :: PkgIden,
     import_dirsPKG  :: [FilePath],
     library_dirsPKG :: [FilePath],
-    dependsPKG      :: [PRef]
+    dependsPKG      :: [PkgIden]
     }                                                           deriving (Show)
 
--- PkgName represents a medium length package identifier: <name>-<version>.
-
-data PRef = PR {
-    namePR :: String,
-    vrsnPR :: String,
-    pkidPR :: String
-    }                                                           deriving (Show)
-
-packageDB :: Hub -> IO (Map.Map PkgName Package)
+packageDB :: Hub -> IO PackageDB
 packageDB hub =
      do cts <- package_dump hub
         return $ packages [ package $ record rec | rec<-records cts ]
@@ -62,17 +195,15 @@ package_dump hub =
         removeFile tf
         return $ U.toString bs
         
-packages :: [Package] -> Map.Map PkgName Package
-packages pkgs = Map.fromList [(pr2pkn $ refPKG pkg,pkg) | pkg<-pkgs ]
-      where
-        pr2pkn pr = namePR pr ++ "-" ++ vrsnPR pr
+packages :: [Package] -> Map.Map PkgIden Package
+packages pkgs = Map.fromList [(idPKG pkg,pkg) | pkg<-pkgs ]
         
 package :: Map.Map String [String] -> Package
 package mp = PKG
-        (PR (lu "name" sgl) (lu "version" sgl) (lu "id" sgl))
-        (lu "import-dirs"  lst)
-        (lu "library-dirs" lst)
-        (lu "depends"      prs)
+        (s2pr (lu "id"           sgl))
+              (lu "import-dirs"  lst)
+              (lu "library-dirs" lst)
+              (lu "depends"      prs)
       where
         lu ky f = f $ Map.lookup ky mp
                   
@@ -85,12 +216,12 @@ package mp = PKG
         prs Nothing    = []
         prs (Just lns) = map (s2pr . trim) lns
 
-s2pr :: String -> PRef
-s2pr s = PR (reverse r_nm) (reverse r_vr) s
+s2pr :: String -> PkgIden
+s2pr s = PKI (reverse r_nm) (reverse r_vr) (reverse r_hs)
       where
         r_nm        = cl_d rst2
         (r_vr,rst2) = break ('-'==) $ cl_d rst1
-        (_   ,rst1) = break ('-'==) $ reverse s
+        (r_hs,rst1) = break ('-'==) $ reverse s
 
         cl_d ('-':t) = t
         cl_d x       = x
