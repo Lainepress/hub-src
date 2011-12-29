@@ -1,6 +1,6 @@
 OD = dist/build/hub
 ID = /usr/hs/bin
-HC = mkdir -p $(OD); ghc -cpp --make -outputdir build -Wall
+HC = mkdir -p $(OD); ghc -cpp -XHaskell2010 --make -outputdir build -Wall
 
 all: hub
 

@@ -3,6 +3,7 @@ module Hub.System
     , setEnv
     , fileExists
     , fileDirExists
+    , removeR
     , removeRF
     , cpFileDir
     , mvFileDir
@@ -19,8 +20,9 @@ module Hub.System
     ) where
 
 import qualified Data.ByteString as B
-import Hub.Oops
-import System.Process
+import qualified Data.Map        as Map
+import           Hub.Oops
+import           System.Process
 
 
 #if mingw32_HOST_OS==1
@@ -39,6 +41,9 @@ fileExists = winstub
 
 fileDirExists :: FilePath -> IO Bool
 fileDirExists = winstub
+
+removeR :: FilePath -> IO ()
+removeR = winstub
 
 removeRF :: FilePath -> IO ()
 removeRF = winstub
@@ -104,6 +109,14 @@ fileDirExists fp = flip E.catch (hdl_ioe False) $
      do st <- getFileStatus fp
         return $ isRegularFile st || isDirectory st
         
+removeR :: FilePath -> IO ()
+removeR fp =
+     do ec <- rawSystem "rm" ["-r",fp]
+        case ec of
+          ExitSuccess   -> return ()
+          ExitFailure n -> oops SysO $
+                                printf "rm failure (return code=%d)" n  
+
 removeRF :: FilePath -> IO ()
 removeRF fp =
      do ec <- rawSystem "rm" ["-rf",fp]
@@ -177,7 +190,8 @@ hdl_ioe x _ = return x
 
 data ExecCtrl = EC {
     redirctOutEC :: RedirectStream,
-    redirctErrEC :: RedirectStream
+    redirctErrEC :: RedirectStream,
+    extendEnvtEC :: [(String,String)]
     }                                                           deriving (Show)
 
 data RedirectStream
@@ -188,9 +202,12 @@ data RedirectStream
 
 execProg :: ExecCtrl -> FilePath -> [String] -> IO ExitCode
 execProg ec pr as =
-     do so <- get_ss $ redirctOutEC ec
+     do 
+      --putStrLn $ printf "DEBUG: %s %s" pr (unwords as)
+        so <- get_ss $ redirctOutEC ec
         se <- get_ss $ redirctErrEC ec
-        let cp = (proc pr as) { std_out = so, std_err = se }
+        ev <- get_ev $ extendEnvtEC ec
+        let cp = (proc pr as) { std_out = so, std_err = se, env=ev }
         (_,_,_,ph) <- createProcess cp
         ex <- waitForProcess ph
         clse so
@@ -203,6 +220,14 @@ execProg ec pr as =
 
         clse (UseHandle h) = hClose h
         clse _             = return ()
+
+        get_ev [] = return Nothing
+        get_ev bs =
+             do bs0 <- getEnvironment
+                let st       = Map.fromList bs0
+                    f (nm,_) = Map.member nm st
+                return $ Just $ bs ++ filter f bs0
+              where
 
 readAFile :: FilePath -> IO String
 readAFile fp =

@@ -112,23 +112,26 @@ _swap hub1 hn2 =
         swapHub hub1 hub2
 
 _gc :: IO () 
-_gc = gcDefaultDirectory
+_gc = gcDefaultDirectory discover DebugGCM
 
 _list :: Hub -> IO ()
 _list hub =
-     do --cts <- package_dump hub
+     do dirs <- importLibraryDirs hub
+        putStr $ unlines dirs
+     
+        --cts <- package_dump hub
         --putStr cts
 
-        mp <- packageDB hub
-        let f (nm,pk) = printf "---\n%s\n----\n%s\n\n" (show nm) (show pk)
-        putStr $ unlines $ map f $ Map.toList mp
+      --mp <- packageDB hub
+      --let f (nm,pk) = printf "---\n%s\n----\n%s\n\n" (show nm) (show pk)
+      --putStr $ unlines $ map f $ Map.toList mp
 
         -- invoke ghc-pkg list
 
 _install :: Hub -> [PkgNick] -> IO ()
 _install hub pkns =
         -- invoke cabal install
-        undefined hub pkns
+        undefined hub pkns (Map.lookup :: Int -> Map.Map Int Int -> Maybe Int)
 
 _erase :: Hub -> [PkgNick] -> IO ()
 _erase hub pkns0 = 

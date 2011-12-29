@@ -48,19 +48,18 @@ type PkgVrsn = String
 type PkgHash = String
 
 
-
 eraseClosure :: Hub -> [PkgNick] -> IO [PkgNick]
 eraseClosure hub pkns =
      do pdb  <- packageDB hub
-     -- putStrLn $ printf "---\n%s\n--\n\n" $ show $ flip suc 1 $ grev $ trc $ graphDG $ dep_graph pdb
         pkis <- erase_closure pdb `fmap` mapM (resolve_pkg_nick pdb) pkns
-      --putStrLn $ printf "----\nDEBUG\n%s\n----\n\n" $ show dg
         return $ map pki2pkn pkis 
 
 importLibraryDirs :: Hub -> IO [FilePath]
-importLibraryDirs hub = undefined hub packageDB
-
-
+importLibraryDirs hub =
+     do pdb  <- packageDB hub
+        return $ usort $ concat $ map dirs $ Map.elems pdb
+      where
+        dirs pkg = import_dirsPKG pkg ++ library_dirsPKG pkg  
 
 parsePkgNick :: String -> IO PkgNick
 parsePkgNick s =
@@ -185,12 +184,13 @@ packageDB hub =
 package_dump :: Hub -> IO String
 package_dump hub =
      do tf <- tmpFile "pkg-dump.txt"
-        putStrLn $ printf "DEBUG: dumping to %s" tf
+      --putStrLn $ printf "DEBUG: dumping to %s" tf
         db <- case usr_dbHUB hub of
                 Nothing -> oops HubO $ printf "%s: user hub expected" $ name__HUB hub
                 Just db -> return db
-        let pc_a = printf "--package-conf=%s" db
-        ghcPkg (EC (RedirctRS tf) DiscardRS) hub [pc_a,"dump"]
+        --let pc_a = printf "--package-conf=%s" db
+        let gpp_b = ("GHC_PACKAGE_PATH",db)
+        ghcPkg (EC (RedirctRS tf) DiscardRS [gpp_b]) hub ["dump"]
         bs <- B.readFile tf
         removeFile tf
         return $ U.toString bs

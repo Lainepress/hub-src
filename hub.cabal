@@ -1,49 +1,52 @@
-Name:               hub
-Version:            0.5
-Copyright:          Chris Dornan, 2011
-Maintainer:         Chris Dornan <chris@chrisdornan.com>
-Author:             Chris Dornan <chris@chrisdornan.com>
-License:            BSD3
-License-file:       LICENSE
-Synopsis:           A utility for multiplexing multiple GHC installations
-Description:        This package provides a utility for multiplexing multiple
-                    GHC and Haskell Platform installations, the installation
-                    being selected by configuraton file or environment
-                    variable.
-Stability:          Experimental
-Category:           Development, Distribution
-Homepage:           https://github.com/cdornan/hub
-Build-type:         Simple
-Cabal-version:      >= 1.6
+Name:                   hub
+Version:                0.5
+Copyright:              Chris Dornan, 2011
+Maintainer:             Chris Dornan <chris@chrisdornan.com>
+Author:                 Chris Dornan <chris@chrisdornan.com>
+License:                BSD3
+License-file:           LICENSE
+Synopsis:               A utility for multiplexing multiple GHC installations
+Description:            This package provides a utility for multiplexing
+                        multiple GHC and Haskell Platform installations,
+                        the installation being selected by configuraton
+                        file or environment variable.
+Stability:              Experimental
+Category:               Development, Distribution
+Homepage:               https://github.com/cdornan/hub
+Build-type:             Simple
+Cabal-version:          >= 1.10
 
-Source-repository head
-    type:           git
-    location:       git@github.com:cdornan/hub.git
+Source-repository       head
+    type:               git
+    location:           git@github.com:cdornan/hub.git
 
-Executable hub
-    Main-is:        hub.hs
-    Build-depends:  base        >= 4.0 && < 4.5,
-                    hexpat      == 0.19.*,
-                    regex-compat,
-                    containers,
-                    unix,
-                    filepath,
-                    directory,
-                    process,
-                    bytestring,
-                    haskell98
-    Other-modules:  Hub.CommandLine
-                    Hub.Commands
-                    Hub.Directory
-                    Hub.Discover
-                    Hub.FilePaths
-                    Hub.Help
-                    Hub.HelpText
-                    Hub.Hub
-                    Hub.Oops
-                    Hub.PackageDB
-                    Hub.Parse
-                    Hub.Prog
-                    Hub.System
-    GHC-options:    -Wall
-    Extensions:     CPP
+Executable              hub
+    Main-is:            hub.hs
+    Build-depends:      base            >= 4.0 && <= 4.5,
+                        hexpat          == 0.19.*,
+                        regex-compat,
+                        containers,
+                        unix,
+                        filepath,
+                        directory,
+                        process,
+                        bytestring,
+                        fgl,
+                        utf8-string,
+                        array
+    Other-modules:      Hub.CommandLine
+                        Hub.Commands
+                        Hub.Directory
+                        Hub.Discover
+                        Hub.FilePaths
+                        Hub.Help
+                        Hub.HelpText
+                        Hub.Hub
+                        Hub.Oops
+                        Hub.PackageDB
+                        Hub.Parse
+                        Hub.Prog
+                        Hub.System
+    GHC-options:        -Wall
+    Default-extensions: CPP
+    Default-language:   Haskell2010

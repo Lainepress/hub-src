@@ -16,6 +16,7 @@ module Hub.Directory
     , swapHub
     , defaultDirectoryPath
     , allocateDefaultDirectory
+    , GCMode(..)
     , gcDefaultDirectory
     ) where
 
@@ -24,6 +25,8 @@ import qualified Control.Exception      as E
 import           Control.Monad
 import           Data.List
 import           Data.Maybe
+import qualified Data.Map               as Map
+import           System.IO
 import           System.FilePath
 import           System.Directory
 import           System.Environment
@@ -203,10 +206,72 @@ allocateDefaultDirectory =
         createDirectoryIfMissing True   pth
         return pth
 
+heap_dir :: FilePath -> FilePath
+heap_dir = printf "%s/.hubrc/heap"
+
 -- GC the default directory
 
-gcDefaultDirectory :: IO ()
-gcDefaultDirectory = undefined importLibraryDirs
+data GCMode = DebugGCM | VerboseGCM | QuietGCM
+                                                                deriving (Show)
+
+gcDefaultDirectory :: (Maybe HubName->IO Hub) -> GCMode -> IO ()
+gcDefaultDirectory discover gcm = 
+     do hns  <- lsHubs [ hk | hk<-[minBound..maxBound], hk/=GlbHK ]
+        hubs <- mapM discover $ map Just hns
+        dirs <- concat `fmap` mapM importLibraryDirs hubs
+        hdir <- heap_dir `fmap` home
+        hcts <- getDirectoryContents hdir
+        let hnds   = Map.fromList [ (nd,()) | Just nd <- map readMB hcts ] 
+            l_hnds = dirs2heap_node_set hdir dirs
+            g_hnds = hnds `Map.difference` l_hnds
+      --putStrLn $ printf "---hnds---\n%s\n----------\n\n" $ show hnds
+      --putStrLn $ printf "--l_hnds--\n%s\n----------\n\n" $ show l_hnds
+      --putStrLn $ printf "--g_hnds--\n%s\n----------\n\n" $ show g_hnds
+      --putStrLn $ printf "---hdir---\n%s\n----------\n\n" $ show hdir
+      --putStrLn $ printf "---dirs---\n%s\n----------\n\n" $ show dirs
+        case gcm of
+          DebugGCM   -> hPutStrLn stderr $ printf "GC: %s" $ unwords $ map show $ Map.keys g_hnds 
+          VerboseGCM -> hPutStrLn stderr $ printf "GC: %d nodes collected" 
+          QuietGCM   -> return ()
+        collect hdir $ map show $ Map.keys g_hnds 
+
+
+--
+-- GC Helpers 
+--
+
+collect :: FilePath -> [FilePath] -> IO ()
+collect dir sdirs = mapM_ clct sdirs
+      where
+        clct  = case True of
+                  True  -> stash
+                  False -> trash
+
+        stash sdir = 
+             do hme <- home
+                createDirectoryIfMissing False $ garbage hme
+                mvFileDir (dir</>sdir) (garbage hme</>sdir)
+                
+        trash sdir = removeR (dir</>sdir)
+
+dirs2heap_node_set :: FilePath -> [FilePath] -> Map.Map Int () 
+dirs2heap_node_set hdir dirs =
+            Map.fromList [ (nd,()) | Just nd<-map (dir2heap_node hdir) dirs ]
+        
+dir2heap_node :: FilePath -> FilePath -> Maybe Int
+dir2heap_node hdir dir =
+        case hdir `isPrefixOf` dir of
+          True  -> readMB nd_s
+          False -> Nothing
+      where
+        nd_s = takeWhile (not . isPathSeparator) $
+                      dropWhile isPathSeparator  $ drop (length hdir) dir
+
+readMB :: Read a => String -> Maybe a
+readMB str =
+    case [ x | (x,t)<-reads str, ("","")<-lex t ] of
+      [x] -> Just x
+      _   -> Nothing
 
 
 
@@ -223,6 +288,9 @@ package_config = "package.config"
 
 user_lib :: FilePath -> HubName -> FilePath
 user_lib hme hn = printf "%s/.hubrc/lib/%s" hme hn
+
+garbage :: FilePath -> FilePath
+garbage = printf "%s/.hubrc/garbage"
 
 db_re :: String -> Regex
 db_re hme = mk_re $ printf "%s/.hubrc/lib/([^/]*)/%s/?" hme package_config
@@ -262,7 +330,7 @@ ls_usr_hubs =
 --
 
 pkg_init :: Hub -> FilePath -> IO ()
-pkg_init hub fp = ghcPkg (EC InheritRS InheritRS) hub ["init",fp]
+pkg_init hub fp = ghcPkg (EC InheritRS InheritRS []) hub ["init",fp]
 
 
 user_hub_paths :: HubName -> IO (FilePath,FilePath,FilePath)

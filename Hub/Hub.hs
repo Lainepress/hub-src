@@ -90,7 +90,7 @@ usr_first_hub_name_c c = c `elem` "_." || isAlpha c
 
 exec_prog :: ExecCtrl -> Hub -> String -> [String] -> IO ()
 exec_prog ec hub pr as =
-     do ex <- execProg ec pr as
+     do ex <- execProg ec pp as
         case ex of
           ExitSuccess   -> return ()
           ExitFailure n -> oops HubO $
