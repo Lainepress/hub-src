@@ -6,16 +6,21 @@ module Hub.Hub
     , checkHubName
     , isHubName
     , hubUserPackageDBPath
-    , ghcPkg
-    , cabal
+    , Mode(..)
+    , execP
+    , execProg
     ) where
 
-import Data.Char
-import Text.Printf
-import System.Exit
-import System.FilePath
-import Hub.System
-import Hub.Oops
+import           Data.Char
+import           Text.Printf
+import           System.Exit
+import           System.FilePath
+import           System.Environment
+import           Hub.FilePaths
+import           Hub.System
+import           Hub.Directory.Allocate
+import           Hub.Oops
+import           Hub.Prog
 
 
 data Hub = HUB {
@@ -62,11 +67,77 @@ hubUserPackageDBPath hub =
           Just db -> return db
 
 
-ghcPkg, cabal :: ExecCtrl -> Hub -> [String] -> IO ()
-ghcPkg ec hub as = exec_prog ec hub "ghc-pkg" as
-cabal  ec hub as = exec_prog ec hub "cabal"   as
+data Mode = FullMDE | UserMDE
+
+execP :: Oops -> ExecEnv -> Mode -> Hub -> P -> [String] -> IO ()
+execP o ee0 mde hub p args0 = execProg o ee0 mde hub (p2prog p) args0
+
+execProg :: Oops -> ExecEnv -> Mode -> Hub -> Prog -> [String] -> IO ()
+execProg o ee0 mde hub prog args0 =
+     do case (mde,usr_dbHUB hub) of
+          (UserMDE,Nothing) -> oops o "user hub expected"
+          _                 -> return ()
+        (exe,args,tdy) <- mk_prog hub prog args0
+        pth0 <- getEnv "PATH"
+        let ee = ee0 { extendEnvtEE = hub_env mde hub pth0 ++ extendEnvtEE ee0 }
+        ec   <- exec ee exe args
+        case tdy of
+          Nothing -> return ()
+          Just hd -> tidyDir hd
+        case ec of
+          ExitSuccess   -> return ()
+          ExitFailure n -> oops o $ printf "%s failure (return code=%d)" exe n
 
 
+--
+-- Executing Programmes
+--
+
+mk_prog :: Hub -> Prog -> [String] -> IO (FilePath,[String],Maybe FilePath)
+mk_prog hub prog as0 =
+     do (as,tdy) <- case (hk/=GlbHK,enmPROG prog,as0) of
+                      (True,CabalP,"configure":as') -> ci "configure" as'
+                      (True,CabalP,"install"  :as') -> ci "install"   as'
+                      (True,CabalP,"upgrade"  :as') -> ci "upgrade"   as'
+                      _                             -> return (as0,Nothing)
+        return (exe,as,tdy)
+      where
+        exe =   case typPROG prog of
+                  HcPT -> hc_binHUB hub </> nmePROG prog
+                  TlPT -> tl_binHUB hub </> nmePROG prog
+
+        hk  =   kind__HUB hub
+
+        ci cmd as' =
+             do hd <- allocate
+                db <- hubUserPackageDBPath hub
+                let _ld = "--libdir="     ++ hd
+                    _pd = "--package-db=" ++ db
+                return ( cmd : _ld : _pd : as', Just hd )                                 
+
+hub_env :: Mode -> Hub -> String -> [(String,String)]
+hub_env mde hub pth0 = concat
+        [ [ (,) "HUB"               hnm          ]
+        , [ (,) "PATH"              pth | is_usr ]
+        , [ (,) "GHC_PACKAGE_PATH"  ppt | is_usr ]
+        ]
+      where
+        is_usr     = hk /= GlbHK
+      
+        pth        = printf "%s:%s:%s" hubGccBin hubBinutilsBin pth0
+
+        ppt        = case mb_usr of
+                       Nothing  -> glb
+                       Just usr -> case mde of
+                                     UserMDE -> usr
+                                     FullMDE -> printf "%s:%s" usr glb
+
+        hnm        = name__HUB hub
+        hk         = kind__HUB hub
+        mb_usr     = usr_dbHUB hub
+        glb        = glb_dbHUB hub
+
+        
 --
 -- Validating Hub Names
 --
@@ -84,16 +155,5 @@ glb_first_hub_name_c c = isDigit c
 usr_first_hub_name_c c = c `elem` "_." || isAlpha c
 
 
---
--- Executing Programs
---
 
-exec_prog :: ExecCtrl -> Hub -> String -> [String] -> IO ()
-exec_prog ec hub pr as =
-     do ex <- execProg ec pp as
-        case ex of
-          ExitSuccess   -> return ()
-          ExitFailure n -> oops HubO $
-                                printf "%s failure (return code=%d)" pp n  
-      where
-        pp = hc_binHUB hub </> pr
+        

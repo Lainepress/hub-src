@@ -7,7 +7,6 @@ import Text.Printf
 import Hub.System
 import Hub.FilePaths
 import Hub.CommandLine
-import Hub.Prog
 import Hub.Commands
 
 
@@ -40,6 +39,7 @@ main =
           SwapCL    hub hn       -> _swap    hub hn
           GcCL                   -> _gc
           ListCL    hub          -> _list    hub
+          CheckCL   hub          -> _check   hub
           InstallCL hub pkns     -> _install hub pkns
           EraseCL   hub pkns     -> _erase   hub pkns
         

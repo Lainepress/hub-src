@@ -15,7 +15,6 @@ module Hub.Directory
     , deleteHub
     , swapHub
     , defaultDirectoryPath
-    , allocateDefaultDirectory
     , GCMode(..)
     , gcDefaultDirectory
     ) where
@@ -35,6 +34,7 @@ import           Text.Regex
 import           Hub.FilePaths
 import           Hub.Oops
 import           Hub.System
+import           Hub.Prog
 import           Hub.Hub
 import           Hub.Parse
 import           Hub.PackageDB
@@ -195,17 +195,6 @@ swapHub hub1 hub2 =
 defaultDirectoryPath :: IO FilePath
 defaultDirectoryPath = home >>= \hme -> return $ printf "%s/.hubrc" hme
 
--- allocate a library directory from the heap in the default directory
-
-allocateDefaultDirectory :: IO FilePath
-allocateDefaultDirectory =
-     do hme <- home
-        createDirectoryIfMissing True $ printf "%s/.hubrc/heap"             hme
-        i <- inc                      $ printf "%s/.hubrc/heap/counter.txt" hme
-        let pth =                       printf "%s/.hubrc/heap/%d"          hme i
-        createDirectoryIfMissing True   pth
-        return pth
-
 heap_dir :: FilePath -> FilePath
 heap_dir = printf "%s/.hubrc/heap"
 
@@ -231,7 +220,7 @@ gcDefaultDirectory discover gcm =
       --putStrLn $ printf "---dirs---\n%s\n----------\n\n" $ show dirs
         case gcm of
           DebugGCM   -> hPutStrLn stderr $ printf "GC: %s" $ unwords $ map show $ Map.keys g_hnds 
-          VerboseGCM -> hPutStrLn stderr $ printf "GC: %d nodes collected" 
+          VerboseGCM -> hPutStrLn stderr $ printf "GC: %d nodes collected" $ Map.size g_hnds
           QuietGCM   -> return ()
         collect hdir $ map show $ Map.keys g_hnds 
 
@@ -330,7 +319,8 @@ ls_usr_hubs =
 --
 
 pkg_init :: Hub -> FilePath -> IO ()
-pkg_init hub fp = ghcPkg (EC InheritRS InheritRS []) hub ["init",fp]
+pkg_init hub fp =
+        execP HubO (EE InheritRS InheritRS []) FullMDE hub Ghc_pkgP ["init",fp]
 
 
 user_hub_paths :: HubName -> IO (FilePath,FilePath,FilePath)
@@ -355,9 +345,11 @@ hub_user_lib hub =
                        Just hn | hn==name__HUB hub
                             -> return $ (user_lib hme hn,db)
                        _    -> oops SysO "hub has non-standard user-database path"
-        
-        
 
+
+--
+-- Swapping Files
+--
 
 swap_files :: FilePath -> FilePath -> IO ()
 swap_files fp fp' = swap_files'' fp fp' $ oops SysO

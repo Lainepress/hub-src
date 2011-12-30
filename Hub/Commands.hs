@@ -1,5 +1,6 @@
 module Hub.Commands
-    ( _default
+    ( _prog
+    , _default
     , _default_hub
     , _ls
     , _get
@@ -16,21 +17,29 @@ module Hub.Commands
     , _swap
     , _gc
     , _list
+    , _check
     , _install
     , _erase
     ) where
 
+import           Data.Char
 import           Control.Monad
 import           System.Directory
 import           Text.Printf
-import qualified Data.Map           as Map
+--import qualified Data.Map           as Map
 import           Hub.FilePaths
 import           Hub.Oops
 import           Hub.System
+import           Hub.Prog
 import           Hub.Hub
 import           Hub.PackageDB
 import           Hub.Directory
 import           Hub.Discover
+
+
+
+_prog :: Hub -> Prog -> [String] -> IO ()
+_prog = execProg HubO (EE InheritRS InheritRS []) FullMDE
 
 
 _default :: IO ()
@@ -112,33 +121,34 @@ _swap hub1 hn2 =
         swapHub hub1 hub2
 
 _gc :: IO () 
-_gc = gcDefaultDirectory discover DebugGCM
+_gc = gcDefaultDirectory discover VerboseGCM
 
 _list :: Hub -> IO ()
-_list hub =
-     do dirs <- importLibraryDirs hub
-        putStr $ unlines dirs
-     
-        --cts <- package_dump hub
-        --putStr cts
+_list hub = execP HubO (EE InheritRS InheritRS []) FullMDE hub Ghc_pkgP ["list"]
 
-      --mp <- packageDB hub
-      --let f (nm,pk) = printf "---\n%s\n----\n%s\n\n" (show nm) (show pk)
-      --putStr $ unlines $ map f $ Map.toList mp
-
-        -- invoke ghc-pkg list
+_check :: Hub -> IO ()
+_check hub = execP HubO (EE InheritRS InheritRS []) FullMDE hub Ghc_pkgP ["check"]
 
 _install :: Hub -> [PkgNick] -> IO ()
-_install hub pkns =
-        -- invoke cabal install
-        undefined hub pkns (Map.lookup :: Int -> Map.Map Int Int -> Maybe Int)
+_install hub pkns = execP HubO (EE InheritRS InheritRS []) FullMDE hub CabalP
+                                                ("install":map prettyPkgNick pkns)
 
 _erase :: Hub -> [PkgNick] -> IO ()
 _erase hub pkns0 = 
-     do pkns <- eraseClosure hub pkns0
-        putStr $ unlines $ map prettyPkgNick pkns
-        -- list pks to be deleted
-        -- get confirmation
-        -- unregister the packages
-        -- run a GC
-        --undefined pkns
+     do (pkns,d_pkns) <- eraseClosure hub pkns0
+        putStr "Packages requested to be deleted:\n"
+        putStr $ unlines $ map fmt pkns
+        putStr "Dependent packages also to be deleted:\n"
+        putStr $ unlines $ map fmt d_pkns
+        putStr "Would you like to delete these packages? [n]\n"
+        yn <- getLine
+        case map toLower yn `elem` ["y","yes"] of
+          True  ->  
+             do mapM_ unreg $ pkns ++ d_pkns
+                putStr "package(s) deleted.\n"
+          False -> putStrLn "No modules deleted."
+      where
+        fmt   pkn = "  " ++ prettyPkgNick pkn
+
+        unreg pkn = execP HubO (EE InheritRS DiscardRS []) UserMDE hub
+                                    Ghc_pkgP ["unregister",prettyPkgNick pkn]

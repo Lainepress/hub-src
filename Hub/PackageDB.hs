@@ -26,6 +26,7 @@ import           Text.Printf
 import           System.Directory
 import           Hub.System
 import           Hub.Oops
+import           Hub.Prog
 import           Hub.Hub
 
 
@@ -48,11 +49,11 @@ type PkgVrsn = String
 type PkgHash = String
 
 
-eraseClosure :: Hub -> [PkgNick] -> IO [PkgNick]
+eraseClosure :: Hub -> [PkgNick] -> IO ([PkgNick],[PkgNick])
 eraseClosure hub pkns =
      do pdb  <- packageDB hub
-        pkis <- erase_closure pdb `fmap` mapM (resolve_pkg_nick pdb) pkns
-        return $ map pki2pkn pkis 
+        pkis <- mapM (resolve_pkg_nick pdb) pkns
+        return (map pki2pkn pkis,map pki2pkn $ erase_deps pdb pkis) 
 
 importLibraryDirs :: Hub -> IO [FilePath]
 importLibraryDirs hub =
@@ -100,11 +101,11 @@ pki2pkn pki = PKN (namePKI pki) (Just(vrsnPKI pki))
 
 
 --
--- Calculating the Erase Closure
+-- Calculating the Erase Dependencies
 --
 
-erase_closure :: PackageDB -> [PkgIden] -> [PkgIden]
-erase_closure pdb pkis = map v2pki $ (\\ vs) $ usort $ concat $ map (pre gr) vs  
+erase_deps :: PackageDB -> [PkgIden] -> [PkgIden]
+erase_deps pdb pkis = map v2pki $ (\\ vs) $ usort $ concat $ map (pre gr) vs  
       where
         vs      = [ v | Just v<-map pki2mbv pkis ] 
         pki2mbv = flip Map.lookup $ assgnDG dg
@@ -184,13 +185,8 @@ packageDB hub =
 package_dump :: Hub -> IO String
 package_dump hub =
      do tf <- tmpFile "pkg-dump.txt"
-      --putStrLn $ printf "DEBUG: dumping to %s" tf
-        db <- case usr_dbHUB hub of
-                Nothing -> oops HubO $ printf "%s: user hub expected" $ name__HUB hub
-                Just db -> return db
-        --let pc_a = printf "--package-conf=%s" db
-        let gpp_b = ("GHC_PACKAGE_PATH",db)
-        ghcPkg (EC (RedirctRS tf) DiscardRS [gpp_b]) hub ["dump"]
+        let ee = EE (RedirctRS tf) DiscardRS []
+        execP HubO ee UserMDE hub Ghc_pkgP ["dump"]
         bs <- B.readFile tf
         removeFile tf
         return $ U.toString bs

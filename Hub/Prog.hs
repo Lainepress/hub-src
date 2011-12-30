@@ -1,49 +1,53 @@
-module Hub.Prog (_prog) where
+module Hub.Prog 
+    ( Prog(..)
+    , ProgType(..)
+    , P(..)
+    , p2prog
+    , progMap
+    ) where
 
-import Control.Monad
-import System.Exit
-import System.FilePath
-import System.Environment
-import Text.Printf
-import Hub.FilePaths
-import Hub.System
-import Hub.Hub
-import Hub.CommandLine
+import qualified Data.Map       as Map
 
 
-_prog :: Hub -> Prog -> [String] -> IO ()
-_prog hub prog as =
-     do set_hub_pkg_path hub
-        case typPROG prog of
-          HcPT    -> go       as $ hc_binHUB hub </> nmePROG prog
-          CiPT mb -> ci_go mb as $ tl_binHUB hub </> nmePROG prog
-          TlPT    -> go       as $ tl_binHUB hub </> nmePROG prog
+data Prog = PROG {
+    enmPROG :: P,
+    nmePROG :: String,
+    typPROG :: ProgType
+    }                                                           deriving (Show)
 
-set_hub_pkg_path :: Hub -> IO ()
-set_hub_pkg_path hub = 
-     do pth <- mk_pth `fmap` getEnv "PATH" 
-        setEnv'                              "HUB"              hnm True
-        when (kind__HUB hub/=GlbHK) $
-             do setEnv'                      "GHC_PACKAGE_PATH" ppt True
-                setEnv'                      "PATH"             pth True
-      where
-        hnm        =                    name__HUB hub
-        ppt        = maybe glb mk_ppt $ usr_dbHUB hub
-        
-        mk_pth pt0 = printf "%s:%s:%s" hubGccBin hubBinutilsBin pt0
-        mk_ppt usr = printf "%s:%s"    usr                      glb
+data ProgType = HcPT | TlPT
+                                                                deriving (Show)
+data P
+    = GhcP
+    | GhciP
+    | Ghc_pkgP
+    | Hp2psP
+    | HpcP
+    | Hsc2hsP
+    | RunghcP
+    | RunhaskellP
+    | CabalP
+    | AlexP
+    | HappyP
+    | HaddockP
+                                            deriving (Eq,Ord,Bounded,Enum,Show)
 
-        glb        = glb_dbHUB hub
+p2prog :: P -> Prog
+p2prog p =
+    case p of
+      GhcP               -> PROG p "ghc"                  HcPT
+      GhciP              -> PROG p "ghci"                 HcPT
+      Ghc_pkgP           -> PROG p "ghc-pkg"              HcPT
+      HaddockP           -> PROG p "haddock"              HcPT
+      Hp2psP             -> PROG p "hp2ps"                HcPT
+      HpcP               -> PROG p "hpc"                  HcPT
+      Hsc2hsP            -> PROG p "hsc2hs"               HcPT
+      RunghcP            -> PROG p "runghc"               HcPT
+      RunhaskellP        -> PROG p "runhaskell"           HcPT
+      CabalP             -> PROG p "cabal"                TlPT
+      AlexP              -> PROG p "alex"                 TlPT
+      HappyP             -> PROG p "happy"                TlPT
 
-ci_go :: Maybe FilePath -> [String] -> FilePath -> IO ()
-ci_go Nothing   as exe = go   as exe
-ci_go (Just fp) as exe = exec as exe >>= \ec -> tidyDir fp >> exitWith ec
-
-dbg :: Bool
-dbg = False
-
-setEnv' :: String -> String -> Bool -> IO ()
-setEnv' var val ovw =
-     do when dbg $
-            putStrLn $ printf ">> %s=%s\n" var val
-        setEnv var val ovw
+progMap :: Map.Map String Prog
+progMap = Map.fromList [ (nmePROG pg,pg) | pg<-map p2prog [minBound..maxBound] ]
+                                                                

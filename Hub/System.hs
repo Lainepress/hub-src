@@ -10,19 +10,17 @@ module Hub.System
     , symLink
     , inc
     , tidyDir
-    , exec
-    , go
-    , ExecCtrl(..)
+    , ExecEnv(..)
     , RedirectStream(..)
-    , execProg
+    , exec
     , readAFile
     , writeAFile
     ) where
 
 import qualified Data.ByteString as B
 import qualified Data.Map        as Map
-import           Hub.Oops
 import           System.Process
+import           Hub.Oops
 
 
 #if mingw32_HOST_OS==1
@@ -59,12 +57,6 @@ symLink = winstub
 
 inc :: FilePath -> IO Int
 inc = winstub 
-
-go :: [String] -> FilePath -> IO a
-go = winstub
-
-exec :: [String] -> FilePath -> IO ExitCode
-exec = winstub
 
 tidyDir :: FilePath -> IO ()
 tidyDir = winstub
@@ -146,12 +138,6 @@ symLink :: FilePath -> FilePath -> IO ()
 symLink = createSymbolicLink
 
 
-go :: [String] -> FilePath -> IO ()
-go as exe   = executeFile exe True as Nothing
-
-exec :: [String] -> FilePath -> IO ExitCode
-exec as exe = rawSystem exe as
-
 inc :: FilePath -> IO Int
 inc fp = 
      do fd <- openFd fp ReadWrite (Just stdFileMode) defaultFileFlags
@@ -188,10 +174,10 @@ hdl_ioe x _ = return x
 
 #endif
 
-data ExecCtrl = EC {
-    redirctOutEC :: RedirectStream,
-    redirctErrEC :: RedirectStream,
-    extendEnvtEC :: [(String,String)]
+data ExecEnv = EE {
+    redirctOutEE :: RedirectStream,
+    redirctErrEE :: RedirectStream,
+    extendEnvtEE :: [(String,String)]
     }                                                           deriving (Show)
 
 data RedirectStream
@@ -200,13 +186,11 @@ data RedirectStream
     | RedirctRS FilePath
                                                                 deriving (Show)
 
-execProg :: ExecCtrl -> FilePath -> [String] -> IO ExitCode
-execProg ec pr as =
-     do 
-      --putStrLn $ printf "DEBUG: %s %s" pr (unwords as)
-        so <- get_ss $ redirctOutEC ec
-        se <- get_ss $ redirctErrEC ec
-        ev <- get_ev $ extendEnvtEC ec
+exec :: ExecEnv -> FilePath -> [String] -> IO ExitCode
+exec ee pr as =
+     do so <- get_ss $ redirctOutEE ee
+        se <- get_ss $ redirctErrEE ee
+        ev <- get_ev $ extendEnvtEE ee
         let cp = (proc pr as) { std_out = so, std_err = se, env=ev }
         (_,_,_,ph) <- createProcess cp
         ex <- waitForProcess ph
@@ -224,10 +208,10 @@ execProg ec pr as =
         get_ev [] = return Nothing
         get_ev bs =
              do bs0 <- getEnvironment
-                let st       = Map.fromList bs0
-                    f (nm,_) = Map.member nm st
+                let st       = Map.fromList bs
+                    f (nm,_) = not $ Map.member nm st
+              --putStrLn $ printf "---\n%s\n---\n\n" $ show (bs ++ filter f bs0)
                 return $ Just $ bs ++ filter f bs0
-              where
 
 readAFile :: FilePath -> IO String
 readAFile fp =

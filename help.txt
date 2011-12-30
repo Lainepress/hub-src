@@ -100,15 +100,17 @@ hub swap    [<u-hub>] <u-hub'>
     
       (See 'hub set' on how to set the current hub.)
 
-hub gc
-
-      Runs the garbage collector to reclaim library code that is no longer
-      referenced by the hubs.
-
 hub list    [<hub>]
 
       Lists the packages belonging to named hub (or the current hub --
       calls 'ghc-pkg list').
+
+      (See 'hub set' on how to set the current hub.)
+
+hub check   [<hub>]
+
+      Checks the packages belonging to named hub (or the current hub --
+      calls 'ghc-pkg check').
 
       (See 'hub set' on how to set the current hub.)
 
@@ -134,3 +136,8 @@ hub erase-from   <u-hub> <pkg-name> ...
       them from the hub (by invoking 'ghc-pkg unregister' and 'hub gc'). 
 
       (See 'hub set' on how to set the current hub.)
+
+hub gc
+
+      Runs the garbage collector to reclaim library code that is no longer
+      referenced by the hubs.
