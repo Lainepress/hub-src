@@ -26,6 +26,13 @@ SYNOPSIS
     hub mv      [<u-hub>] <u-hub'>
     hub rm       <u-hub>
     hub swap    [<u-hub>] <u-hub'>
+    hub list    [<hub>]
+    hub check   [<hub>]
+    hub install              <pkg-name>...
+    hub install-into <u-hub> <pkg-name>...
+    hub erase                <pkg-name>...
+    hub erase-from   <u-hub> <pkg-name>...
+    hub gc
 ----
 
 DESCRIPTION
@@ -33,10 +40,11 @@ DESCRIPTION
 
 Each of the installed Haskell toolkit commands vector through
 the hub wrapper for selecting the apropropriate compiler
-tools and libraries (i.e., package database). The hub command 
-is used to manage and configure the named 'hubs' that select
-the versions of the tools and libraries to use. These hubs
-can be used as flexible, lightweight development sandboxes.
+tools and libraries (the bin directories and package databases).
+The hub command is used to manage and configure the named
+'hubs' that select the versions of the tools and libraries
+to use. These hubs can be used as flexible, lightweight
+development sandboxes.
 
 Each hub is named. If the name starts with a numeric digit
 then it is a global hub -- being shared, imutable and 
@@ -57,6 +65,27 @@ execution of the command. E.g.,
 -----
 To copy, rename, remove and swap the contents of two hubs use
 'hub cp', 'hub mv', 'hub rm' and 'hub swap', respectively.
+
+The 'current' hub is determined by first inspecting the
+`HUB` environment variable -- if it is set then the hub it
+names is the current hub. Otherwise the current directory
+is examined to see if it is associated with a hub (through
+the `hub set` command; if that fails then its parent
+directory is tried, and so on. If no enclosing directory
+is associated with a hub then the system default hub
+(see the `hub default` command) is chosen.
+
+The current hub determines the context for all of the toolkit
+commands, including `cabal`. If the hub argum,ent is ommitted
+from any of the `hub` commands then the current hub is used.
+The '`^`' device may also be used in `hub` commands to
+select the current hub.
+
+If any of the toolkit commands are invoked with a pre-installed 
+system hub then the command will behave just as it would as if
+the relevent ttolkit were installed nakedly on the system
+without any mediation from the hub (installing into ~/.ghc
+and ~/.cabal, etc.).
 
 
 COMMANDS
@@ -155,6 +184,55 @@ COMMANDS
      user hub <u-hub'>.
 
 
+`hub list    [<hub>]`::
+
+      Lists the packages belonging to named hub (or the current hub --
+      calls 'ghc-pkg list').
+      (See 'hub set' on how to set the current hub.)
+
+
+`hub check   [<hub>]`::
+
+      Checks the packages belonging to named hub (or the current hub --
+      calls 'ghc-pkg check').
+      (See 'hub set' on how to set the current hub.)
+
+
+`hub install    <pkg-name>`... ::
+
+      Equivalent to: hub install-into ^ <pkg-name> ...
+
+
+`hub install-into <u-hub> <pkg-name>`... ::
+
+      Uses 'cabal install' to install the named packages into the named
+      hub (or the current hub). (See 'hub set' on how to set the current hub.)
+
+
+`hub erase      <pkg-name>`... ::
+
+      Equivalent to: hub esase-from ^  <pkg-name> ...
+
+
+`hub erase-from <u-hub> <pkg-name>`...::
+
+      Determines all of the packages dependent on the list of named packaqes
+      in the named hub (or the current hub), lists them and offers to remove
+      them from the hub (by invoking 'ghc-pkg unregister' and 'hub gc').
+      (See 'hub set' on how to set the current hub.)
+
+
+`hub gc`::
+
+      Runs the garbage collector on the user hubs to reclaim library code
+      that is no longer referenced by them. The directories aren't removed
+      from the file system, but moved from `~/.hubrc/heap` to
+      `~/.hubrc/garbage` for manual removal. N.B. It is intended that
+      this feature be removed from the beta system with the final
+      release having a fully-automatic garbage collector.)
+
+
+
 EXAMPLE 1
 ---------
 
@@ -203,6 +281,29 @@ Unpacks `GLUT-2.2.2.1` and runs one of its example programs using the
 ----
      cabal unpack GLUT-2.2.2.1
      HUB=2011.2.0.1 runhaskell GLUT-2.2.2.1/examples/BOGLGP/Chapter01/Simple.hs
+----
+
+
+EXAMPLE 5
+---------
+
+Install the `SHA` package into `my-test` and list the packages in it.
+----
+     hub install-into my-test SHA
+     hub list my-test
+----
+
+
+EXAMPLE 6
+---------
+
+Remove the `text` package from the current hub, performs a garbage collection
+of the user hubs and check all of the package databases for consistency.
+
+----
+     hub erase text
+     hub gc
+     for h in $(hub ls); do hub check $h; done
 ----
 
 
