@@ -341,6 +341,15 @@ FILES
 
 	Contains the package database for user hub <u-hub>.
 
+`~/.hubrc/heap`::
+
+    Contains directories containing the library files for the
+    packages installed in the user hubs.
+
+`~/.hubrc/garbage`::
+
+    Contains directories removed from `~/.hubrc/heap` by the garbage collector.
+
 `/usr/hs/bin`::
 	Haskell tools ~-- this directory should be put on the user
         path if the tools aren't installed in /usr/bin.
