@@ -389,7 +389,7 @@ http://justhub.org::
 BUGS
 ----
 
-The Hub issue tracker is at https://github.com/justhub/hub-gen/issues.
+The Hub issue tracker is at https://github.com/haskell-hub/hub-src/issues.
 
 
 
