@@ -98,7 +98,7 @@ hub_dispatch as = case as of
     ["mv"     ,hn'] -> hub_pair Nothing     hn'  >>= \hub -> return $ Just $ MvCL    hub hn'
     ["mv"  ,hn,hn'] -> hub_pair (Just   hn) hn'  >>= \hub -> return $ Just $ MvCL    hub hn'
     ["rm"     ,hn'] -> discover       (Just hn') >>= \hub -> return $ Just $ RmCL    hub
-    ["swap",   hn'] -> hub_swap Nothing     hn'  >>= \hub -> return $ Just $ SwapCL  hub hn'
+    ["swap"   ,hn'] -> hub_swap Nothing     hn'  >>= \hub -> return $ Just $ SwapCL  hub hn'
     ["swap",hn,hn'] -> hub_swap (Just   hn) hn'  >>= \hub -> return $ Just $ SwapCL  hub hn'
     ["gc"         ] ->                                       return $ Just $ GcCL
     ["list"       ] -> discover Nothing          >>= \hub -> return $ Just $ ListCL  hub
