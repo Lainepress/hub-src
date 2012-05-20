@@ -42,7 +42,7 @@ data CommandLine
     | InfoCL    Hub
     | PathCL    Hub
     | XmlCL     Hub
-    | InitCL    Hub HubName
+    | InitCL    Hub HubName Bool
     | CpCL      Hub HubName
     | MvCL      Hub HubName
     | RmCL      Hub
@@ -50,8 +50,11 @@ data CommandLine
     | GcCL
     | ListCL    Hub
     | CheckCL   Hub
-    | InstallCL Hub [PkgNick]
-    | EraseCL   Hub [PkgNick]
+    | LoadCL        HubName FilePath 
+    | SaveCL    Hub         FilePath
+    | VerifyCL  Hub         FilePath Bool
+    | InstallCL Hub         [PkgNick]
+    | EraseCL   Hub         [PkgNick]
                                                                 deriving (Show)
 
 
@@ -69,49 +72,64 @@ prog as =
 
 
 hub_dispatch as = case as of
-    ["--help"     ] ->                                       return $ Just $ HelpCL False helpText
-    ["help"       ] ->                                       return $ Just $ HelpCL False helpText
-    ["--help",cd  ] -> help cd                   >>= \hlp -> return $ Just $ HelpCL False hlp
-    ["help"  ,cd  ] -> help cd                   >>= \hlp -> return $ Just $ HelpCL False hlp
-    ["--version"  ] ->                                       return $ Just   VrsnCL
-    ["version"    ] ->                                       return $ Just   VrsnCL
-    ["--usage"    ] ->                                       return $ Just $ HelpCL False usage
-    ["usage"      ] ->                                       return $ Just $ HelpCL False usage
-    ["default"    ] ->                                       return $ Just $ DfltCL
-    ["default","-"] ->                                       return $ Just $ RsDfCL
-    ["default",hn ] -> discover (Just   hn)      >>= \hub -> return $ Just $ StDfCL  hub
-    ["ls"         ] -> initDirectory             >>= \_   -> return $ Just $ LsCL
-    ["set"        ] ->                                       return $ Just $ GetCL
-    ["set","-"    ] ->                                       return $ Just $ UnsetCL
-    ["set",hn     ] -> discover (Just   hn)      >>= \hub -> return $ Just $ SetCL   hub
-    ["name"       ] -> discover Nothing          >>= \hub -> return $ Just $ NameCL  hub
-    ["info"       ] -> discover Nothing          >>= \hub -> return $ Just $ InfoCL  hub
-    ["info",hn    ] -> discover (Just   hn)      >>= \hub -> return $ Just $ InfoCL  hub
-    ["path"       ] -> discover Nothing          >>= \hub -> return $ Just $ PathCL  hub
-    ["path",hn    ] -> discover (Just   hn)      >>= \hub -> return $ Just $ PathCL  hub
-    ["xml"        ] -> discover Nothing          >>= \hub -> return $ Just $ XmlCL   hub
-    ["xml" ,hn    ] -> discover (Just   hn)      >>= \hub -> return $ Just $ XmlCL   hub
-    ["init"   ,hn'] -> hub_pair Nothing     hn'  >>= \hub -> return $ Just $ InitCL  hub hn'
-    ["init",hn,hn'] -> hub_pair (Just   hn) hn'  >>= \hub -> return $ Just $ InitCL  hub hn'
-    ["cp"     ,hn'] -> hub_pair Nothing     hn'  >>= \hub -> return $ Just $ CpCL    hub hn'
-    ["cp"  ,hn,hn'] -> hub_pair (Just   hn) hn'  >>= \hub -> return $ Just $ CpCL    hub hn'
-    ["mv"     ,hn'] -> hub_pair Nothing     hn'  >>= \hub -> return $ Just $ MvCL    hub hn'
-    ["mv"  ,hn,hn'] -> hub_pair (Just   hn) hn'  >>= \hub -> return $ Just $ MvCL    hub hn'
-    ["rm"     ,hn'] -> discover       (Just hn') >>= \hub -> return $ Just $ RmCL    hub
-    ["swap",   hn'] -> hub_swap Nothing     hn'  >>= \hub -> return $ Just $ SwapCL  hub hn'
-    ["swap",hn,hn'] -> hub_swap (Just   hn) hn'  >>= \hub -> return $ Just $ SwapCL  hub hn'
-    ["gc"         ] ->                                       return $ Just $ GcCL
-    ["list"       ] -> discover Nothing          >>= \hub -> return $ Just $ ListCL  hub
-    ["list",hn    ] -> discover (Just   hn)      >>= \hub -> return $ Just $ ListCL  hub
-    ["check"      ] -> discover Nothing          >>= \hub -> return $ Just $ CheckCL hub
-    ["check",hn   ] -> discover (Just   hn)      >>= \hub -> return $ Just $ CheckCL hub
-    "install"     :   p:ps -> hub_pks  Nothing  p ps >>= \(hub,pkns) -> return $ Just $ InstallCL hub $ pkns
-    "install-into":hn:p:ps -> hub_pks (Just hn) p ps >>= \(hub,pkns) -> return $ Just $ InstallCL hub $ pkns
-    "erase"       :   p:ps -> hub_pks  Nothing  p ps >>= \(hub,pkns) -> return $ Just $ EraseCL   hub $ pkns
-    "erase-from"  :hn:p:ps -> hub_pks (Just hn) p ps >>= \(hub,pkns) -> return $ Just $ EraseCL   hub $ pkns
-    _               ->                                       return   Nothing  
+    ["--help"                ] ->                                              return $ Just $ HelpCL False helpText
+    ["help"                  ] ->                                              return $ Just $ HelpCL False helpText
+    ["--help",cd             ] -> help cd                   >>= \hlp        -> return $ Just $ HelpCL False hlp
+    ["help"  ,cd             ] -> help cd                   >>= \hlp        -> return $ Just $ HelpCL False hlp
+    ["--version"             ] ->                                              return $ Just   VrsnCL
+    ["version"               ] ->                                              return $ Just   VrsnCL
+    ["--usage"               ] ->                                              return $ Just $ HelpCL False usage
+    ["usage"                 ] ->                                              return $ Just $ HelpCL False usage
+    ["default"               ] ->                                              return $ Just $ DfltCL
+    ["default"     ,"-"      ] ->                                              return $ Just $ RsDfCL
+    ["default"     ,hn       ] -> discover (Just   hn)      >>= \ hub       -> return $ Just $ StDfCL    hub
+    ["ls"                    ] -> initDirectory             >>= \_          -> return $ Just $ LsCL
+    ["set"                   ] ->                                              return $ Just $ GetCL
+    ["set"         ,"-"      ] ->                                              return $ Just $ UnsetCL
+    ["set"         ,hn       ] -> discover (Just   hn)      >>= \ hub       -> return $ Just $ SetCL     hub
+    ["name"                  ] -> discover Nothing          >>= \ hub       -> return $ Just $ NameCL    hub
+    ["info"                  ] -> discover Nothing          >>= \ hub       -> return $ Just $ InfoCL    hub
+    ["info"        ,hn       ] -> discover (Just   hn)      >>= \ hub       -> return $ Just $ InfoCL    hub
+    ["path"                  ] -> discover Nothing          >>= \ hub       -> return $ Just $ PathCL    hub
+    ["path"        ,hn       ] -> discover (Just   hn)      >>= \ hub       -> return $ Just $ PathCL    hub
+    ["xml"                   ] -> discover Nothing          >>= \ hub       -> return $ Just $ XmlCL     hub
+    ["xml"         ,hn       ] -> discover (Just   hn)      >>= \ hub       -> return $ Just $ XmlCL     hub
+    ["init"                  ] -> hub_uniq Nothing          >>= \(hub,hn')  -> return $ Just $ InitCL    hub hn' True
+    ["init","--new"          ] -> hub_uniq Nothing          >>= \(hub,hn')  -> return $ Just $ InitCL    hub hn' True
+    ["init","--new",hn       ] -> hub_uniq (Just hn)        >>= \(hub,hn')  -> return $ Just $ InitCL    hub hn' True
+    ["init","--set"   ,hn'   ] -> hub_pair Nothing     hn'  >>= \ hub       -> return $ Just $ InitCL    hub hn' True
+    ["init","--set",hn,hn'   ] -> hub_pair (Just   hn) hn'  >>= \ hub       -> return $ Just $ InitCL    hub hn' True
+    ["init"           ,hn'   ] -> hub_pair Nothing     hn'  >>= \ hub       -> return $ Just $ InitCL    hub hn' False
+    ["init"        ,hn,hn'   ] -> hub_pair (Just   hn) hn'  >>= \ hub       -> return $ Just $ InitCL    hub hn' False
+    ["cp"             ,hn'   ] -> hub_pair Nothing     hn'  >>= \ hub       -> return $ Just $ CpCL      hub hn'
+    ["cp"          ,hn,hn'   ] -> hub_pair (Just   hn) hn'  >>= \ hub       -> return $ Just $ CpCL      hub hn'
+    ["mv"             ,hn'   ] -> hub_pair Nothing     hn'  >>= \ hub       -> return $ Just $ MvCL      hub hn'
+    ["mv"          ,hn,hn'   ] -> hub_pair (Just   hn) hn'  >>= \ hub       -> return $ Just $ MvCL      hub hn'
+    ["rm"             ,hn'   ] -> discover       (Just hn') >>= \ hub       -> return $ Just $ RmCL      hub
+    ["swap"           ,hn'   ] -> hub_swap Nothing     hn'  >>= \ hub       -> return $ Just $ SwapCL    hub hn'
+    ["swap"        ,hn,hn'   ] -> hub_swap (Just   hn) hn'  >>= \ hub       -> return $ Just $ SwapCL    hub hn'
+    ["gc"                    ] ->                                              return $ Just $ GcCL
+    ["list"                  ] -> discover Nothing          >>= \ hub       -> return $ Just $ ListCL    hub
+    ["list"        ,hn       ] -> discover (Just   hn)      >>= \ hub       -> return $ Just $ ListCL    hub
+    ["check"                 ] -> discover Nothing          >>= \ hub       -> return $ Just $ CheckCL   hub
+    ["check"       ,hn       ] -> discover (Just   hn)      >>= \ hub       -> return $ Just $ CheckCL   hub
+    ["load"               ,fp] -> dscvr_nm Nothing          >>= \     hn'   -> return $ Just $ LoadCL        hn' fp
+    ["load"           ,hn',fp] ->                                              return $ Just $ LoadCL        hn' fp
+    ["save"               ,fp] -> discover Nothing          >>= \ hub       -> return $ Just $ SaveCL    hub     fp
+    ["save"        ,hn    ,fp] -> discover (Just   hn)      >>= \ hub       -> return $ Just $ SaveCL    hub     fp
+    ["verify","-s"        ,fp] -> discover Nothing          >>= \ hub       -> return $ Just $ VerifyCL  hub     fp True
+    ["verify","-s" ,hn    ,fp] -> discover (Just hn)        >>= \ hub       -> return $ Just $ VerifyCL  hub     fp True
+    ["verify"             ,fp] -> discover Nothing          >>= \ hub       -> return $ Just $ VerifyCL  hub     fp False
+    ["verify"      ,hn    ,fp] -> discover (Just hn)        >>= \ hub       -> return $ Just $ VerifyCL  hub     fp False
+    "install"            :p:ps -> hub_pks  Nothing  p ps    >>= \(hub,pkns) -> return $ Just $ InstallCL hub     pkns
+    "install-into" :hn   :p:ps -> hub_pks (Just hn) p ps    >>= \(hub,pkns) -> return $ Just $ InstallCL hub     pkns
+    "erase"              :p:ps -> hub_pks  Nothing  p ps    >>= \(hub,pkns) -> return $ Just $ EraseCL   hub     pkns
+    "erase-from"   :hn   :p:ps -> hub_pks (Just hn) p ps    >>= \(hub,pkns) -> return $ Just $ EraseCL   hub     pkns
+    _                          ->                                              return   Nothing  
 
 
+hub_uniq :: Maybe HubName -> IO (Hub,HubName)
+hub_uniq = undefined
 
 hub_pair, hub_swap :: Maybe HubName -> HubName -> IO Hub
 hub_pair = hub_pair' False
@@ -131,12 +149,11 @@ hub_pair' sw mb_hn hn' =
             userHubAvailable hn'
         return hub
 
+dscvr_nm :: Maybe HubName -> IO HubName
+dscvr_nm mb = name__HUB `fmap` discover mb
+
 hub_pks :: Maybe HubName -> String -> [String] -> IO (Hub,[PkgNick])
 hub_pks mb p ps =
      do hub  <- discover mb
         pkns <- mapM parsePkgNick (p:ps)
         return (hub,pkns)
-
-{------------------------------------------------------------------------------
-------------------------------------------------------------------------------}
-        

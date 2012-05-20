@@ -11,7 +11,7 @@ import Hub.Commands
 
 
 version :: String
-version = "0.5"
+version = "1.0"
 
 
 main :: IO ()
@@ -32,7 +32,7 @@ main =
           InfoCL    hub          -> _info    hub
           PathCL    hub          -> _path    hub
           XmlCL     hub          -> _xml     hub
-          InitCL    hub hn       -> _init    hub hn
+          InitCL    hub hn set   -> _init    hub hn set
           CpCL      hub hn       -> _cp      hub hn
           MvCL      hub hn       -> _mv      hub hn
           RmCL      hub          -> _rm      hub
@@ -40,6 +40,9 @@ main =
           GcCL                   -> _gc
           ListCL    hub          -> _list    hub
           CheckCL   hub          -> _check   hub
+          LoadCL        hn fp    -> _load        hn fp
+          SaveCL    hub    fp    -> _save    hub    fp
+          VerifyCL  hub    fp sf -> _verify  hub    fp sf
           InstallCL hub pkns     -> _install hub pkns
           EraseCL   hub pkns     -> _erase   hub pkns
         

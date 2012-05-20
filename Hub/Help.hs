@@ -29,8 +29,10 @@ sc_help :: String -> [String] -> Maybe String
 sc_help _  []       = Nothing
 sc_help cd (ln:lns) =
         case is_help_hdr cd ln of
-          True  -> Just $ unlines $ ln : takeWhile is_help_bdy lns
+          True  -> Just $ unlines $ ln : hdr ++ takeWhile is_help_bdy lns'
           False -> sc_help cd lns
+      where
+        (hdr,lns') = span (is_help_hdr cd) lns
 
 is_help_hdr :: String -> String -> Bool
 is_help_hdr cmd = match $ mk_re $ printf "hub %s.*" cmd

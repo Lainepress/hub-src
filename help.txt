@@ -8,7 +8,7 @@ hub usage
 
       Lists the syntax of all the hub commands.
 
-hub help    [<hub-command>]
+hub help         [<hub-command>]
 
       Lists the help for a command or all commands if none specified.
 
@@ -18,7 +18,7 @@ hub version
 
       Lists the version information.
 
-hub default [<g-hub>|-]
+hub default      [<g-hub>|-]
 
       (Needs to be run as root.)
     
@@ -36,7 +36,7 @@ hub ls
 
       Lists your user hubs and all of the global hubs.
 
-hub set     [<hub>|-]
+hub set          [<hub>|-]
 
       Sets the 'current' hub for a directory and its sub-directories.
       
@@ -46,7 +46,7 @@ hub set     [<hub>|-]
       '^' can genereally be specified in place of <hub>/<g-hub>/<u-hub>
       in a hub command to refer to the current hub.  
 
-hub info    [<hub>]
+hub info         [<hub>]
 
       Lists the vital stats for the named or current hub.
       
@@ -58,78 +58,86 @@ hub name
     
       (See 'hub set' on how to set the current hub.)
 
-hub path    [<hub>]
+hub path         [<hub>]
 
       Lists the  path of the XML file defining the named or current hub.
     
       (See 'hub set' on how to set the current hub.)
 
-hub xml     [<hub>]
+hub xml          [<hub>]
 
       Lists the contents of the XML file defining the named or current hub.
     
       (See 'hub set' on how to set the current hub.)
 
-hub init    [<hub>]   <u-hub'>
+hub init [--new  [<hub>]]
+hub init [--set] [<hub>]   <u-hub'>
 
-      Creates an empty user hub, <u-hub'>. The new hub inherits the global
-      hub of <hub> (or the current hub).
+      The first form creates a new user hub with some unique name __<foo>
+      and associates the current working directory with the new hub. If
+      a hub is specified then that determines the global hub for the new
+      hub otherwise the current defaulkt hub is used.
+      
+      The second from cretaes the new named user hub <u-hub'>. If <hub>
+      is specified then the global hub for the new hub is determined by
+      this hub otherwise the default hub is used. Iff --set is specified
+      the hub associated with the current directory is set to the new hub.
     
       (See 'hub set' on how to set the current hub.)
 
-hub cp      [<u-hub>] <u-hub'>
+hub cp           [<u-hub>] <u-hub'>
 
       Duplicates the user <u-hub> (or the current hib) in <u-hub'>.
     
       (See 'hub set' on how to set the current hub.)
 
-hub mv      [<u-hub>] <u-hub'>
+hub mv           [<u-hub>] <u-hub'>
 
       Renames user hub <u-hub> (or the current hub) to <u-hub'>.
     
       (See 'hub set' on how to set the current hub.)
 
-hub rm       <u-hub>
+hub rm            <u-hub>
 
       Deletes user hub <hub>.
 
-hub swap    [<u-hub>] <u-hub'>
+hub swap         [<u-hub>] <u-hub'>
 
       Swaps the contents of user hub <u-hub> (or the current hub) with
       user hub <u-hub'>.
     
       (See 'hub set' on how to set the current hub.)
 
-hub list    [<hub>]
+hub list         [<hub>]
 
       Lists the packages belonging to named hub (or the current hub --
       calls 'ghc-pkg list').
 
       (See 'hub set' on how to set the current hub.)
 
-hub check   [<hub>]
+hub check        [<hub>]
 
       Checks the packages belonging to named hub (or the current hub --
       calls 'ghc-pkg check').
 
       (See 'hub set' on how to set the current hub.)
 
-hub install              <pkg-name> ...
+hub install                <pkg-name> ...
 
       Equivalent to: hub install-into ^ <pkg-name> ... 
 
-hub install-into <u-hub> <pkg-name> ...
+hub install-into  <u-hub>  <pkg-name> ...
 
       Uses 'cabal install' to install the named packages into the named
       hub (or the current hub).
 
       (See 'hub set' on how to set the current hub.)
 
-hub erase                <pkg-name> ...
+hub erase                  <pkg-name> ...
 
       Equivalent to: hub esase-from ^  <pkg-name> ... 
 
-hub erase-from   <u-hub> <pkg-name> ...
+hub erase-from    <u-hub>  <pkg-name> ...
 
       Determines all of the packages dependent on the list of named packaqes
       in the named hub (or the current hub), lists them and offers to remove
@@ -141,3 +149,33 @@ hub gc
 
       Runs the garbage collector to reclaim library code that is no longer
       referenced by the hubs.
+
+hub save         [<u-hub>] <hub-archive-file>
+        
+      Save out the configuration of the named hub (or the default hub) to the
+      <hub-archive-file>. The name of the global hub used and all of the
+      packages and their versions are recorded.
+
+      (See 'hub set' on how to set the current hub.)
+
+hub load         [<u-hub>] <hub-archive-file>
+
+      Load the hub <u-hub> from the archive file. If the named hub doesn't
+      exist then the hub is created with the global hub specified by the
+      archive. If <u-hub> does exist then it is verified that it is using the
+      global hub specified by the archive file.
+      
+      Any packages missing from the hub listed in the archive are installed
+      with cabal-install.
+
+      (See 'hub set' on how to set the current hub.)
+
+hub verify [-s]  [<u-hub>] <hub-archive-file>
+
+      Check that the named hub (or the default hub) uses the global hub
+      specified in the archive and that it contains all of the packages
+      at the versions specified by the archive. If -s is specified
+      then check that the hub contains no packages other than those specified
+      by the archive.
+
+      (See 'hub set' on how to set the current hub.)

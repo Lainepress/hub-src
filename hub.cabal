@@ -1,5 +1,5 @@
 Name:                   hub
-Version:                0.5
+Version:                1.0
 Copyright:              Chris Dornan, 2011-2012
 Maintainer:             Chris Dornan <chris@chrisdornan.com>
 Author:                 Chris Dornan <chris@chrisdornan.com>
@@ -10,7 +10,7 @@ Description:            This package provides a utility for multiplexing
                         multiple GHC and Haskell Platform installations,
                         the installation being selected by configuraton
                         file or environment variable.
-Stability:              Experimental
+Stability:              Stable
 Category:               Development, Distribution
 Homepage:               https://github.com/cdornan/hub
 Build-type:             Simple
@@ -22,8 +22,8 @@ Source-repository       head
 
 Executable              hub
     Main-is:            hub.hs
-    Build-depends:      base            >= 4.0 && <= 4.5,
-                        hexpat          == 0.19.*,
+    Build-depends:      base            >= 4.0 && < 5,
+                        hexpat          >= 0.19,
                         regex-compat,
                         containers,
                         unix,

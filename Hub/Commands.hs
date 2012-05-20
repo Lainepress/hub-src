@@ -18,6 +18,9 @@ module Hub.Commands
     , _gc
     , _list
     , _check
+    , _load
+    , _save
+    , _verify
     , _install
     , _erase
     ) where
@@ -103,8 +106,8 @@ _path hub = putStrLn $ path__HUB hub
 _xml :: Hub -> IO ()
 _xml hub = readAFile (path__HUB hub) >>= putStr
 
-_init :: Hub -> HubName -> IO ()
-_init hub0 hn = initDirectory >> createHub False hub0 hn 
+_init :: Hub -> HubName -> Bool -> IO ()
+_init hub0 hn set = undefined set $ initDirectory >> createHub False hub0 hn 
 
 _cp :: Hub -> HubName -> IO ()
 _cp hub hn = initDirectory >> createHub True hub hn
@@ -128,6 +131,15 @@ _list hub = execP HubO (EE InheritRS InheritRS []) FullMDE hub Ghc_pkgP ["list"]
 
 _check :: Hub -> IO ()
 _check hub = execP HubO (EE InheritRS InheritRS []) FullMDE hub Ghc_pkgP ["check"]
+
+_load :: HubName -> FilePath -> IO ()
+_load hn fp = undefined hn fp
+
+_save :: Hub -> FilePath -> IO ()
+_save hub fp = undefined hub fp
+
+_verify :: Hub -> FilePath -> Bool -> IO ()
+_verify hub fp sf = undefined hub fp sf
 
 _install :: Hub -> [PkgNick] -> IO ()
 _install hub pkns = execP HubO (EE InheritRS InheritRS []) FullMDE hub CabalP
