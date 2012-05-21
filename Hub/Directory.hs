@@ -166,10 +166,10 @@ allocHub =
         prs' _               = Nothing
 
 createHub :: Bool -> Hub -> HubName -> IO ()
-createHub  cp hub0 hn = const () `fmap` createHub' cp hub0 hn
+createHub  cp hub0 hn = const () `fmap` createHub' cp hub0 hn False
 
-createHub' :: Bool -> Hub -> HubName -> IO Hub
-createHub' cp hub0 hn =
+createHub' :: Bool -> Hub -> HubName -> Bool -> IO Hub
+createHub' cp hub0 hn sf =
      do userHubAvailable hn
         (h_fp,lib,db) <- user_hub_paths hn
         createDirectoryIfMissing True lib
@@ -179,9 +179,19 @@ createHub' cp hub0 hn =
                 cpFileDir db0 db
           False ->
                 pkg_init hub0 db
-        let hub = hub0 { name__HUB=hn, path__HUB=h_fp, commntHUB = h_fp, usr_dbHUB=Just db }
+        let hub1 = hub0 { name__HUB=hn, path__HUB=h_fp, usr_dbHUB=Just db }
+	hub <- defaultComment sf hub1
         dump hub
         return hub
+
+defaultComment :: Bool -> Hub -> IO Hub
+defaultComment sf hub =
+        case sf of
+          True  ->
+            do cwd <- getCurrentDirectory
+               return $ hub { commntHUB = cwd }
+          False ->
+               return $ hub { commntHUB = ""  }
 
 renameHub :: Hub -> HubName -> IO ()
 renameHub hub0 hn =

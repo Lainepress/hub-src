@@ -32,9 +32,11 @@ hub default      [<g-hub>|-]
       If a '-' is specified then any older default settings are discarded and
       the system default re-established.
 
-hub ls
+hub ls [-a]
 
-      Lists your user hubs and all of the global hubs.
+      Lists your user hubs and all of the global hubs. If -a is specified then all
+      hubs are listed, otherwise the hidden hub (those starting with "__") are
+      ommitted.
 
 hub set          [<hub>|-]
 
@@ -83,6 +85,12 @@ hub init [--set] [<hub>]   <u-hub'>
       this hub otherwise the default hub is used. Iff --set is specified
       the hub associated with the current directory is set to the new hub.
     
+      (See 'hub set' on how to set the current hub.)
+
+hub comment      [<u-hub>] <comment-string>
+
+      Set the comment string for a user hub.
+
       (See 'hub set' on how to set the current hub.)
 
 hub cp           [<u-hub>] <u-hub'>

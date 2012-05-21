@@ -24,7 +24,7 @@ main =
           DfltCL                 -> _default
           StDfCL    hub          -> _default_hub $ Just hub
           RsDfCL                 -> _default_hub   Nothing
-          LsCL                   -> _ls
+          LsCL af                -> _ls af
           GetCL                  -> _get
           SetCL     hub          -> _set     hub
           UnsetCL                -> _unset
@@ -33,6 +33,7 @@ main =
           PathCL    hub          -> _path    hub
           XmlCL     hub          -> _xml     hub
           InitCL    hub hn set   -> _init    hub hn set
+          CommentCL hub    cmt   -> _comment hub cmt
           CpCL      hub hn       -> _cp      hub hn
           MvCL      hub hn       -> _mv      hub hn
           RmCL      hub          -> _rm      hub

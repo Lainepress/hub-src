@@ -30,13 +30,13 @@ dump hub = B.writeFile path xml_bs
         
         xml      = unlines $
             [        "<hub>"
-            , printf "  <comnt>%s</comnt>" comnt
-            , printf "  <hcbin>%s</hcbin>" hcbin
-            , printf "  <tlbin>%s</tlbin>" tlbin
+            , printf "  <comnt>%s</comnt>" $ string2xml comnt
+            , printf "  <hcbin>%s</hcbin>" $ string2xml hcbin
+            , printf "  <tlbin>%s</tlbin>" $ string2xml tlbin
             ] ++
-            [ printf "  <glbdb>%s</glbdb>" glbdb
+            [ printf "  <glbdb>%s</glbdb>" $ string2xml glbdb
             ] ++
-            [ printf "  <usrdb>%s</usrdb>" usrdb | Just usrdb<-[mb_usrdb]
+            [ printf "  <usrdb>%s</usrdb>" $ string2xml usrdb | Just usrdb<-[mb_usrdb]
             ] ++
             [        "</hub>"
             ]
@@ -168,35 +168,35 @@ chk_wspce st nd =
         lc     = locwfST st 
         txt_er = "unexpected top-level text"
 
-chk_comnt st0 nd = simple_node st0 nd "comnt" chk
+chk_comnt st0 nd = simple_node True  st0 nd "comnt" chk
               where
                 chk st lc arg =
                         case comntST st of
                           Nothing -> YUP (st{comntST=Just arg})
                           Just _  -> NOPE $ err lc "<comment> respecified"
 
-chk_hcbin st0 nd = simple_node st0 nd "hcbin" chk
+chk_hcbin st0 nd = simple_node False st0 nd "hcbin" chk
               where
                 chk st lc arg =
                         case hcbinST st of
                           Nothing -> YUP (st{hcbinST=Just arg})
                           Just _  -> NOPE $ err lc "<hcbin> respecified"
 
-chk_tlbin st0 nd = simple_node st0 nd "tlbin" chk
+chk_tlbin st0 nd = simple_node False st0 nd "tlbin" chk
               where
                 chk st lc arg =
                         case tlbinST st of
                           Nothing -> YUP (st{tlbinST=Just arg})
                           Just _  -> NOPE $ err lc "<cibin> re-specified"
 
-chk_glbdb st0 nd = simple_node st0 nd "glbdb" chk
+chk_glbdb st0 nd = simple_node False st0 nd "glbdb" chk
               where
                 chk st lc arg =
                         case glbdbST st of
                           Nothing -> YUP (st{glbdbST=Just arg})
                           Just _  -> NOPE $ err lc "<glbdb> respecified"
 
-chk_usrdb st0 nd = simple_node st0 nd "usrdb" chk
+chk_usrdb st0 nd = simple_node False st0 nd "usrdb" chk
               where
                 chk st lc arg =
                         case usrdbST st of
@@ -205,14 +205,14 @@ chk_usrdb st0 nd = simple_node st0 nd "usrdb" chk
 
 -- depracated (pre-0.3) constructions
 
-chk_hpbin st0 nd = simple_node st0 nd "hpbin" $ \st _ _ -> YUP st
+chk_hpbin st0 nd = simple_node False st0 nd "hpbin" $ \st _ _ -> YUP st
 
-chk_cibin st0 nd = simple_node st0 nd "cibin" $ \st _ _ -> YUP st
+chk_cibin st0 nd = simple_node False st0 nd "cibin" $ \st _ _ -> YUP st
 
 
-simple_node :: PSt -> Node -> Tag -> (PSt->Loc->String->Poss PSt)
+simple_node :: Bool -> PSt -> Node -> Tag -> (PSt->Loc->String->Poss PSt)
                                                         -> Maybe (Poss PSt)
-simple_node st (X.Element tg' as ks lc) tg cont
+simple_node ev st (X.Element tg' as ks lc) tg cont
     | tg==tg'   = Just $
                      do chk_as
                         txt <- chk_ks
@@ -228,8 +228,8 @@ simple_node st (X.Element tg' as ks lc) tg cont
                                    _:_ -> NOPE $ err lc txt_er
                                    
                         chk_nl = case all_tx of
-                                   _:_ -> chk_ls
-                                   []  -> NOPE $ err lc emp_er
+                                   []  | not ev -> NOPE $ err lc emp_er
+                                   _            -> chk_ls
     
                         chk_ls = case all (/='\n') all_tx of
                                    True  -> return all_tx
@@ -240,5 +240,15 @@ simple_node st (X.Element tg' as ks lc) tg cont
                         txt_er = printf "<%s> takes simple text"          tg
                         emp_er = printf "<%s> shouldn't be empty"         tg
                         lns_er = printf "<%s> should be on a single line" tg
-simple_node _ (X.Text _) _ _
+simple_node _  _ (X.Text _) _ _
                 = Nothing
+
+string2xml :: String -> String
+string2xml = concatMap fixChar
+    where
+      fixChar '<' = "&lt;"
+      fixChar '>' = "&gt;"
+      fixChar '&' = "&amp;"
+      fixChar '"' = "&quot;"
+      fixChar c | ord c < 0x80 = [c]
+      fixChar c = "&#" ++ show (ord c) ++ ";"

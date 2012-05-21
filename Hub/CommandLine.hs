@@ -34,7 +34,7 @@ data CommandLine
     | DfltCL
     | StDfCL    Hub
     | RsDfCL
-    | LsCL
+    | LsCL      Bool
     | GetCL
     | SetCL     Hub
     | UnsetCL
@@ -43,6 +43,7 @@ data CommandLine
     | PathCL    Hub
     | XmlCL     Hub
     | InitCL    Hub HubName Bool
+    | CommentCL Hub String
     | CpCL      Hub HubName
     | MvCL      Hub HubName
     | RmCL      Hub
@@ -83,7 +84,8 @@ hub_dispatch as = case as of
     ["default"               ] ->                                              return $ Just $ DfltCL
     ["default"     ,"-"      ] ->                                              return $ Just $ RsDfCL
     ["default"     ,hn       ] -> discover (Just   hn)      >>= \ hub       -> return $ Just $ StDfCL    hub
-    ["ls"                    ] -> initDirectory             >>= \_          -> return $ Just $ LsCL
+    ["ls"                    ] -> initDirectory             >>= \_          -> return $ Just $ LsCL   False
+    ["ls","-a"               ] -> initDirectory             >>= \_          -> return $ Just $ LsCL   True
     ["set"                   ] ->                                              return $ Just $ GetCL
     ["set"         ,"-"      ] ->                                              return $ Just $ UnsetCL
     ["set"         ,hn       ] -> discover (Just   hn)      >>= \ hub       -> return $ Just $ SetCL     hub
@@ -101,6 +103,8 @@ hub_dispatch as = case as of
     ["init","--set",hn,hn'   ] -> hub_pair (Just   hn) hn'  >>= \ hub       -> return $ Just $ InitCL    hub hn' True
     ["init"           ,hn'   ] -> hub_pair Nothing     hn'  >>= \ hub       -> return $ Just $ InitCL    hub hn' False
     ["init"        ,hn,hn'   ] -> hub_pair (Just   hn) hn'  >>= \ hub       -> return $ Just $ InitCL    hub hn' False
+    ["comment"        ,cmt   ] -> discover Nothing          >>= \ hub       -> return $ Just $ CommentCL hub cmt
+    ["comment"     ,hn,cmt   ] -> discover (Just   hn)      >>= \ hub       -> return $ Just $ CommentCL hub cmt
     ["cp"             ,hn'   ] -> hub_pair Nothing     hn'  >>= \ hub       -> return $ Just $ CpCL      hub hn'
     ["cp"          ,hn,hn'   ] -> hub_pair (Just   hn) hn'  >>= \ hub       -> return $ Just $ CpCL      hub hn'
     ["mv"             ,hn'   ] -> hub_pair Nothing     hn'  >>= \ hub       -> return $ Just $ MvCL      hub hn'

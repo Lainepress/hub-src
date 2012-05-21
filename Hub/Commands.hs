@@ -11,6 +11,7 @@ module Hub.Commands
     , _path
     , _xml
     , _init
+    , _comment
     , _cp
     , _mv
     , _rm
@@ -37,6 +38,7 @@ import           Hub.Prog
 import           Hub.Hub
 import           Hub.PackageDB
 import           Hub.Directory
+import           Hub.Parse
 import           Hub.Discover
 
 
@@ -57,12 +59,15 @@ is_global hub = when (kind__HUB hub/=GlbHK) $
                     oops HubO $ printf "%s: not a global hub" $name__HUB hub
 
 
-_ls :: IO ()
-_ls =
+_ls :: Bool -> IO ()
+_ls af =
      do hns  <- lsHubs [UsrHK,GlbHK]
-        hubs <- mapM (discover . Just) hns
+        hubs <- mapM (discover . Just) $ filter f hns
         putStr $ unlines $ [ printf "%-20s -- %s" nm co | hub<-hubs, 
                                 let nm = name__HUB hub, let co = commntHUB hub ]
+      where
+        f ('_':'_':_) = af
+        f _           = True
 
 _get :: IO ()
 _get =
@@ -89,7 +94,7 @@ _name hub = putStrLn $ name__HUB hub
 
 _info :: Hub -> IO ()
 _info hub = putStr $ unlines $
-    [ printf "%s (%s hub)"                     name ht                                                             ] ++
+    [ printf "%s (%s hub)  -- %s"              name ht cmt                                                         ] ++
     [ printf "   GHC              : %s" hc             |                         Just hc <- [bin2toolchain hc_bin] ] ++
     [ printf "   Haskell Platform : %s" hp             | Just usr_db <- [mb_ud], Just hp <- [db2platform   usr_db] ] ++ 
     [ printf "   Tools            : %s"        hc_bin                                                              ] ++
@@ -100,6 +105,7 @@ _info hub = putStr $ unlines $
     ht     = if hk==GlbHK then "global" else "user"
     name   = name__HUB hub
     hk     = kind__HUB hub
+    cmt    = commntHUB hub
     hc_bin = hc_binHUB hub
     glb_db = glb_dbHUB hub
     mb_ud  = usr_dbHUB hub
@@ -113,8 +119,11 @@ _xml hub = readAFile (path__HUB hub) >>= putStr
 _init :: Hub -> HubName -> Bool -> IO ()
 _init hub0 hn sf =
      do initDirectory
-        hub <- createHub' False hub0 hn
-        when sf $ _set hub 
+        hub <- createHub' False hub0 hn sf
+        when sf $ _set hub
+
+_comment :: Hub -> String -> IO ()
+_comment hub cmt = dump $ hub { commntHUB = cmt }
 
 _cp :: Hub -> HubName -> IO ()
 _cp hub hn = initDirectory >> createHub True hub hn
