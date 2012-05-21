@@ -94,13 +94,13 @@ _name hub = putStrLn $ name__HUB hub
 
 _info :: Hub -> IO ()
 _info hub = putStr $ unlines $
-    [ printf "%s %s %s"                        name hs cmt                                                         ] ++
-    [ printf "   GHC              : %s" hc             |                         Just hc <- [bin2toolchain hc_bin] ] ++
-    [ printf "   Haskell Platform : %s" hp             | Just usr_db <- [mb_ud], Just hp <- [db2platform   usr_db] ] ++ 
-    [ printf "   Tools            : %s"        hc_bin                                                              ] ++
-    [        "   Package DBs"                          |                         hk/=GlbHK                         ] ++
-    [ printf "      global        : %s"        glb_db  |                         hk/=GlbHK                         ] ++
-    [ printf "      user          : %s"        usr_db  | Just usr_db <- [mb_ud], hk/=GlbHK                         ]
+    [ printf "%s %s %s"                        name hs cmt                                 ] ++
+    [ printf "   GHC              : %s" hc             | Just hc <- [bin2toolchain hc_bin] ] ++
+    [ printf "   Haskell Platform : %s" hp             | Just hp <- [db2platform   glb_db] ] ++ 
+    [ printf "   Tools            : %s"        hc_bin                                      ] ++
+    [        "   Package DBs"                          |                         True      ] ++
+    [ printf "      global        : %s"        glb_db  |                         True      ] ++
+    [ printf "      user          : %s"        usr_db  | Just usr_db <- [mb_ud], True      ]
   where
     hs     = case sourceHUB hub of
                ClHS -> ""
@@ -110,7 +110,6 @@ _info hub = putStr $ unlines $
                DsHS -> "[SYS]"
     cmt    = if null cmt0 then "" else "-- " ++ cmt0
     name   = name__HUB hub
-    hk     = kind__HUB hub
     cmt0   = commntHUB hub
     hc_bin = hc_binHUB hub
     glb_db = glb_dbHUB hub

@@ -12,5 +12,8 @@ hubBin            = "/usr/hs/bin"
 toolsBin          = "/usr/hs/tools" 
 hubGccBin         = "/usr/hs/gcc/bin"
 hubBinutilsBin    = "/usr/hs/binutils/bin"
-hcBinREs          = "/usr/hs/ghc/([a-z0-9.-_]+)/bin"
-hpDbREs           = "/usr/hs/db/(20[a-z0-9.-_]+)(.db)?/bin"
+hcBinREs          = "/usr/hs/ghc/([a-zA-Z0-9_.-]+)/bin"
+hpDbREs           = "/usr/hs/db/("++hp_re++")(\\.d)?"
+
+hp_re :: String
+hp_re = "20[0-9][0-9]\\.[0-9]\\.[0-9]\\.[0-9](-[a-z0-9]*)?"
