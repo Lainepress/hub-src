@@ -117,9 +117,9 @@ defaultGlobalHubName = sel
                               True  -> return hn
                               False -> sel ps
 
-        usr_df        = readAFile defaultHubPath
+        usr_df        = trim `fmap` readAFile defaultHubPath
 
-        sys_df        = readAFile sysDefaultHubPath
+        sys_df        = trim `fmap` readAFile sysDefaultHubPath
 
         lhp_df        = mx_fr $ gmatch hp_hub_re
         

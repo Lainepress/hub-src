@@ -94,7 +94,7 @@ _name hub = putStrLn $ name__HUB hub
 
 _info :: Hub -> IO ()
 _info hub = putStr $ unlines $
-    [ printf "%s (%s hub)  -- %s"              name ht cmt                                                         ] ++
+    [ printf "%s %s %s"                        name hs cmt                                                         ] ++
     [ printf "   GHC              : %s" hc             |                         Just hc <- [bin2toolchain hc_bin] ] ++
     [ printf "   Haskell Platform : %s" hp             | Just usr_db <- [mb_ud], Just hp <- [db2platform   usr_db] ] ++ 
     [ printf "   Tools            : %s"        hc_bin                                                              ] ++
@@ -102,10 +102,16 @@ _info hub = putStr $ unlines $
     [ printf "      global        : %s"        glb_db  |                         hk/=GlbHK                         ] ++
     [ printf "      user          : %s"        usr_db  | Just usr_db <- [mb_ud], hk/=GlbHK                         ]
   where
-    ht     = if hk==GlbHK then "global" else "user"
+    hs     = case sourceHUB hub of
+               ClHS -> ""
+               EvHS -> "[ENV]"
+               DrHS -> "[DIR]"
+               DuHS -> "[HME]"
+               DsHS -> "[SYS]"
+    cmt    = if null cmt0 then "" else "-- " ++ cmt0
     name   = name__HUB hub
     hk     = kind__HUB hub
-    cmt    = commntHUB hub
+    cmt0   = commntHUB hub
     hc_bin = hc_binHUB hub
     glb_db = glb_dbHUB hub
     mb_ud  = usr_dbHUB hub

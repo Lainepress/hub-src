@@ -2,6 +2,7 @@ module Hub.Hub
     ( Hub(..)
     , HubName
     , HubKind(..)
+    , HubSource(..)
     , prettyHubKind
     , checkHubName
     , isHubName
@@ -24,6 +25,7 @@ import           Hub.Prog
 
 
 data Hub = HUB {
+    sourceHUB :: HubSource,
     name__HUB :: HubName,
     kind__HUB :: HubKind,
     path__HUB :: FilePath,
@@ -39,10 +41,17 @@ data Hub = HUB {
 type HubName = String
 
 data HubKind
-    = GlbHK
-    | UsrHK
+    = GlbHK         -- global hub
+    | UsrHK         -- user hub
                                             deriving (Eq,Ord,Bounded,Enum,Show)
 
+data HubSource
+    = ClHS          -- hub sepcified on command line
+    | EvHS          -- hub specified by environment variable
+    | DrHS          -- hub specified by a directory marker
+    | DuHS          -- hub specified by user   default
+    | DsHS          -- hub specified by system default
+                                                                deriving (Show)
 
 prettyHubKind :: HubKind -> String
 prettyHubKind GlbHK = "global" 
