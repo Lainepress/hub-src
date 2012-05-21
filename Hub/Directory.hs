@@ -10,7 +10,9 @@ module Hub.Directory
     , lsHubs
     , bin2toolchain
     , db2platform
+    , allocHub
     , createHub
+    , createHub'
     , renameHub
     , deleteHub
     , swapHub
@@ -144,22 +146,42 @@ bin2toolchain, db2platform :: FilePath -> Maybe String
 bin2toolchain = match $ mk_re hcBinREs
 db2platform   = match $ mk_re hpDbREs
 
--- create/copy, rename, delete and swap hubs
+-- allocate, create/copy, rename, delete and swap hubs
+
+allocHub :: IO HubName
+allocHub =
+     do (hd,_) <- user_hub_dirs
+        alloc `fmap` getDirectoryContents hd
+      where
+        alloc gns = printf "__h%03d" $ 
+                        (1+) $ maximum $ -1:[ i | Just i<-map prs gns ]
+
+        prs fp = case reverse fp of
+                   'l':'m':'x':'.':t -> prs' $ reverse t
+                   _                 -> Nothing 
+                
+        
+        prs' :: String -> Maybe Int
+        prs' ('_':'_':'h':t) = readMB t
+        prs' _               = Nothing
 
 createHub :: Bool -> Hub -> HubName -> IO ()
-createHub cp hub0 hn =
+createHub  cp hub0 hn = const () `fmap` createHub' cp hub0 hn
+
+createHub' :: Bool -> Hub -> HubName -> IO Hub
+createHub' cp hub0 hn =
      do userHubAvailable hn
         (h_fp,lib,db) <- user_hub_paths hn
         createDirectoryIfMissing True lib
-        
         case cp of
           True  -> 
              do (_,db0) <- hub_user_lib hub0
                 cpFileDir db0 db
           False ->
                 pkg_init hub0 db
-        let hub = hub0 { name__HUB=hn, path__HUB=h_fp, usr_dbHUB=Just db }
-        dump hub 
+        let hub = hub0 { name__HUB=hn, path__HUB=h_fp, commntHUB = h_fp, usr_dbHUB=Just db }
+        dump hub
+        return hub
 
 renameHub :: Hub -> HubName -> IO ()
 renameHub hub0 hn =

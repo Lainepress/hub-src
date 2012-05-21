@@ -17,11 +17,11 @@ import           Hub.FilePaths
 parse :: FilePath -> HubName -> FilePath -> HubKind -> IO Hub
 parse dy hn hf hk =
      do cts <- B.readFile hf
-     	case parse' cts of
-     	  YUP  tr -> case check dy hn hf hk tr of
-     	               NOPE er -> fail_err hn hf er
-     	               YUP  hb -> return hb
-     	  NOPE er -> fail_err hn hf er
+        case parse' cts of
+          YUP  tr -> case check dy hn hf hk tr of
+                       NOPE er -> fail_err hn hf er
+                       YUP  hb -> return hb
+          NOPE er -> fail_err hn hf er
 
 dump :: Hub -> IO ()
 dump hub = B.writeFile path xml_bs
@@ -29,7 +29,8 @@ dump hub = B.writeFile path xml_bs
         xml_bs   = B.pack $ map (toEnum.fromEnum) xml
         
         xml      = unlines $
-            [        "<hub>" 
+            [        "<hub>"
+            , printf "  <comnt>%s</comnt>" comnt
             , printf "  <hcbin>%s</hcbin>" hcbin
             , printf "  <tlbin>%s</tlbin>" tlbin
             ] ++
@@ -41,6 +42,7 @@ dump hub = B.writeFile path xml_bs
             ]
                 
         path     = path__HUB hub
+        comnt    = commntHUB hub
         hcbin    = hc_binHUB hub
         tlbin    = tl_binHUB hub
         glbdb    = glb_dbHUB hub
@@ -67,10 +69,10 @@ type Tag    = String
 type Node   = X.LNode Tag String
 
 data Poss a = NOPE Err | YUP a
-																deriving (Show)
+                                                                deriving (Show)
 instance Monad Poss where
-	(>>=) ps f = poss NOPE f ps
-	return     = YUP
+    (>>=) ps f = poss NOPE f ps
+    return     = YUP
 
 poss :: (Err->b) -> (a->b) -> Poss a -> b
 poss n _ (NOPE e) = n e
@@ -98,6 +100,7 @@ check dy hn hf hk (X.Element "hub" [] ns lc) =
             chk (NOPE er) _  = NOPE er
             chk (YUP  st) nd = foldr (trial st nd) (NOPE $ unrecognised st nd)
                     [ chk_wspce
+                    , chk_comnt
                     , chk_hcbin
                     , chk_tlbin
                     , chk_glbdb
@@ -110,35 +113,38 @@ check _  _  _  _  _ = NOPE $ err loc0 "expected simple <hub>...</hub>"
 
 data PSt = ST {
     handlST :: HubName,
-    hpathST :: FilePath,	
-	locwfST :: Loc,
-	hcbinST :: Maybe FilePath,
-	tlbinST :: Maybe FilePath,
-	glbdbST :: Maybe FilePath,
-	usrdbST :: Maybe FilePath
-	}															deriving (Show)
+    hpathST :: FilePath,    
+    locwfST :: Loc,
+    comntST :: Maybe String,
+    hcbinST :: Maybe FilePath,
+    tlbinST :: Maybe FilePath,
+    glbdbST :: Maybe FilePath,
+    usrdbST :: Maybe FilePath
+    }                                                            deriving (Show)
 
 start :: HubName -> FilePath -> Loc -> PSt
-start hn fp lc = ST hn fp lc Nothing Nothing Nothing Nothing
+start hn fp lc = ST hn fp lc Nothing Nothing Nothing Nothing Nothing
 
 final :: FilePath -> HubKind -> Poss PSt -> Poss Hub
 final _  _  (NOPE er) = NOPE er
 final dy hk (YUP  st) = 
-	 do hc <- get_hc
-	    tl <- get_tl
-	    gl <- get_gl
-	    return $ HUB hn hk hf hc tl gl mb_dy mb_ur
-	  where
-		get_hc = maybe (NOPE  hc_err  ) YUP mb_hc
-		get_tl = maybe (YUP $ toolsBin) YUP mb_tl
-		get_gl = maybe (NOPE  gl_err  ) YUP mb_gl
+     do co <- get_co
+        hc <- get_hc
+        tl <- get_tl
+        gl <- get_gl
+        return $ HUB hn hk hf co hc tl gl mb_dy mb_ur
+      where
+        get_co = maybe (YUP   ""      ) YUP mb_co 
+        get_hc = maybe (NOPE  hc_err  ) YUP mb_hc
+        get_tl = maybe (YUP $ toolsBin) YUP mb_tl
+        get_gl = maybe (NOPE  gl_err  ) YUP mb_gl
 
-		hc_err = err lc "Hub doesn't specify a GHC bin directory"
-		gl_err = err lc "Hub doesn't specify a global package directory"
-		
-		mb_dy  = fmap (const dy) mb_ur
+        hc_err = err lc "Hub doesn't specify a GHC bin directory"
+        gl_err = err lc "Hub doesn't specify a global package directory"
+        
+        mb_dy  = fmap (const dy) mb_ur
 
-		ST hn hf lc mb_hc mb_tl mb_gl mb_ur = st
+        ST hn hf lc mb_co mb_hc mb_tl mb_gl mb_ur = st
 
 trial :: PSt -> Node -> (PSt -> Node -> Maybe(Poss PSt)) -> Poss PSt -> Poss PSt
 trial st nd f ps = maybe ps id $ f st nd
@@ -149,7 +155,7 @@ unrecognised st (X.Text    tx       ) = err lc $ printf "unexpected text: %s" tx
                                                         where
                                                           lc = locwfST st
 
-chk_wspce, chk_hcbin, chk_tlbin,
+chk_comnt, chk_wspce, chk_hcbin, chk_tlbin,
         chk_glbdb, chk_usrdb,
         chk_hpbin, chk_cibin :: PSt -> Node -> Maybe(Poss PSt)
 
@@ -161,6 +167,13 @@ chk_wspce st nd =
       where
         lc     = locwfST st 
         txt_er = "unexpected top-level text"
+
+chk_comnt st0 nd = simple_node st0 nd "comnt" chk
+              where
+                chk st lc arg =
+                        case comntST st of
+                          Nothing -> YUP (st{comntST=Just arg})
+                          Just _  -> NOPE $ err lc "<comment> respecified"
 
 chk_hcbin st0 nd = simple_node st0 nd "hcbin" chk
               where

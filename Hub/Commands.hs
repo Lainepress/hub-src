@@ -58,7 +58,11 @@ is_global hub = when (kind__HUB hub/=GlbHK) $
 
 
 _ls :: IO ()
-_ls = do hns <- lsHubs [UsrHK,GlbHK]; putStr $ unlines hns
+_ls =
+     do hns  <- lsHubs [UsrHK,GlbHK]
+        hubs <- mapM (discover . Just) hns
+        putStr $ unlines $ [ printf "%-20s -- %s" nm co | hub<-hubs, 
+                                let nm = name__HUB hub, let co = commntHUB hub ]
 
 _get :: IO ()
 _get =
@@ -107,7 +111,10 @@ _xml :: Hub -> IO ()
 _xml hub = readAFile (path__HUB hub) >>= putStr
 
 _init :: Hub -> HubName -> Bool -> IO ()
-_init hub0 hn set = undefined set $ initDirectory >> createHub False hub0 hn 
+_init hub0 hn sf =
+     do initDirectory
+        hub <- createHub' False hub0 hn
+        when sf $ _set hub 
 
 _cp :: Hub -> HubName -> IO ()
 _cp hub hn = initDirectory >> createHub True hub hn

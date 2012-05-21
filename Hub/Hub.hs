@@ -27,6 +27,7 @@ data Hub = HUB {
     name__HUB :: HubName,
     kind__HUB :: HubKind,
     path__HUB :: FilePath,
+    commntHUB :: String,
     hc_binHUB :: FilePath,
     tl_binHUB :: FilePath,
     glb_dbHUB :: FilePath,

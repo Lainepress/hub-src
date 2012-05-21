@@ -129,7 +129,9 @@ hub_dispatch as = case as of
 
 
 hub_uniq :: Maybe HubName -> IO (Hub,HubName)
-hub_uniq = undefined
+hub_uniq mb =
+     do hub <- discover mb 
+        (,) hub `fmap` allocHub
 
 hub_pair, hub_swap :: Maybe HubName -> HubName -> IO Hub
 hub_pair = hub_pair' False
