@@ -72,8 +72,8 @@ hub xml          [<hub>]
     
       (See 'hub set' on how to set the current hub.)
 
-hub init [--new  [<hub>]]
-hub init [--set] [<hub>]   <u-hub'>
+hub init [--n  [<hub>]]
+hub init [--s] [<hub>]   <u-hub'>
 
       The first form creates a new user hub with some unique name __<foo>
       and associates the current working directory with the new hub. If

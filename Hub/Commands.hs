@@ -40,6 +40,7 @@ import           Hub.PackageDB
 import           Hub.Directory
 import           Hub.Parse
 import           Hub.Discover
+import           Hub.SaveLoad
 
 
 
@@ -153,14 +154,32 @@ _list hub = execP HubO (EE InheritRS InheritRS []) FullMDE hub Ghc_pkgP ["list"]
 _check :: Hub -> IO ()
 _check hub = execP HubO (EE InheritRS InheritRS []) FullMDE hub Ghc_pkgP ["check"]
 
-_load :: HubName -> FilePath -> IO ()
-_load hn fp = undefined hn fp
-
 _save :: Hub -> FilePath -> IO ()
-_save hub fp = undefined hub fp
+_save = save
+
+_load :: HubName -> FilePath -> Bool -> IO ()
+_load hn fp ef = 
+     do hub <- undefined hn
+        (eps,ips) <- load hub fp
+        case (ef,eps) of
+          (True,_:_) -> _erase hub eps
+          _          -> return ()
+        case ips of
+          []  -> return ()
+          _:_ -> _install hub ips
 
 _verify :: Hub -> FilePath -> Bool -> IO ()
-_verify hub fp sf = undefined hub fp sf
+_verify hub fp sf =
+     do (eps,ips) <- load hub fp
+        case (sf,eps) of
+          (True,_:_) -> oops_e eps ips
+          _          -> return ()
+        case ips of
+          []  -> return ()
+          _:_ -> oops_i ips
+      where
+        oops_e _ _ = oops HubO "verify: failed: excess/missing packages" -- undefined
+        oops_i _   = oops HubO "verify: failed: missing packages" -- undefined
 
 _install :: Hub -> [PkgNick] -> IO ()
 _install hub pkns = execP HubO (EE InheritRS InheritRS []) FullMDE hub CabalP

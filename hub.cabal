@@ -36,6 +36,7 @@ Executable              hub
                         array
     Other-modules:      Hub.CommandLine
                         Hub.Commands
+                        Hub.SaveLoad
                         Hub.Directory
                         Hub.Discover
                         Hub.FilePaths

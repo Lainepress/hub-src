@@ -51,8 +51,8 @@ data CommandLine
     | GcCL
     | ListCL    Hub
     | CheckCL   Hub
-    | LoadCL        HubName FilePath 
     | SaveCL    Hub         FilePath
+    | LoadCL        HubName FilePath Bool
     | VerifyCL  Hub         FilePath Bool
     | InstallCL Hub         [PkgNick]
     | EraseCL   Hub         [PkgNick]
@@ -97,10 +97,10 @@ hub_dispatch as = case as of
     ["xml"                   ] -> discover Nothing          >>= \ hub       -> return $ Just $ XmlCL     hub
     ["xml"         ,hn       ] -> discover (Just   hn)      >>= \ hub       -> return $ Just $ XmlCL     hub
     ["init"                  ] -> hub_uniq Nothing          >>= \(hub,hn')  -> return $ Just $ InitCL    hub hn' True
-    ["init","--new"          ] -> hub_uniq Nothing          >>= \(hub,hn')  -> return $ Just $ InitCL    hub hn' True
-    ["init","--new",hn       ] -> hub_uniq (Just hn)        >>= \(hub,hn')  -> return $ Just $ InitCL    hub hn' True
-    ["init","--set"   ,hn'   ] -> hub_pair Nothing     hn'  >>= \ hub       -> return $ Just $ InitCL    hub hn' True
-    ["init","--set",hn,hn'   ] -> hub_pair (Just   hn) hn'  >>= \ hub       -> return $ Just $ InitCL    hub hn' True
+    ["init","-n"             ] -> hub_uniq Nothing          >>= \(hub,hn')  -> return $ Just $ InitCL    hub hn' True
+    ["init","-n"   ,hn       ] -> hub_uniq (Just hn)        >>= \(hub,hn')  -> return $ Just $ InitCL    hub hn' True
+    ["init","-s"      ,hn'   ] -> hub_pair Nothing     hn'  >>= \ hub       -> return $ Just $ InitCL    hub hn' True
+    ["init","-s"   ,hn,hn'   ] -> hub_pair (Just   hn) hn'  >>= \ hub       -> return $ Just $ InitCL    hub hn' True
     ["init"           ,hn'   ] -> hub_pair Nothing     hn'  >>= \ hub       -> return $ Just $ InitCL    hub hn' False
     ["init"        ,hn,hn'   ] -> hub_pair (Just   hn) hn'  >>= \ hub       -> return $ Just $ InitCL    hub hn' False
     ["comment"        ,cmt   ] -> discover Nothing          >>= \ hub       -> return $ Just $ CommentCL hub cmt
@@ -117,10 +117,12 @@ hub_dispatch as = case as of
     ["list"        ,hn       ] -> discover (Just   hn)      >>= \ hub       -> return $ Just $ ListCL    hub
     ["check"                 ] -> discover Nothing          >>= \ hub       -> return $ Just $ CheckCL   hub
     ["check"       ,hn       ] -> discover (Just   hn)      >>= \ hub       -> return $ Just $ CheckCL   hub
-    ["load"               ,fp] -> dscvr_nm Nothing          >>= \     hn'   -> return $ Just $ LoadCL        hn' fp
-    ["load"           ,hn',fp] ->                                              return $ Just $ LoadCL        hn' fp
     ["save"               ,fp] -> discover Nothing          >>= \ hub       -> return $ Just $ SaveCL    hub     fp
     ["save"        ,hn    ,fp] -> discover (Just   hn)      >>= \ hub       -> return $ Just $ SaveCL    hub     fp
+    ["load","-e"          ,fp] -> dscvr_nm Nothing          >>= \     hn'   -> return $ Just $ LoadCL        hn' fp True
+    ["load","-e"      ,hn',fp] ->                                              return $ Just $ LoadCL        hn' fp True
+    ["load"               ,fp] -> dscvr_nm Nothing          >>= \     hn'   -> return $ Just $ LoadCL        hn' fp False
+    ["load"           ,hn',fp] ->                                              return $ Just $ LoadCL        hn' fp False
     ["verify","-s"        ,fp] -> discover Nothing          >>= \ hub       -> return $ Just $ VerifyCL  hub     fp True
     ["verify","-s" ,hn    ,fp] -> discover (Just hn)        >>= \ hub       -> return $ Just $ VerifyCL  hub     fp True
     ["verify"             ,fp] -> discover Nothing          >>= \ hub       -> return $ Just $ VerifyCL  hub     fp False

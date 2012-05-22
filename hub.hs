@@ -41,8 +41,8 @@ main =
           GcCL                   -> _gc
           ListCL    hub          -> _list    hub
           CheckCL   hub          -> _check   hub
-          LoadCL        hn fp    -> _load        hn fp
           SaveCL    hub    fp    -> _save    hub    fp
+          LoadCL        hn fp ef -> _load        hn fp ef
           VerifyCL  hub    fp sf -> _verify  hub    fp sf
           InstallCL hub pkns     -> _install hub pkns
           EraseCL   hub pkns     -> _erase   hub pkns
