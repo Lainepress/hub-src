@@ -48,6 +48,7 @@ Executable              hub
                         Hub.Parse
                         Hub.Prog
                         Hub.System
+                        Hub.Poss
     GHC-options:        -Wall
     Default-extensions: CPP
     Default-language:   Haskell2010

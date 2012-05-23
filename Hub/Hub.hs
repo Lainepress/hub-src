@@ -34,6 +34,7 @@ data Hub = HUB {
     tl_binHUB :: FilePath,
     glb_dbHUB :: FilePath,
     usr_dyHUB :: Maybe FilePath,
+    usr_ghHUB :: Maybe HubName,
     usr_dbHUB :: Maybe FilePath
     }                                                           deriving (Show)
 
@@ -163,7 +164,4 @@ hubname_c c = c `elem` "_-." || isAlpha c || isDigit c
 glb_first_hub_name_c, usr_first_hub_name_c :: Char -> Bool
 glb_first_hub_name_c c = isDigit c
 usr_first_hub_name_c c = c `elem` "_." || isAlpha c
-
-
-
         

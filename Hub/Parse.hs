@@ -8,6 +8,7 @@ import           Data.Char
 import           Text.Printf
 import qualified Data.ByteString          as B
 import qualified Text.XML.Expat.Annotated as X
+import           Hub.Poss
 import           Hub.Oops
 import           Hub.Hub
 import           Hub.FilePaths
@@ -36,6 +37,8 @@ dump hub = B.writeFile path xml_bs
             ] ++
             [ printf "  <glbdb>%s</glbdb>" $ string2xml glbdb
             ] ++
+            [ printf "  <usrgh>%s</usrdb>" $ string2xml usrgh | Just usrgh<-[mb_usrgh]
+            ] ++
             [ printf "  <usrdb>%s</usrdb>" $ string2xml usrdb | Just usrdb<-[mb_usrdb]
             ] ++
             [        "</hub>"
@@ -46,6 +49,7 @@ dump hub = B.writeFile path xml_bs
         hcbin    = hc_binHUB hub
         tlbin    = tl_binHUB hub
         glbdb    = glb_dbHUB hub
+        mb_usrgh = usr_ghHUB hub
         mb_usrdb = usr_dbHUB hub
         
 
@@ -68,19 +72,6 @@ type Tag    = String
 
 type Node   = X.LNode Tag String
 
-data Poss a = NOPE Err | YUP a
-                                                                deriving (Show)
-instance Monad Poss where
-    (>>=) ps f = poss NOPE f ps
-    return     = YUP
-
-poss :: (Err->b) -> (a->b) -> Poss a -> b
-poss n _ (NOPE e) = n e
-poss _ y (YUP  x) = y x
-
-ei2ps :: Either Err a -> Poss a
-ei2ps = either NOPE YUP
-
 tx_err :: Loc -> String -> Err
 tx_err _ = err loc0
 
@@ -90,10 +81,10 @@ err = flip X.XMLParseError
 loc0 :: Loc
 loc0 = X.XMLParseLocation 1 0 0 0
 
-parse' :: B.ByteString -> Poss Node
+parse' :: B.ByteString -> Poss Err Node
 parse' = ei2ps . X.parse' X.defaultParseOptions
 
-check :: HubSource -> FilePath -> HubName -> FilePath -> HubKind -> Node -> Poss Hub
+check :: HubSource -> FilePath -> HubName -> FilePath -> HubKind -> Node -> Poss Err Hub
 check hs dy hn hf hk (X.Element "hub" [] ns lc) = 
                             final hs dy hk $ foldl chk (YUP $ start hn hf lc) ns 
           where
@@ -105,6 +96,7 @@ check hs dy hn hf hk (X.Element "hub" [] ns lc) =
                     , chk_tlbin
                     , chk_glbdb
                     , chk_usrdb
+                    , chk_usrgh
                     -- depracated (no warnings yet)
                     , chk_hpbin
                     , chk_cibin
@@ -119,20 +111,26 @@ data PSt = ST {
     hcbinST :: Maybe FilePath,
     tlbinST :: Maybe FilePath,
     glbdbST :: Maybe FilePath,
+    usrghST :: Maybe FilePath,
     usrdbST :: Maybe FilePath
     }                                                            deriving (Show)
 
 start :: HubName -> FilePath -> Loc -> PSt
-start hn fp lc = ST hn fp lc Nothing Nothing Nothing Nothing Nothing
+start hn fp lc = ST hn fp lc Nothing Nothing Nothing Nothing Nothing Nothing
 
-final :: HubSource -> FilePath -> HubKind -> Poss PSt -> Poss Hub
+final :: HubSource -> FilePath -> HubKind -> Poss Err PSt -> Poss Err Hub
 final _  _  _  (NOPE er) = NOPE er
 final hs dy hk (YUP  st) = 
-     do co <- get_co
-        hc <- get_hc
-        tl <- get_tl
-        gl <- get_gl
-        return $ HUB hs hn hk hf co hc tl gl mb_dy mb_ur
+     do co    <- get_co
+        hc    <- get_hc
+        tl    <- get_tl
+        gl    <- get_gl
+        mb_gh <- case mb_ur of
+                   Nothing -> return Nothing
+                   Just _  -> case mb_gh0 of
+                                Nothing -> Just `fmap` calc_gh gl
+                                Just gh -> return $ Just gh 
+        return $ HUB hs hn hk hf co hc tl gl mb_dy mb_gh mb_ur
       where
         get_co = maybe (YUP   ""      ) YUP mb_co 
         get_hc = maybe (NOPE  hc_err  ) YUP mb_hc
@@ -143,10 +141,15 @@ final hs dy hk (YUP  st) =
         gl_err = err lc "Hub doesn't specify a global package directory"
         
         mb_dy  = fmap (const dy) mb_ur
+        
+        ST hn hf lc mb_co mb_hc mb_tl mb_gl mb_gh0 mb_ur = st
 
-        ST hn hf lc mb_co mb_hc mb_tl mb_gl mb_ur = st
+        calc_gh gl =
+            case match (mk_re globalHubREs) gl of
+              Just gh | isHubName gh == Just UsrHK -> return gh 
+              _ -> NOPE $ err loc0 "Could not derive global hub from filepath of global package databse"
 
-trial :: PSt -> Node -> (PSt -> Node -> Maybe(Poss PSt)) -> Poss PSt -> Poss PSt
+trial :: PSt -> Node -> (PSt -> Node -> Maybe(Poss Err PSt)) -> Poss Err PSt -> Poss Err PSt
 trial st nd f ps = maybe ps id $ f st nd
 
 unrecognised :: PSt -> Node -> Err
@@ -156,8 +159,8 @@ unrecognised st (X.Text    tx       ) = err lc $ printf "unexpected text: %s" tx
                                                           lc = locwfST st
 
 chk_comnt, chk_wspce, chk_hcbin, chk_tlbin,
-        chk_glbdb, chk_usrdb,
-        chk_hpbin, chk_cibin :: PSt -> Node -> Maybe(Poss PSt)
+        chk_glbdb, chk_usrgh, chk_usrdb,
+        chk_hpbin, chk_cibin :: PSt -> Node -> Maybe(Poss Err PSt)
 
 chk_wspce st nd =
         case nd of
@@ -196,6 +199,13 @@ chk_glbdb st0 nd = simple_node False st0 nd "glbdb" chk
                           Nothing -> YUP (st{glbdbST=Just arg})
                           Just _  -> NOPE $ err lc "<glbdb> respecified"
 
+chk_usrgh st0 nd = simple_node False st0 nd "usrgh" chk
+              where
+                chk st lc arg =
+                        case usrghST st of
+                          Nothing -> YUP (st{usrghST=Just arg})
+                          Just _  -> NOPE $ err lc "<usrgh> respecified"
+
 chk_usrdb st0 nd = simple_node False st0 nd "usrdb" chk
               where
                 chk st lc arg =
@@ -203,15 +213,16 @@ chk_usrdb st0 nd = simple_node False st0 nd "usrdb" chk
                           Nothing -> YUP (st{usrdbST=Just arg})
                           Just _  -> NOPE $ err lc "<usrdb> respecified"
 
--- depracated (pre-0.3) constructions
+
+-- deprecated (pre-0.3) constructions
 
 chk_hpbin st0 nd = simple_node False st0 nd "hpbin" $ \st _ _ -> YUP st
 
 chk_cibin st0 nd = simple_node False st0 nd "cibin" $ \st _ _ -> YUP st
 
 
-simple_node :: Bool -> PSt -> Node -> Tag -> (PSt->Loc->String->Poss PSt)
-                                                        -> Maybe (Poss PSt)
+simple_node :: Bool -> PSt -> Node -> Tag -> (PSt->Loc->String->Poss Err PSt)
+                                                        -> Maybe (Poss Err PSt)
 simple_node ev st (X.Element tg' as ks lc) tg cont
     | tg==tg'   = Just $
                      do chk_as

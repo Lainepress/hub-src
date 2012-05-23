@@ -3,6 +3,7 @@ module Hub.PackageDB
     , PkgName
     , PkgVrsn
     , PkgHash
+    , iden2nick
     , parsePkgNick
     , prettyPkgNick
     , eraseClosure
@@ -47,6 +48,10 @@ data PkgIden = PKI {
 type PkgName = String
 type PkgVrsn = String
 type PkgHash = String
+
+
+iden2nick :: PkgIden -> PkgNick
+iden2nick pki = PKN (namePKI pki) (Just $ vrsnPKI pki)
 
 
 eraseClosure :: Hub -> [PkgNick] -> IO ([PkgNick],[PkgNick])

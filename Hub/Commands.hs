@@ -27,10 +27,11 @@ module Hub.Commands
     ) where
 
 import           Data.Char
+import           Data.List
+import qualified Data.Map           as Map
 import           Control.Monad
 import           System.Directory
 import           Text.Printf
---import qualified Data.Map           as Map
 import           Hub.FilePaths
 import           Hub.Oops
 import           Hub.System
@@ -159,28 +160,59 @@ _save = save
 
 _load :: HubName -> FilePath -> Bool -> IO ()
 _load hn fp ef = 
-     do hub <- undefined hn
-        (eps,ips) <- load hub fp
-        case (ef,eps) of
-          (True,_:_) -> _erase hub eps
+     do _   <- checkHubName [UsrHK] hn
+        thr <- doesHubExist         hn
+        mb  <- case thr of
+                 True  -> Just `fmap` discover (Just hn)
+                 False -> return Nothing
+        pd  <- prep_load hn mb fp ef 
+        let hub = hubPD pd
+            sps = surPD pd
+            aps = allPD pd
+        case (ef,sps) of
+          (True,_:_) -> _erase hub sps
           _          -> return ()
-        case ips of
-          []  -> return ()
-          _:_ -> _install hub ips
+        _install hub aps
 
 _verify :: Hub -> FilePath -> Bool -> IO ()
 _verify hub fp sf =
-     do (eps,ips) <- load hub fp
-        case (sf,eps) of
-          (True,_:_) -> oops_e eps ips
+     do _  <- checkHubName [UsrHK] $ name__HUB hub
+        pd <- prep_load (name__HUB hub) (Just hub) fp False
+        let sps = surPD pd
+            mps = msgPD pd
+        case (sf,sps) of
+          (True,_:_) -> oops_s sps
           _          -> return ()
-        case ips of
+        case mps of
           []  -> return ()
-          _:_ -> oops_i ips
+          _:_ -> oops_m mps
       where
-        oops_e _ _ = oops HubO "verify: failed: excess/missing packages" -- undefined
-        oops_i _   = oops HubO "verify: failed: missing packages" -- undefined
+        oops_s _ = oops HubO "verify: failed: surplus/missing packages"           -- TODO: diagnostics
+        oops_m _ = oops HubO "verify: failed: missing packages"                   -- TODO: diagnostics
 
+data PkgDiffs = PD { hubPD :: Hub, surPD, msgPD, allPD :: [PkgNick] }
+                                                                deriving (Show)
+
+prep_load :: HubName -> Maybe Hub -> FilePath -> Bool -> IO PkgDiffs
+prep_load hn mb_hub0 fp ef =
+     do mb_prs   <- load fp
+        (gh,nks) <- case mb_prs of
+                       Nothing -> oops HubO $ fp ++ ": parse error"
+                       Just pr -> return pr
+        mb_hub <-
+            case mb_hub0 of
+              Nothing  -> return Nothing 
+              Just hub -> case usr_ghHUB hub of
+                            Just gh' | gh==gh' -> return $ Just hub
+                                     | ef      -> deleteHub hub >> return Nothing   -- TODO: diagnostics
+                            _                  -> oops HubO "global hub mismatch"   -- TODO: diagnostics
+        g_hub <- discover $ Just gh
+        hub   <- case mb_hub of
+                   Nothing  -> createHub' False g_hub hn False
+                   Just hub -> return hub
+        nks0 <- (map iden2nick . Map.keys) `fmap` packageDB hub
+        return $ PD hub (nks0\\nks) (nks\\nks0) nks
+        
 _install :: Hub -> [PkgNick] -> IO ()
 _install hub pkns = execP HubO (EE InheritRS InheritRS []) FullMDE hub CabalP
                                                 ("install":map prettyPkgNick pkns)

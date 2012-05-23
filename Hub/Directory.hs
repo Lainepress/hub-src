@@ -3,6 +3,7 @@ module Hub.Directory
     , userHubExists
     , userHubAvailable
     , hubExists
+    , doesHubExist
     , isUserHub
     , userHubPath
     , globalHubPath    
@@ -25,7 +26,6 @@ module Hub.Directory
 import qualified Control.Exception      as E
 import           Control.Monad
 import           Data.List
-import           Data.Maybe
 import qualified Data.Map               as Map
 import           System.IO
 import           System.FilePath
@@ -70,16 +70,22 @@ userHubAvailable hn =
 
 -- check that the named hub exists
 
+
+
 hubExists :: HubName -> IO ()
 hubExists hn =
+     do ok <- doesHubExist hn
+        case ok of
+          True  -> return ()
+          False -> oops SysO $ printf "%s: no such hub" hn
+
+doesHubExist :: HubName -> IO Bool
+doesHubExist hn =
      do hf <- case isHubName hn of
                 Just GlbHK -> return $ globalHubPath hn
                 Just UsrHK -> userHubPath hn
                 Nothing    -> oops SysO $ printf "%s: bad hub name"
-        ok <- fileExists hf
-        case ok of
-          True  -> return ()
-          False -> oops SysO $ printf "%s: no such hub" hn
+        fileExists hf
 
 -- test whether a user hub exists
 
@@ -179,9 +185,13 @@ createHub' cp hub0 hn sf =
                 cpFileDir db0 db
           False ->
                 pkg_init hub0 db
-        let hub1 = hub0 { name__HUB=hn, path__HUB=h_fp, usr_dbHUB=Just db }
-	hub <- defaultComment sf hub1
-        dump hub
+        let hub1 = hub0 { name__HUB  = hn
+                        , path__HUB  = h_fp
+                        , usr_ghHUB  = Just $ name__HUB hub0
+                        ,  usr_dbHUB = Just   db
+                        }
+        hub <- defaultComment sf hub1
+        dump   hub
         return hub
 
 defaultComment :: Bool -> Hub -> IO Hub
@@ -444,22 +454,4 @@ tryIO = E.try
 
 catchIO :: IO a -> (IOError->IO a) -> IO a
 catchIO = E.catch
-
-
-
---
--- Regular Expression Utilities
---
-
-
-mk_re :: String -> Regex
-mk_re re_str = mkRegexWithOpts (printf "^%s$" re_str) False True
-
-gmatch :: Regex -> String -> Bool
-gmatch re st = isJust $ matchRegex re st
-
-match :: Regex -> String -> Maybe String
-match re st = case matchRegex re st of
-                Just (se:_) -> Just se
-                _           -> Nothing
         
