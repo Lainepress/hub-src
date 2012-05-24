@@ -146,7 +146,7 @@ final hs dy hk (YUP  st) =
 
         calc_gh gl =
             case match (mk_re globalHubREs) gl of
-              Just gh | isHubName gh == Just UsrHK -> return gh 
+              Just gh | isHubName gh == Just GlbHK -> return gh 
               _ -> NOPE $ err loc0 "Could not derive global hub from filepath of global package databse"
 
 trial :: PSt -> Node -> (PSt -> Node -> Maybe(Poss Err PSt)) -> Poss Err PSt -> Poss Err PSt

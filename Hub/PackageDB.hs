@@ -5,6 +5,7 @@ module Hub.PackageDB
     , PkgHash
     , iden2nick
     , parsePkgNick
+    , parsePkgNick'
     , prettyPkgNick
     , eraseClosure
     , importLibraryDirs
@@ -68,11 +69,16 @@ importLibraryDirs hub =
         dirs pkg = import_dirsPKG pkg ++ library_dirsPKG pkg  
 
 parsePkgNick :: String -> IO PkgNick
-parsePkgNick s =
+parsePkgNick s = maybe fl return $ parsePkgNick' s
+      where
+        fl = oops HubO $ printf "%s: invalid package name" s
+
+parsePkgNick' :: String -> Maybe PkgNick
+parsePkgNick' s =
         case is_val of
-          True  | is_vr     -> return $ PKN nm (Just vr)
-                | otherwise -> return $ PKN s   Nothing
-          False             -> oops HubO $ printf "%s: invalid package name" s
+          True  | is_vr     -> Just $ PKN nm (Just vr)
+                | otherwise -> Just $ PKN s   Nothing
+          False             -> Nothing
       where
         is_val      = case s of
                         []   -> False
