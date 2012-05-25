@@ -41,8 +41,12 @@ dump hub = B.writeFile path xml_bs
             ] ++
             [ printf "  <usrdb>%s</usrdb>" $ string2xml usrdb | Just usrdb<-[mb_usrdb]
             ] ++
+            [ printf "  <lockd>%s</lockd>" $              lks | Just usrdb<-[mb_usrdb]
+            ] ++
             [        "</hub>"
             ]
+
+        lks      = if lockedHUB hub then "ier" else ""
                 
         path     = path__HUB hub
         comnt    = commntHUB hub
@@ -97,6 +101,7 @@ check hs dy hn hf hk (X.Element "hub" [] ns lc) =
                     , chk_glbdb
                     , chk_usrdb
                     , chk_usrgh
+                    , chk_lockd
                     -- depracated (no warnings yet)
                     , chk_hpbin
                     , chk_cibin
@@ -112,11 +117,12 @@ data PSt = ST {
     tlbinST :: Maybe FilePath,
     glbdbST :: Maybe FilePath,
     usrghST :: Maybe FilePath,
-    usrdbST :: Maybe FilePath
+    usrdbST :: Maybe FilePath,
+    lockdST :: Maybe Bool
     }                                                            deriving (Show)
 
 start :: HubName -> FilePath -> Loc -> PSt
-start hn fp lc = ST hn fp lc Nothing Nothing Nothing Nothing Nothing Nothing
+start hn fp lc = ST hn fp lc Nothing Nothing Nothing Nothing Nothing Nothing Nothing
 
 final :: HubSource -> FilePath -> HubKind -> Poss Err PSt -> Poss Err Hub
 final _  _  _  (NOPE er) = NOPE er
@@ -130,19 +136,21 @@ final hs dy hk (YUP  st) =
                    Just _  -> case mb_gh0 of
                                 Nothing -> Just `fmap` calc_gh gl
                                 Just gh -> return $ Just gh 
-        return $ HUB hs hn hk hf co hc tl gl mb_dy mb_gh mb_ur
+        return $ HUB hs hn hk hf co hc tl gl mb_dy mb_gh mb_ur lk
       where
         get_co = maybe (YUP   ""      ) YUP mb_co 
         get_hc = maybe (NOPE  hc_err  ) YUP mb_hc
         get_tl = maybe (YUP $ toolsBin) YUP mb_tl
         get_gl = maybe (NOPE  gl_err  ) YUP mb_gl
 
+        lk     = maybe False            id  mb_lk            
+
         hc_err = err lc "Hub doesn't specify a GHC bin directory"
         gl_err = err lc "Hub doesn't specify a global package directory"
         
         mb_dy  = fmap (const dy) mb_ur
         
-        ST hn hf lc mb_co mb_hc mb_tl mb_gl mb_gh0 mb_ur = st
+        ST hn hf lc mb_co mb_hc mb_tl mb_gl mb_gh0 mb_ur mb_lk = st
 
         calc_gh gl =
             case match (mk_re globalHubREs) gl of
@@ -160,7 +168,7 @@ unrecognised st (X.Text    tx       ) = err lc $ printf "unexpected text: %s" tx
 
 chk_comnt, chk_wspce, chk_hcbin, chk_tlbin,
         chk_glbdb, chk_usrgh, chk_usrdb,
-        chk_hpbin, chk_cibin :: PSt -> Node -> Maybe(Poss Err PSt)
+        chk_hpbin, chk_cibin, chk_lockd :: PSt -> Node -> Maybe(Poss Err PSt)
 
 chk_wspce st nd =
         case nd of
@@ -213,6 +221,12 @@ chk_usrdb st0 nd = simple_node False st0 nd "usrdb" chk
                           Nothing -> YUP (st{usrdbST=Just arg})
                           Just _  -> NOPE $ err lc "<usrdb> respecified"
 
+chk_lockd st0 nd = simple_node False st0 nd "lockd" chk
+              where
+                chk st lc arg =
+                        case usrdbST st of
+                          Nothing -> YUP (st{lockdST=Just $ not $ all isSpace arg})
+                          Just _  -> NOPE $ err lc "<usrdb> respecified"
 
 -- deprecated (pre-0.3) constructions
 

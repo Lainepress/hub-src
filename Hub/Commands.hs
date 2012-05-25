@@ -8,6 +8,8 @@ module Hub.Commands
     , _unset
     , _name
     , _info
+    , _lock
+    , _unlock
     , _path
     , _xml
     , _init
@@ -116,6 +118,15 @@ _info hub = putStr $ unlines $
     hc_bin = hc_binHUB hub
     glb_db = glb_dbHUB hub
     mb_ud  = usr_dbHUB hub
+
+_lock :: Hub -> IO ()
+_lock hub = lock True hub
+
+_unlock :: Hub -> IO ()
+_unlock hub = lock False hub
+
+lock :: Bool -> Hub -> IO ()
+lock = undefined
 
 _path :: Hub -> IO ()
 _path hub = putStrLn $ path__HUB hub

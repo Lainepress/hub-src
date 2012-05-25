@@ -54,6 +54,19 @@ hub info         [<hub>]
       
       (See 'hub set' on how to set the current hub.)
 
+hub lock         [<hub>]
+
+      Locks a hub so that it can not be removed nor can packages be added nor
+      removed.
+
+      (See 'hub set' on how to set the current hub.)
+
+hub unlock       [<hub>]
+
+      Removes the lock on a hub.
+
+      (See 'hub lock' on locking a hub and 'hub set' on how to set the current hub.)
+
 hub name
 
       Lists the name of the current hub.

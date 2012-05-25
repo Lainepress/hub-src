@@ -30,6 +30,8 @@ main =
           UnsetCL                -> _unset
           NameCL    hub          -> _name    hub
           InfoCL    hub          -> _info    hub
+          LockCL    hub          -> _lock    hub
+          UnlockCL  hub          -> _unlock  hub
           PathCL    hub          -> _path    hub
           XmlCL     hub          -> _xml     hub
           InitCL    hub hn set   -> _init    hub hn set

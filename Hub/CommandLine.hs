@@ -40,6 +40,8 @@ data CommandLine
     | UnsetCL
     | NameCL    Hub
     | InfoCL    Hub
+    | LockCL    Hub
+    | UnlockCL  Hub
     | PathCL    Hub
     | XmlCL     Hub
     | InitCL    Hub HubName Bool
@@ -92,6 +94,10 @@ hub_dispatch as = case as of
     ["name"                  ] -> discover Nothing          >>= \ hub       -> return $ Just $ NameCL    hub
     ["info"                  ] -> discover Nothing          >>= \ hub       -> return $ Just $ InfoCL    hub
     ["info"        ,hn       ] -> discover (Just   hn)      >>= \ hub       -> return $ Just $ InfoCL    hub
+    ["lock"                  ] -> discover Nothing          >>= \ hub       -> return $ Just $ LockCL    hub
+    ["lock"        ,hn       ] -> discover (Just   hn)      >>= \ hub       -> return $ Just $ LockCL    hub
+    ["unlock"                ] -> discover Nothing          >>= \ hub       -> return $ Just $ UnlockCL  hub
+    ["unlock"      ,hn       ] -> discover (Just   hn)      >>= \ hub       -> return $ Just $ UnlockCL  hub
     ["path"                  ] -> discover Nothing          >>= \ hub       -> return $ Just $ PathCL    hub
     ["path"        ,hn       ] -> discover (Just   hn)      >>= \ hub       -> return $ Just $ PathCL    hub
     ["xml"                   ] -> discover Nothing          >>= \ hub       -> return $ Just $ XmlCL     hub

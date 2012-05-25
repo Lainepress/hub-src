@@ -35,7 +35,8 @@ data Hub = HUB {
     glb_dbHUB :: FilePath,
     usr_dyHUB :: Maybe FilePath,
     usr_ghHUB :: Maybe HubName,
-    usr_dbHUB :: Maybe FilePath
+    usr_dbHUB :: Maybe FilePath,
+    lockedHUB :: Bool
     }                                                           deriving (Show)
 
 

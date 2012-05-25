@@ -21,6 +21,8 @@ import qualified Data.ByteString as B
 import qualified Data.Map        as Map
 import           System.Process
 import           Hub.Oops
+import 			 System.IO
+import 	         System.Exit
 
 
 #if mingw32_HOST_OS==1
@@ -28,7 +30,7 @@ import           Hub.Oops
 dev_null :: FilePath
 dev_null = winstub
 
-tmpFile :: IO Int
+tmpFile :: FilePath -> IO FilePath
 tmpFile = winstub 
 
 setEnv :: String -> String -> Bool -> IO ()
@@ -64,6 +66,9 @@ tidyDir = winstub
 --fileAvailable :: FilePath -> IO Bool
 --fileAvailable = winstub
 
+getEnvironment :: IO [(String,String)]
+getEnvironment = winstub 
+
 winstub :: a
 winstub = error "winstub"
 
@@ -72,13 +77,13 @@ winstub = error "winstub"
 import           Control.Monad
 import qualified Control.Exception      as E
 import           System.Directory
-import System.IO
-import System.Exit
-import System.Posix.Env
-import System.Posix.Files
-import System.Posix.Process
-import System.Posix.IO
-import Text.Printf
+import           System.IO
+import           System.Exit
+import           System.Posix.Env
+import           System.Posix.Files
+import           System.Posix.Process
+import           System.Posix.IO
+import           Text.Printf
 
 
 dev_null :: FilePath
