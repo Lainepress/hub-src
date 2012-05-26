@@ -17,6 +17,7 @@ module Hub.Directory
     , renameHub
     , deleteHub
     , swapHub
+    , notLocked
     , defaultDirectoryPath
     , GCMode(..)
     , gcDefaultDirectory
@@ -185,10 +186,14 @@ createHub' cp hub0 hn sf =
                 cpFileDir db0 db
           False ->
                 pkg_init hub0 db
-        let hub1 = hub0 { name__HUB  = hn
-                        , path__HUB  = h_fp
-                        , usr_ghHUB  = Just $ name__HUB hub0
-                        ,  usr_dbHUB = Just   db
+        dy <- defaultDirectoryPath
+        let gh   = maybe (name__HUB hub0) id $ usr_ghHUB hub0
+            hub1 = hub0 { name__HUB = hn
+                        , kind__HUB = UsrHK
+                        , path__HUB = h_fp
+                        , usr_dyHUB = Just dy
+                        , usr_ghHUB = Just gh
+                        , usr_dbHUB = Just db
                         }
         hub <- defaultComment sf hub1
         dump   hub
@@ -206,6 +211,7 @@ defaultComment sf hub =
 renameHub :: Hub -> HubName -> IO ()
 renameHub hub0 hn =
      do not_global hub0
+        notLocked  hub0
         (lib0,_)      <- hub_user_lib hub0
         (h_fp,lib,db) <- user_hub_paths hn
         mvFileDir lib0 lib
@@ -216,6 +222,7 @@ renameHub hub0 hn =
 deleteHub :: Hub -> IO ()
 deleteHub hub =
      do not_global hub
+        notLocked  hub
         (h_fp,lib,_) <- user_hub_paths $ name__HUB hub
         removeFile h_fp
         removeRF   lib
@@ -231,6 +238,12 @@ swapHub hub1 hub2 =
         dump hub1'
         dump hub2'
         swap_files lib1 lib2
+
+notLocked :: Hub -> IO ()
+notLocked hub =
+        case lockedHUB hub of
+          True  -> oops HubO $ printf "%s: this hub is locked" $ name__HUB hub
+          False -> return ()
 
 -- return the path of the default directory
 

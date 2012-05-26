@@ -35,13 +35,13 @@ dump hub = B.writeFile path xml_bs
             , printf "  <hcbin>%s</hcbin>" $ string2xml hcbin
             , printf "  <tlbin>%s</tlbin>" $ string2xml tlbin
             ] ++
+            [ printf "  <lockd>%s</lockd>"                lks | not $ null lks
+            ] ++
+            [ printf "  <usrgh>%s</usrgh>" $ string2xml usrgh | Just usrgh<-[mb_usrgh]
+            ] ++
             [ printf "  <glbdb>%s</glbdb>" $ string2xml glbdb
             ] ++
-            [ printf "  <usrgh>%s</usrdb>" $ string2xml usrgh | Just usrgh<-[mb_usrgh]
-            ] ++
             [ printf "  <usrdb>%s</usrdb>" $ string2xml usrdb | Just usrdb<-[mb_usrdb]
-            ] ++
-            [ printf "  <lockd>%s</lockd>" $              lks | Just usrdb<-[mb_usrdb]
             ] ++
             [        "</hub>"
             ]

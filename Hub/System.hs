@@ -15,6 +15,7 @@ module Hub.System
     , exec
     , readAFile
     , writeAFile
+    , lockFileDir
     ) where
 
 import qualified Data.ByteString as B
@@ -77,8 +78,6 @@ winstub = error "winstub"
 import           Control.Monad
 import qualified Control.Exception      as E
 import           System.Directory
-import           System.IO
-import           System.Exit
 import           System.Posix.Env
 import           System.Posix.Files
 import           System.Posix.Process
@@ -173,6 +172,25 @@ readMB str =
     case [ x | (x,t)<-reads str, ("","")<-lex t ] of
       [x] -> Just x
       _   -> Nothing
+
+lockFileDir :: Bool -> Bool -> FilePath -> IO ()
+lockFileDir dir lck fp = setFileMode fp m 
+      where
+        m = case lck of
+                  True  -> 
+                    case dir of
+                      True  -> u [r  ,x]
+                      False ->    r
+                  False ->
+                    case dir of
+                      True  -> u [r,w,x]
+                      False -> u [r,w  ]
+
+        r = u [ownerReadMode   ,groupReadMode   ,otherReadMode   ]
+        w = u [ownerWriteMode                                    ]
+        x = u [ownerExecuteMode,groupExecuteMode,otherExecuteMode] 
+
+        u = foldr unionFileModes nullFileMode 
 
 hdl_ioe :: a -> IOError -> IO a
 hdl_ioe x _ = return x

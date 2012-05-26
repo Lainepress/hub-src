@@ -43,11 +43,11 @@ main =
           GcCL                   -> _gc
           ListCL    hub          -> _list    hub
           CheckCL   hub          -> _check   hub
-          SaveCL    hub    fp    -> _save    hub    fp
-          LoadCL        hn fp ef -> _load        hn fp ef
-          VerifyCL  hub    fp sf -> _verify  hub    fp sf
+          SaveCL    hub          -> _save    hub
+          LoadCL        hn       -> _load        hn
+          VerifyCL  hub      sf  -> _verify  hub      sf
           InstallCL hub pkns     -> _install hub pkns
-          EraseCL   hub pkns     -> _erase   hub pkns
+          EraseCL   hub pkns ef  -> _erase   hub pkns ef
         
 
 _help :: Bool -> String -> IO ()

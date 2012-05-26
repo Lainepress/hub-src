@@ -32,6 +32,7 @@ import           Data.Char
 import           Data.List
 import qualified Data.Map           as Map
 import           Control.Monad
+import           System.FilePath
 import           System.Directory
 import           Text.Printf
 import           Hub.FilePaths
@@ -67,8 +68,10 @@ _ls :: Bool -> IO ()
 _ls af =
      do hns  <- lsHubs [UsrHK,GlbHK]
         hubs <- mapM (discover . Just) $ filter f hns
-        putStr $ unlines $ [ printf "%-20s -- %s" nm co | hub<-hubs, 
-                                let nm = name__HUB hub, let co = commntHUB hub ]
+        putStr $ unlines $ [ printf "%-20s %s -- %s" nm lk co | hub<-hubs, 
+                                let nm = name__HUB hub, 
+                                let co = commntHUB hub,
+                                let lk = if lockedHUB hub then "L" else " " ]
       where
         f ('_':'_':_) = af
         f _           = True
@@ -98,13 +101,13 @@ _name hub = putStrLn $ name__HUB hub
 
 _info :: Hub -> IO ()
 _info hub = putStr $ unlines $
-    [ printf "%s %s %s"                        name hs cmt                                 ] ++
-    [ printf "   GHC              : %s" hc             | Just hc <- [bin2toolchain hc_bin] ] ++
-    [ printf "   Haskell Platform : %s" hp             | Just hp <- [db2platform   glb_db] ] ++ 
-    [ printf "   Tools            : %s"        hc_bin                                      ] ++
-    [        "   Package DBs"                          |                         True      ] ++
-    [ printf "      global        : %s"        glb_db  |                         True      ] ++
-    [ printf "      user          : %s"        usr_db  | Just usr_db <- [mb_ud], True      ]
+    [ printf "%s %s %s %s"                      name hs lk cmt                              ] ++
+    [ printf "   GHC              : %s" hc                | Just hc <- [bin2toolchain hc_bin] ] ++
+    [ printf "   Haskell Platform : %s" hp                | Just hp <- [db2platform   glb_db] ] ++ 
+    [ printf "   Tools            : %s"         hc_bin                                      ] ++
+    [        "   Package DBs"                             |                         True      ] ++
+    [ printf "      global        : %-50s (%s)" glb_db gh |                         True      ] ++
+    [ printf "      user          : %-50s (%s)" usr_db uh | Just usr_db <- [mb_ud], True      ]
   where
     hs     = case sourceHUB hub of
                ClHS -> ""
@@ -112,6 +115,13 @@ _info hub = putStr $ unlines $
                DrHS -> "[DIR]"
                DuHS -> "[HME]"
                DsHS -> "[SYS]"
+    lk     = case lockedHUB hub of
+               True  -> "[LOCKED]"
+               False -> "        "
+    gh     = case usr_ghHUB hub of
+               Nothing -> name
+               Just hn -> hn
+    uh     = name
     cmt    = if null cmt0 then "" else "-- " ++ cmt0
     name   = name__HUB hub
     cmt0   = commntHUB hub
@@ -126,7 +136,21 @@ _unlock :: Hub -> IO ()
 _unlock hub = lock False hub
 
 lock :: Bool -> Hub -> IO ()
-lock = undefined
+lock lck hub =
+        case usr_dbHUB hub of
+          Nothing -> oops HubO msg
+          Just dr -> 
+             do cs <- filter isc `fmap` getDirectoryContents dr
+                lockFileDir True lck dr
+                mapM_ (lockFileDir False lck) [dr</>c|c<-cs]
+                dump $ hub { lockedHUB = lck }
+      where
+        isc fp = case reverse fp of
+                   'f':'n':'o':'c':'.':_ -> True
+                   'e':'h':'c':'a':'c':_ -> True
+                   _                     -> False
+
+        msg    = printf "%s: cannot (un)lock a global hub" $ name__HUB hub
 
 _path :: Hub -> IO ()
 _path hub = putStrLn $ path__HUB hub
@@ -166,29 +190,32 @@ _list hub = execP HubO (EE InheritRS InheritRS []) FullMDE hub Ghc_pkgP ["list"]
 _check :: Hub -> IO ()
 _check hub = execP HubO (EE InheritRS InheritRS []) FullMDE hub Ghc_pkgP ["check"]
 
-_save :: Hub -> FilePath -> IO ()
+_save :: Hub -> IO ()
 _save = save
 
-_load :: HubName -> FilePath -> Bool -> IO ()
-_load hn fp ef = 
+_load :: HubName -> IO ()
+_load hn = 
      do _   <- checkHubName [UsrHK] hn
         thr <- doesHubExist         hn
         mb  <- case thr of
                  True  -> Just `fmap` discover (Just hn)
                  False -> return Nothing
-        pd  <- prep_load hn mb fp ef 
+        pd  <- prep_load hn mb True 
         let hub = hubPD pd
             sps = surPD pd
+            mps = msgPD pd
             aps = allPD pd
-        case (ef,sps) of
-          (True,_:_) -> _erase hub sps
-          _          -> return ()
-        _install hub aps
+        case sps of
+          []  -> return ()
+          _:_ -> _erase hub sps True
+        case sps++mps of
+          []  -> return ()
+          _:_ -> _install hub aps
 
-_verify :: Hub -> FilePath -> Bool -> IO ()
-_verify hub fp sf =
+_verify :: Hub -> Bool -> IO ()
+_verify hub sf =
      do _  <- checkHubName [UsrHK] $ name__HUB hub
-        pd <- prep_load (name__HUB hub) (Just hub) fp False
+        pd <- prep_load (name__HUB hub) (Just hub) False
         let sps = surPD pd
             mps = msgPD pd
         case (sf,sps) of
@@ -204,18 +231,18 @@ _verify hub fp sf =
 data PkgDiffs = PD { hubPD :: Hub, surPD, msgPD, allPD :: [PkgNick] }
                                                                 deriving (Show)
 
-prep_load :: HubName -> Maybe Hub -> FilePath -> Bool -> IO PkgDiffs
-prep_load hn mb_hub0 fp ef =
-     do mb_prs   <- load fp
+prep_load :: HubName -> Maybe Hub -> Bool -> IO PkgDiffs
+prep_load hn mb_hub0 lo =
+     do mb_prs   <- load
         (gh,nks) <- case mb_prs of
-                       Nothing -> oops HubO $ fp ++ ": parse error"
+                       Nothing -> oops HubO $ "parse error"
                        Just pr -> return pr
         mb_hub <-
             case mb_hub0 of
               Nothing  -> return Nothing 
               Just hub -> case usr_ghHUB hub of
                             Just gh' | gh==gh' -> return $ Just hub
-                                     | ef      -> deleteHub hub >> return Nothing   -- TODO: diagnostics
+                                     | lo      -> deleteHub hub >> return Nothing   -- TODO: diagnostics
                             _                  -> oops HubO "global hub mismatch"   -- TODO: diagnostics
         g_hub <- discover $ Just gh
         hub   <- case mb_hub of
@@ -225,19 +252,27 @@ prep_load hn mb_hub0 fp ef =
         return $ PD hub (nks0\\nks) (nks\\nks0) nks
         
 _install :: Hub -> [PkgNick] -> IO ()
-_install hub pkns = execP HubO (EE InheritRS InheritRS []) FullMDE hub CabalP
-                                                ("install":map prettyPkgNick pkns)
+_install hub pkns =
+     do notLocked hub
+        execP HubO (EE InheritRS InheritRS []) FullMDE hub CabalP
+                                            ("install":map prettyPkgNick pkns)
 
-_erase :: Hub -> [PkgNick] -> IO ()
-_erase hub pkns0 = 
-     do (pkns,d_pkns) <- eraseClosure hub pkns0
+_erase :: Hub -> [PkgNick] -> Bool -> IO ()
+_erase hub pkns0 ff = 
+     do notLocked hub
+        (pkns,d_pkns) <- eraseClosure hub pkns0
         putStr "Packages requested to be deleted:\n"
         putStr $ unlines $ map fmt pkns
         putStr "Dependent packages also to be deleted:\n"
         putStr $ unlines $ map fmt d_pkns
-        putStr "Would you like to delete these packages? [n]\n"
-        yn <- getLine
-        case map toLower yn `elem` ["y","yes"] of
+        go <-   case ff of
+                  True  ->
+                        return True
+                  False ->
+                     do putStr "Would you like to delete these packages? [n]\n"
+                        yn <- getLine
+                        return $ map toLower yn `elem` ["y","yes"]
+        case go of
           True  ->  
              do mapM_ unreg $ pkns ++ d_pkns
                 putStr "package(s) deleted.\n"

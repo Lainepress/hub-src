@@ -9,21 +9,17 @@ import           Hub.Hub
 import           Hub.PackageDB
 
     
-save :: Hub -> FilePath -> IO ()
-save hub fp =
+save :: Hub -> IO ()
+save hub =
      do pdb <- packageDB hub
         let cts = unlines $ hdr : map (prettyPkgNick . iden2nick) (Map.keys pdb)
-        case fp of
-          "-" -> putStr cts
-          _   -> writeFile fp cts
+        putStr cts
       where
         hdr = "^=" ++ maybe "" id (usr_ghHUB hub)
 
-load :: FilePath -> IO (Maybe (HubName,[PkgNick]))
-load fp = 
-     do cts <- case fp of
-                 "-" -> getContents
-                 _   -> readFile fp
+load :: IO (Maybe (HubName,[PkgNick]))
+load = 
+     do cts <- getContents
         return $ parse_har cts
 
 parse_har :: String -> Maybe (HubName,[PkgNick])

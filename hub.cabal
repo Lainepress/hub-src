@@ -10,7 +10,7 @@ Description:            This package provides a utility for multiplexing
                         multiple GHC and Haskell Platform installations,
                         the installation being selected by configuraton
                         file or environment variable.
-Stability:              Stable
+Stability:              Beta
 Category:               Development, Distribution
 Homepage:               https://github.com/cdornan/hub
 Build-type:             Simple

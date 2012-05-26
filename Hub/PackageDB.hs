@@ -236,7 +236,7 @@ s2pr s = PKI (reverse r_nm) (reverse r_vr) (reverse r_hs)
 records :: String -> [[String]]
 records cts = rec [] $ lines cts
       where
-        rec acc []       = [reverse acc]
+        rec acc []       = [ reverse acc | not $ null acc ]
         rec acc (ln:lns) =
                 case ln of
                   ""            -> rec acc lns

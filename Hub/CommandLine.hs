@@ -53,11 +53,11 @@ data CommandLine
     | GcCL
     | ListCL    Hub
     | CheckCL   Hub
-    | SaveCL    Hub         FilePath
-    | LoadCL        HubName FilePath Bool
-    | VerifyCL  Hub         FilePath Bool
+    | SaveCL    Hub
+    | LoadCL        HubName
+    | VerifyCL  Hub         Bool
     | InstallCL Hub         [PkgNick]
-    | EraseCL   Hub         [PkgNick]
+    | EraseCL   Hub         [PkgNick] Bool
                                                                 deriving (Show)
 
 
@@ -123,20 +123,20 @@ hub_dispatch as = case as of
     ["list"        ,hn       ] -> discover (Just   hn)      >>= \ hub       -> return $ Just $ ListCL    hub
     ["check"                 ] -> discover Nothing          >>= \ hub       -> return $ Just $ CheckCL   hub
     ["check"       ,hn       ] -> discover (Just   hn)      >>= \ hub       -> return $ Just $ CheckCL   hub
-    ["save"               ,fp] -> discover Nothing          >>= \ hub       -> return $ Just $ SaveCL    hub     fp
-    ["save"        ,hn    ,fp] -> discover (Just   hn)      >>= \ hub       -> return $ Just $ SaveCL    hub     fp
-    ["load","-e"          ,fp] -> dscvr_nm Nothing          >>= \     hn'   -> return $ Just $ LoadCL        hn' fp True
-    ["load","-e"      ,hn',fp] ->                                              return $ Just $ LoadCL        hn' fp True
-    ["load"               ,fp] -> dscvr_nm Nothing          >>= \     hn'   -> return $ Just $ LoadCL        hn' fp False
-    ["load"           ,hn',fp] ->                                              return $ Just $ LoadCL        hn' fp False
-    ["verify","-s"        ,fp] -> discover Nothing          >>= \ hub       -> return $ Just $ VerifyCL  hub     fp True
-    ["verify","-s" ,hn    ,fp] -> discover (Just hn)        >>= \ hub       -> return $ Just $ VerifyCL  hub     fp True
-    ["verify"             ,fp] -> discover Nothing          >>= \ hub       -> return $ Just $ VerifyCL  hub     fp False
-    ["verify"      ,hn    ,fp] -> discover (Just hn)        >>= \ hub       -> return $ Just $ VerifyCL  hub     fp False
+    ["save"                  ] -> discover Nothing          >>= \ hub       -> return $ Just $ SaveCL    hub
+    ["save"        ,hn       ] -> discover (Just   hn)      >>= \ hub       -> return $ Just $ SaveCL    hub
+    ["load"                  ] -> dscvr_nm Nothing          >>= \     hn'   -> return $ Just $ LoadCL        hn'
+    ["load"           ,hn'   ] ->                                              return $ Just $ LoadCL        hn'
+    ["verify","-s"           ] -> discover Nothing          >>= \ hub       -> return $ Just $ VerifyCL  hub     True
+    ["verify","-s" ,hn       ] -> discover (Just hn)        >>= \ hub       -> return $ Just $ VerifyCL  hub     True
+    ["verify"                ] -> discover Nothing          >>= \ hub       -> return $ Just $ VerifyCL  hub     False
+    ["verify"      ,hn       ] -> discover (Just hn)        >>= \ hub       -> return $ Just $ VerifyCL  hub     False
     "install"            :p:ps -> hub_pks  Nothing  p ps    >>= \(hub,pkns) -> return $ Just $ InstallCL hub     pkns
     "install-into" :hn   :p:ps -> hub_pks (Just hn) p ps    >>= \(hub,pkns) -> return $ Just $ InstallCL hub     pkns
-    "erase"              :p:ps -> hub_pks  Nothing  p ps    >>= \(hub,pkns) -> return $ Just $ EraseCL   hub     pkns
-    "erase-from"   :hn   :p:ps -> hub_pks (Just hn) p ps    >>= \(hub,pkns) -> return $ Just $ EraseCL   hub     pkns
+    "erase":     "-f"    :p:ps -> hub_pks  Nothing  p ps    >>= \(hub,pkns) -> return $ Just $ EraseCL   hub     pkns True
+    "erase-from":"-f":hn :p:ps -> hub_pks (Just hn) p ps    >>= \(hub,pkns) -> return $ Just $ EraseCL   hub     pkns True
+    "erase"              :p:ps -> hub_pks  Nothing  p ps    >>= \(hub,pkns) -> return $ Just $ EraseCL   hub     pkns False
+    "erase-from"     :hn :p:ps -> hub_pks (Just hn) p ps    >>= \(hub,pkns) -> return $ Just $ EraseCL   hub     pkns False
     _                          ->                                              return   Nothing  
 
 
