@@ -1,3 +1,11 @@
+--
+-- >>> Main (prep) <<<
+--
+-- This program 'Haskelises' the hub help text.
+--
+-- (c) 2011-2012 Chris Dornan 
+
+
 module Main(main) where
 
 import System.Locale
