@@ -1,3 +1,13 @@
+--
+-- >>> Hub.Prog <<<
+--
+-- This module records the other programs that hub is managing -- generally
+-- the programs that come with a Haskell Plaform: the GHC tools, cabal and
+-- a few others.
+--
+-- (c) 2011-2012 Chris Dornan 
+
+
 module Hub.Prog 
     ( Prog(..)
     , ProgType(..)
