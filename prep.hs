@@ -4,6 +4,7 @@ import System.Locale
 import Data.Time
 import Text.Printf
 
+
 main :: IO ()
 main =
      do cts <- readFile "help.txt"
@@ -27,16 +28,3 @@ mk_text_mod mn fn cts =
         
         pst      = [        "    ]"
                    ]
-
-
-{------------------------------------------------------------------------------
-mk_time_mod :: String -> String -> ZonedTime -> String
-mk_time_mod mn fn zt = unlines
-                   [ printf "module %s(%s) where" mn fn
-                   ,        ""
-                   , printf "%s :: String" fn
-                   , printf "%s = %s"      fn $ show $
-                                    formatTime defaultTimeLocale "%F  %T %z" zt                                    
-                   ]
-------------------------------------------------------------------------------}
-                   

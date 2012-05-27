@@ -1,11 +1,16 @@
 module Hub.SaveLoad
     ( save
+    , PkgDiffs(..)
     , load
     ) where
     
 import           Data.Char
 import qualified Data.Map               as Map
+import           Data.List
+import           Hub.Oops
 import           Hub.Hub
+import           Hub.Directory
+import           Hub.Discover
 import           Hub.PackageDB
 
     
@@ -15,10 +20,37 @@ save hub =
         let cts = unlines $ hdr : map (prettyPkgNick . iden2nick) (Map.keys pdb)
         putStr cts
       where
-        hdr = "^=" ++ maybe "" id (usr_ghHUB hub)
+        hdr = "^=" ++ maybe (name__HUB hub) glb_hnUHB (usr___HUB hub)
 
-load :: IO (Maybe (HubName,[PkgNick]))
-load = 
+data PkgDiffs = PD { hubPD :: Hub, surPD, msgPD, allPD :: [PkgNick] }
+                                                                deriving (Show)
+
+load :: HubName -> Maybe Hub -> Bool -> IO PkgDiffs
+load hn mb_hub0 vy =
+     do mb_prs   <- parse_input
+        (gh,nks) <- case mb_prs of
+                       Nothing -> oops HubO $ "parse error"
+                       Just pr -> return pr
+        mb_hub <-
+            case mb_hub0 of
+              Nothing  -> return Nothing 
+              Just hub ->
+                case usr___HUB hub of
+                  Just uhb | gh==glb_hnUHB uhb -> return $ Just hub
+                           | not vy            -> r_noth $ deleteHub hub 
+                  _                            -> oops HubO mm_msg
+        g_hub <- discover $ Just gh
+        hub   <- case mb_hub of
+                   Nothing  -> createHub' False g_hub hn False
+                   Just hub -> return hub
+        nks0 <- (map iden2nick . Map.keys) `fmap` packageDB hub
+        return $ PD hub (nks0\\nks) (nks\\nks0) nks
+      where
+        r_noth = fmap (const Nothing) 
+        mm_msg = "global hub mismatch"
+
+parse_input :: IO (Maybe (HubName,[PkgNick]))
+parse_input = 
      do cts <- getContents
         return $ parse_har cts
 

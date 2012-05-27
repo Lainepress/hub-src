@@ -6,6 +6,7 @@ import System.Exit
 import Text.Printf
 import Hub.System
 import Hub.FilePaths
+import Hub.Directory
 import Hub.CommandLine
 import Hub.Commands
 
@@ -18,13 +19,17 @@ main :: IO ()
 main = 
      do cl <- commandLine
         case cl of
+          HelpCL    _   _        -> return ()
+          VrsnCL                 -> return ()
+          _                      -> initDirectory
+        case cl of
           ProgCL    hub (prg,as) -> _prog hub prg as
           HelpCL    err hlp      -> _help err hlp
           VrsnCL                 -> _vrsn
           DfltCL                 -> _default
           StDfCL    hub          -> _default_hub $ Just hub
           RsDfCL                 -> _default_hub   Nothing
-          LsCL af                -> _ls af
+          LsCL af qf             -> _ls af qf
           GetCL                  -> _get
           SetCL     hub          -> _set     hub
           UnsetCL                -> _unset

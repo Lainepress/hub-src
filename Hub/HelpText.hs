@@ -36,7 +36,7 @@ helpText = unlines
     , "      If a '-' is specified then any older default settings are discarded and"
     , "      the system default re-established."
     , ""
-    , "hub ls [-a]"
+    , "hub ls [-a] [-q]"
     , ""
     , "      Lists your user hubs and all of the global hubs. If -a is specified then all"
     , "      hubs are listed, otherwise the hidden hub (those starting with \"__\") are"

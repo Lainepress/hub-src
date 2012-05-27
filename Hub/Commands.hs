@@ -29,8 +29,6 @@ module Hub.Commands
     ) where
 
 import           Data.Char
-import           Data.List
-import qualified Data.Map           as Map
 import           Control.Monad
 import           System.FilePath
 import           System.Directory
@@ -64,17 +62,21 @@ is_global hub = when (kind__HUB hub/=GlbHK) $
                     oops HubO $ printf "%s: not a global hub" $name__HUB hub
 
 
-_ls :: Bool -> IO ()
-_ls af =
+_ls :: Bool -> Bool -> IO ()
+_ls af qf =
      do hns  <- lsHubs [UsrHK,GlbHK]
-        hubs <- mapM (discover . Just) $ filter f hns
-        putStr $ unlines $ [ printf "%-20s %s -- %s" nm lk co | hub<-hubs, 
+        hubs <- mapM (discover . Just) $ filter chk hns
+        putStr $ unlines $ [ fmt nm co lk | hub<-hubs, 
                                 let nm = name__HUB hub, 
                                 let co = commntHUB hub,
                                 let lk = if lockedHUB hub then "L" else " " ]
       where
-        f ('_':'_':_) = af
-        f _           = True
+        chk ('_':'_':_) = af
+        chk _           = True
+
+        fmt nm co lk  = case qf of
+                          True  -> nm
+                          False -> printf "%-20s %s -- %s" nm lk co 
 
 _get :: IO ()
 _get =
@@ -113,7 +115,6 @@ _info hub = putStr $ unlines $
                ClHS -> ""
                EvHS -> "[ENV]"
                DrHS -> "[DIR]"
-               DuHS -> "[HME]"
                DsHS -> "[SYS]"
     lk     = case lockedHUB hub of
                True  -> "[LOCKED]"
@@ -143,14 +144,18 @@ lock lck hub =
              do cs <- filter isc `fmap` getDirectoryContents dr
                 lockFileDir True lck dr
                 mapM_ (lockFileDir False lck) [dr</>c|c<-cs]
-                dump $ hub { lockedHUB = lck }
+                dump lk_hub
       where
-        isc fp = case reverse fp of
-                   'f':'n':'o':'c':'.':_ -> True
-                   'e':'h':'c':'a':'c':_ -> True
-                   _                     -> False
+        isc fp  = case reverse fp of
+                    'f':'n':'o':'c':'.':_ -> True
+                    'e':'h':'c':'a':'c':_ -> True
+                    _                     -> False
 
-        msg    = printf "%s: cannot (un)lock a global hub" $ name__HUB hub
+        lk_hub  = hub { usr___HUB = fmap lk' $ usr___HUB hub }
+        
+        lk' uhb = uhb { lockedUHB = True }
+
+        msg     = printf "%s: cannot (un)lock a global hub" $ name__HUB hub
 
 _path :: Hub -> IO ()
 _path hub = putStrLn $ path__HUB hub
@@ -160,18 +165,17 @@ _xml hub = readAFile (path__HUB hub) >>= putStr
 
 _init :: Hub -> HubName -> Bool -> IO ()
 _init hub0 hn sf =
-     do initDirectory
-        hub <- createHub' False hub0 hn sf
+     do hub <- createHub' False hub0 hn sf
         when sf $ _set hub
 
 _comment :: Hub -> String -> IO ()
 _comment hub cmt = dump $ hub { commntHUB = cmt }
 
 _cp :: Hub -> HubName -> IO ()
-_cp hub hn = initDirectory >> createHub True hub hn
+_cp hub hn = createHub True hub hn
 
 _mv :: Hub -> HubName -> IO ()
-_mv hub hn = initDirectory >> renameHub hub hn
+_mv hub hn = renameHub hub hn
 
 _rm :: Hub -> IO ()
 _rm = deleteHub
@@ -200,7 +204,7 @@ _load hn =
         mb  <- case thr of
                  True  -> Just `fmap` discover (Just hn)
                  False -> return Nothing
-        pd  <- prep_load hn mb True 
+        pd  <- load hn mb False 
         let hub = hubPD pd
             sps = surPD pd
             mps = msgPD pd
@@ -215,42 +219,19 @@ _load hn =
 _verify :: Hub -> Bool -> IO ()
 _verify hub sf =
      do _  <- checkHubName [UsrHK] $ name__HUB hub
-        pd <- prep_load (name__HUB hub) (Just hub) False
+        pd <- load (name__HUB hub) (Just hub) True
         let sps = surPD pd
             mps = msgPD pd
         case (sf,sps) of
-          (True,_:_) -> oops_s sps
+          (True,_:_) -> oops_sm "surplus" sps
           _          -> return ()
         case mps of
           []  -> return ()
-          _:_ -> oops_m mps
+          _:_ -> oops_sm "missing" mps
       where
-        oops_s _ = oops HubO "verify: failed: surplus/missing packages"           -- TODO: diagnostics
-        oops_m _ = oops HubO "verify: failed: missing packages"                   -- TODO: diagnostics
+        oops_sm adj ps = oops HubO $ adj ++ " packages: " ++
+                                                unwords (map prettyPkgNick ps)
 
-data PkgDiffs = PD { hubPD :: Hub, surPD, msgPD, allPD :: [PkgNick] }
-                                                                deriving (Show)
-
-prep_load :: HubName -> Maybe Hub -> Bool -> IO PkgDiffs
-prep_load hn mb_hub0 lo =
-     do mb_prs   <- load
-        (gh,nks) <- case mb_prs of
-                       Nothing -> oops HubO $ "parse error"
-                       Just pr -> return pr
-        mb_hub <-
-            case mb_hub0 of
-              Nothing  -> return Nothing 
-              Just hub -> case usr_ghHUB hub of
-                            Just gh' | gh==gh' -> return $ Just hub
-                                     | lo      -> deleteHub hub >> return Nothing   -- TODO: diagnostics
-                            _                  -> oops HubO "global hub mismatch"   -- TODO: diagnostics
-        g_hub <- discover $ Just gh
-        hub   <- case mb_hub of
-                   Nothing  -> createHub' False g_hub hn False
-                   Just hub -> return hub
-        nks0 <- (map iden2nick . Map.keys) `fmap` packageDB hub
-        return $ PD hub (nks0\\nks) (nks\\nks0) nks
-        
 _install :: Hub -> [PkgNick] -> IO ()
 _install hub pkns =
      do notLocked hub

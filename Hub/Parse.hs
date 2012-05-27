@@ -46,16 +46,18 @@ dump hub = B.writeFile path xml_bs
             [        "</hub>"
             ]
 
-        lks      = if lockedHUB hub then "ier" else ""
+        lks      = if lk then "rmie" else ""
                 
+        mb_usrgh = fmap  glb_hnUHB       mb_uh
+        mb_usrdb = fmap  usr_dbUHB       mb_uh
+        lk       = maybe False lockedUHB mb_uh
+
         path     = path__HUB hub
         comnt    = commntHUB hub
         hcbin    = hc_binHUB hub
         tlbin    = tl_binHUB hub
         glbdb    = glb_dbHUB hub
-        mb_usrgh = usr_ghHUB hub
-        mb_usrdb = usr_dbHUB hub
-        
+        mb_uh    = usr___HUB hub
 
 
 fail_err :: HubName -> FilePath -> Err -> IO a
@@ -122,7 +124,8 @@ data PSt = ST {
     }                                                            deriving (Show)
 
 start :: HubName -> FilePath -> Loc -> PSt
-start hn fp lc = ST hn fp lc Nothing Nothing Nothing Nothing Nothing Nothing Nothing
+start hn fp lc =
+            ST hn fp lc Nothing Nothing Nothing Nothing Nothing Nothing Nothing
 
 final :: HubSource -> FilePath -> HubKind -> Poss Err PSt -> Poss Err Hub
 final _  _  _  (NOPE er) = NOPE er
@@ -131,31 +134,31 @@ final hs dy hk (YUP  st) =
         hc    <- get_hc
         tl    <- get_tl
         gl    <- get_gl
-        mb_gh <- case mb_ur of
-                   Nothing -> return Nothing
-                   Just _  -> case mb_gh0 of
-                                Nothing -> Just `fmap` calc_gh gl
-                                Just gh -> return $ Just gh 
-        return $ HUB hs hn hk hf co hc tl gl mb_dy mb_gh mb_ur lk
+        mb_pr <- case (mb_ur,mb_gh) of
+                   (Just ur,Nothing) -> (Just . ((,) ur)) `fmap` calc_gh gl
+                   (Just ur,Just gh) -> return $ Just (ur,gh) 
+                   (Nothing,_      ) -> return Nothing
+        return $ HUB hs hn hk hf co hc tl gl $ fmap mk_uhb mb_pr 
       where
         get_co = maybe (YUP   ""      ) YUP mb_co 
         get_hc = maybe (NOPE  hc_err  ) YUP mb_hc
         get_tl = maybe (YUP $ toolsBin) YUP mb_tl
         get_gl = maybe (NOPE  gl_err  ) YUP mb_gl
 
-        lk     = maybe False            id  mb_lk            
-
         hc_err = err lc "Hub doesn't specify a GHC bin directory"
         gl_err = err lc "Hub doesn't specify a global package directory"
         
-        mb_dy  = fmap (const dy) mb_ur
-        
-        ST hn hf lc mb_co mb_hc mb_tl mb_gl mb_gh0 mb_ur mb_lk = st
+        mk_uhb = \(ur,gh) -> UHB dy gh ur $ maybe False id mb_lk
 
         calc_gh gl =
-            case match (mk_re globalHubREs) gl of
-              Just gh | isHubName gh == Just GlbHK -> return gh 
-              _ -> NOPE $ err loc0 "Could not derive global hub from filepath of global package databse"
+                case match (mk_re globalHubREs) gl of
+                  Just gh | isHubName gh == Just GlbHK -> return gh 
+                  _                                    -> NOPE $ err loc0 msg
+              where
+                msg = "Could not derive the global hub name from the "
+                                   ++ "filepath of the global package databse"
+
+        ST hn hf lc mb_co mb_hc mb_tl mb_gl mb_gh mb_ur mb_lk = st
 
 trial :: PSt -> Node -> (PSt -> Node -> Maybe(Poss Err PSt)) -> Poss Err PSt -> Poss Err PSt
 trial st nd f ps = maybe ps id $ f st nd

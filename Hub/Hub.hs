@@ -1,5 +1,6 @@
 module Hub.Hub
     ( Hub(..)
+    , UsrHub(..)
     , HubName
     , HubKind(..)
     , HubSource(..)
@@ -7,6 +8,9 @@ module Hub.Hub
     , checkHubName
     , isHubName
     , hubUserPackageDBPath
+    , usr_ghHUB
+    , usr_dbHUB
+    , lockedHUB
     , Mode(..)
     , execP
     , execProg
@@ -24,19 +28,23 @@ import           Hub.Oops
 import           Hub.Prog
 
 
-data Hub = HUB {
-    sourceHUB :: HubSource,
-    name__HUB :: HubName,
-    kind__HUB :: HubKind,
-    path__HUB :: FilePath,
-    commntHUB :: String,
-    hc_binHUB :: FilePath,
-    tl_binHUB :: FilePath,
-    glb_dbHUB :: FilePath,
-    usr_dyHUB :: Maybe FilePath,
-    usr_ghHUB :: Maybe HubName,
-    usr_dbHUB :: Maybe FilePath,
-    lockedHUB :: Bool
+data Hub = HUB
+    { sourceHUB :: HubSource
+    , name__HUB :: HubName
+    , kind__HUB :: HubKind
+    , path__HUB :: FilePath
+    , commntHUB :: String
+    , hc_binHUB :: FilePath
+    , tl_binHUB :: FilePath
+    , glb_dbHUB :: FilePath
+    , usr___HUB :: Maybe UsrHub
+    }                                                           deriving (Show)
+
+data UsrHub = UHB
+    { dir___UHB :: FilePath
+    , glb_hnUHB :: HubName
+    , usr_dbUHB :: FilePath
+    , lockedUHB :: Bool
     }                                                           deriving (Show)
 
 
@@ -51,7 +59,6 @@ data HubSource
     = ClHS          -- hub sepcified on command line
     | EvHS          -- hub specified by environment variable
     | DrHS          -- hub specified by a directory marker
-    | DuHS          -- hub specified by user   default
     | DsHS          -- hub specified by system default
                                                                 deriving (Show)
 
@@ -74,10 +81,18 @@ isHubName hn =
 
 hubUserPackageDBPath :: Hub -> IO FilePath
 hubUserPackageDBPath hub =
-        case usr_dbHUB hub of
-          Nothing -> oops PrgO $ printf "%s: not a user hub" $ name__HUB hub
-          Just db -> return db
+        case usr___HUB hub of
+          Nothing  -> oops PrgO $ printf "%s: not a user hub" $ name__HUB hub
+          Just uhb -> return $ usr_dbUHB uhb
 
+usr_ghHUB :: Hub -> Maybe FilePath
+usr_ghHUB = fmap glb_hnUHB . usr___HUB
+
+usr_dbHUB :: Hub -> Maybe FilePath
+usr_dbHUB = fmap usr_dbUHB . usr___HUB
+
+lockedHUB :: Hub -> Bool
+lockedHUB hub        = maybe False lockedUHB $ usr___HUB hub
 
 data Mode = FullMDE | UserMDE
 
@@ -86,7 +101,7 @@ execP o ee0 mde hub p args0 = execProg o ee0 mde hub (p2prog p) args0
 
 execProg :: Oops -> ExecEnv -> Mode -> Hub -> Prog -> [String] -> IO ()
 execProg o ee0 mde hub prog args0 =
-     do case (mde,usr_dbHUB hub) of
+     do case (mde,usr___HUB hub) of
           (UserMDE,Nothing) -> oops o "user hub expected"
           _                 -> return ()
         (exe,args,tdy) <- mk_prog hub prog args0
@@ -140,13 +155,15 @@ hub_env mde hub pth0 = concat
 
         ppt        = case mb_usr of
                        Nothing  -> glb
-                       Just usr -> case mde of
-                                     UserMDE -> usr
-                                     FullMDE -> printf "%s:%s" usr glb
+                       Just uhb -> case mde of
+                                     UserMDE -> udb
+                                     FullMDE -> printf "%s:%s" udb glb
+                            where
+                              udb = usr_dbUHB uhb
 
         hnm        = name__HUB hub
         hk         = kind__HUB hub
-        mb_usr     = usr_dbHUB hub
+        mb_usr     = usr___HUB hub
         glb        = glb_dbHUB hub
 
         

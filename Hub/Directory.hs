@@ -182,18 +182,17 @@ createHub' cp hub0 hn sf =
         createDirectoryIfMissing True lib
         case cp of
           True  -> 
-             do (_,db0) <- hub_user_lib hub0
+             do db0 <- hub_user_db hub0
                 cpFileDir db0 db
           False ->
                 pkg_init hub0 db
         dy <- defaultDirectoryPath
         let gh   = maybe (name__HUB hub0) id $ usr_ghHUB hub0
+            lk   = lockedHUB hub0
             hub1 = hub0 { name__HUB = hn
                         , kind__HUB = UsrHK
                         , path__HUB = h_fp
-                        , usr_dyHUB = Just dy
-                        , usr_ghHUB = Just gh
-                        , usr_dbHUB = Just db
+                        , usr___HUB = Just $ UHB dy gh db lk
                         }
         hub <- defaultComment sf hub1
         dump   hub
@@ -212,11 +211,15 @@ renameHub :: Hub -> HubName -> IO ()
 renameHub hub0 hn =
      do not_global hub0
         notLocked  hub0
-        (lib0,_)      <- hub_user_lib hub0
+        lib0          <- hub_user_lib hub0
         (h_fp,lib,db) <- user_hub_paths hn
         mvFileDir lib0 lib
         removeFile $ path__HUB hub0
-        let hub = hub0 { name__HUB=hn, path__HUB=h_fp, usr_dbHUB=Just db }
+        let f uhb = uhb   { usr_dbUHB=db }
+            hub   = hub0  { name__HUB=hn
+                          , path__HUB=h_fp
+                          , usr___HUB=fmap f $ usr___HUB hub0
+                          }
         dump hub
 
 deleteHub :: Hub -> IO ()
@@ -233,8 +236,8 @@ swapHub hub1 hub2 =
         _    <- not_global hub2
         (_,lib1,_) <- user_hub_paths (name__HUB hub1)
         (_,lib2,_) <- user_hub_paths (name__HUB hub2)
-        let hub1' = hub1 {name__HUB=name__HUB hub2,path__HUB=path__HUB hub2,usr_dbHUB=usr_dbHUB hub2}
-            hub2' = hub2 {name__HUB=name__HUB hub1,path__HUB=path__HUB hub1,usr_dbHUB=usr_dbHUB hub1}
+        let hub1' = hub1 {name__HUB=name__HUB hub2,path__HUB=path__HUB hub2,usr___HUB=usr___HUB hub2}
+            hub2' = hub2 {name__HUB=name__HUB hub1,path__HUB=path__HUB hub1,usr___HUB=usr___HUB hub1}
         dump hub1'
         dump hub2'
         swap_files lib1 lib2
@@ -391,15 +394,20 @@ user_hub_dirs =
             lib = printf "%s/.hubrc/lib" hme
         return (hub,lib)
 
-hub_user_lib :: Hub -> IO (FilePath,FilePath)
+hub_user_lib :: Hub -> IO FilePath
 hub_user_lib hub = 
      do hme <- home
+        db  <- hub_user_db hub
+        case match (db_re hme) db of
+          Just hn | hn==name__HUB hub
+                -> return $ user_lib hme hn
+          _     -> oops SysO "hub has non-standard user-database path"
+
+hub_user_db :: Hub -> IO FilePath
+hub_user_db hub = 
         case usr_dbHUB hub of
           Nothing -> oops SysO "no user DB speceified for this hub"
-          Just db -> case match (db_re hme) db of
-                       Just hn | hn==name__HUB hub
-                            -> return $ (user_lib hme hn,db)
-                       _    -> oops SysO "hub has non-standard user-database path"
+          Just db -> return db
 
 
 --

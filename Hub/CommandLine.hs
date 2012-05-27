@@ -29,12 +29,12 @@ commandLine =
 
 data CommandLine
     = ProgCL Hub (Prog,[String])
-    | HelpCL Bool String   -- False => help, True => usage
+    | HelpCL Bool String                    -- False => help, True => usage
     | VrsnCL
     | DfltCL
     | StDfCL    Hub
     | RsDfCL
-    | LsCL      Bool
+    | LsCL      Bool Bool                   -- -a -q
     | GetCL
     | SetCL     Hub
     | UnsetCL
@@ -44,7 +44,7 @@ data CommandLine
     | UnlockCL  Hub
     | PathCL    Hub
     | XmlCL     Hub
-    | InitCL    Hub HubName Bool
+    | InitCL    Hub HubName Bool            -- -s
     | CommentCL Hub String
     | CpCL      Hub HubName
     | MvCL      Hub HubName
@@ -55,9 +55,9 @@ data CommandLine
     | CheckCL   Hub
     | SaveCL    Hub
     | LoadCL        HubName
-    | VerifyCL  Hub         Bool
+    | VerifyCL  Hub         Bool            -- -s
     | InstallCL Hub         [PkgNick]
-    | EraseCL   Hub         [PkgNick] Bool
+    | EraseCL   Hub         [PkgNick] Bool  -- -f
                                                                 deriving (Show)
 
 
@@ -86,8 +86,11 @@ hub_dispatch as = case as of
     ["default"               ] ->                                              return $ Just $ DfltCL
     ["default"     ,"-"      ] ->                                              return $ Just $ RsDfCL
     ["default"     ,hn       ] -> discover (Just   hn)      >>= \ hub       -> return $ Just $ StDfCL    hub
-    ["ls"                    ] -> initDirectory             >>= \_          -> return $ Just $ LsCL   False
-    ["ls","-a"               ] -> initDirectory             >>= \_          -> return $ Just $ LsCL   True
+    ["ls"                    ] ->                                              return $ Just $ LsCL   False False
+    ["ls","-a"               ] ->                                              return $ Just $ LsCL   True  False
+    ["ls","-q"               ] ->                                              return $ Just $ LsCL   False True
+    ["ls","-a","-q"          ] ->                                              return $ Just $ LsCL   True  True
+    ["ls","-q","-a"          ] ->                                              return $ Just $ LsCL   True  True
     ["set"                   ] ->                                              return $ Just $ GetCL
     ["set"         ,"-"      ] ->                                              return $ Just $ UnsetCL
     ["set"         ,hn       ] -> discover (Just   hn)      >>= \ hub       -> return $ Just $ SetCL     hub
