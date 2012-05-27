@@ -5,7 +5,7 @@ HC = mkdir -p $(OD); ghc -cpp -XHaskell2010 --make -outputdir build -Wall
 all: hub
 
 hub: prep
-	$(HC) -cpp -Wall --make -o $(OD)/hub hub.hs
+	$(HC) -Wall --make -O1 -o $(OD)/hub hub.hs
 
 prep:
 	hub load    hub-src <hub-src.har                    || printf '\nNo hub on path: ensure hub-src.har or hub.cabal packages are installed\n\n'
