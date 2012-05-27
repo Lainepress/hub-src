@@ -155,10 +155,10 @@ hdl_ioe :: a -> IOError -> IO a
 hdl_ioe x _ = return x
 
 
-data ExecEnv = EE {
-    redirctOutEE :: RedirectStream,
-    redirctErrEE :: RedirectStream,
-    extendEnvtEE :: [(String,String)]
+data ExecEnv = EE
+    { redirctOutEE :: RedirectStream
+    , redirctErrEE :: RedirectStream
+    , extendEnvtEE :: [(String,String)]
     }                                                           deriving (Show)
 
 data RedirectStream

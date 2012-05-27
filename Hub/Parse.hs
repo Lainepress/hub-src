@@ -119,17 +119,17 @@ check hs dy hn hf hk (X.Element "hub" [] ns lc) =
                     ]
 check _  _  _  _  _  _ = NOPE $ err loc0 "expected simple <hub>...</hub>"
 
-data PSt = ST {
-    handlST :: HubName,
-    hpathST :: FilePath,    
-    locwfST :: Loc,
-    comntST :: Maybe String,
-    hcbinST :: Maybe FilePath,
-    tlbinST :: Maybe FilePath,
-    glbdbST :: Maybe FilePath,
-    usrghST :: Maybe FilePath,
-    usrdbST :: Maybe FilePath,
-    lockdST :: Maybe Bool
+data PSt = ST
+    { handlST :: HubName
+    , hpathST :: FilePath    
+    , locwfST :: Loc
+    , comntST :: Maybe String
+    , hcbinST :: Maybe FilePath
+    , tlbinST :: Maybe FilePath
+    , glbdbST :: Maybe FilePath
+    , usrghST :: Maybe FilePath
+    , usrdbST :: Maybe FilePath
+    , lockdST :: Maybe Bool
     }                                                            deriving (Show)
 
 start :: HubName -> FilePath -> Loc -> PSt

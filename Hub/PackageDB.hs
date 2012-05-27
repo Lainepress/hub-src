@@ -42,17 +42,17 @@ import           Hub.Hub
 
 -- Package as identified on the CL
 
-data PkgNick = PKN {
-    namePKN :: PkgName,
-    vrsnPKN :: Maybe PkgVrsn
+data PkgNick = PKN
+    { namePKN :: PkgName
+    , vrsnPKN :: Maybe PkgVrsn
     }                                                    deriving (Eq,Ord,Show)
 
 -- Fully qualified package as referenced in a package configuration file.
 
-data PkgIden = PKI {
-    namePKI :: PkgName,
-    vrsnPKI :: PkgVrsn,
-    idenPKI :: PkgHash
+data PkgIden = PKI
+    { namePKI :: PkgName
+    , vrsnPKI :: PkgVrsn
+    , idenPKI :: PkgHash
     }                                                    deriving (Eq,Ord,Show)
 
 type PkgName = String
@@ -144,10 +144,10 @@ usort = foldr no_dups [] . sort
 -- Building the Dependency Graph
 --
 
-data DepGraph = DG {
-    assgnDG :: Map.Map PkgIden Int,
-    arrayDG :: Array Int PkgIden,
-    graphDG :: Gr PkgIden ()
+data DepGraph = DG
+    { assgnDG :: Map.Map PkgIden Int
+    , arrayDG :: Array Int PkgIden
+    , graphDG :: Gr PkgIden ()
     }                                                           deriving (Show)
 
 dep_graph :: PackageDB -> DepGraph
@@ -190,11 +190,11 @@ match_pkg_nick pdb pkn =
 
 type PackageDB = Map.Map PkgIden Package
 
-data Package = PKG {
-    idPKG           :: PkgIden,
-    import_dirsPKG  :: [FilePath],
-    library_dirsPKG :: [FilePath],
-    dependsPKG      :: [PkgIden]
+data Package = PKG
+    { idPKG           :: PkgIden
+    , import_dirsPKG  :: [FilePath]
+    , library_dirsPKG :: [FilePath]
+    , dependsPKG      :: [PkgIden]
     }                                                           deriving (Show)
 
 packageDB :: Hub -> IO PackageDB
