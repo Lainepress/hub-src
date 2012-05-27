@@ -5,11 +5,23 @@ Maintainer:             Chris Dornan <chris@chrisdornan.com>
 Author:                 Chris Dornan <chris@chrisdornan.com>
 License:                BSD3
 License-file:           LICENSE
-Synopsis:               A utility for multiplexing multiple GHC installations
-Description:            This package provides a utility for multiplexing
-                        multiple GHC and Haskell Platform installations,
-                        the installation being selected by configuraton
-                        file or environment variable.
+Synopsis:               This package provides a utility for multiplexing 
+                        multiple GHC and Haskell Platform installations, 
+                        the installation being selected by environment 
+                        variable or a hidden configuraton file or in the 
+                        current working directory or one of its parents. 
+
+                        Thye utility also allows users to build 
+                        sandboxes (called hubs) which may link to one of 
+                        the the GHC installtions installed on the local 
+                        system, and extend them with packages private to 
+                        the hub. 
+
+                        Utilities are also provided for erasing packages 
+                        from an hub and annotating, duplicating, 
+                        renaming, locking, archiving and recovering 
+                        hubs. 
+
 Stability:              Beta
 Category:               Development, Distribution
 Homepage:               https://github.com/cdornan/hub
@@ -50,5 +62,4 @@ Executable              hub
                         Hub.System
                         Hub.Poss
     GHC-options:        -Wall
-    Default-extensions: CPP
     Default-language:   Haskell2010

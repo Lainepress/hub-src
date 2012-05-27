@@ -8,9 +8,9 @@ hub: prep
 	$(HC) -cpp -Wall --make -o $(OD)/hub hub.hs
 
 prep:
-	hub load    hub-src <hub-src.har                || printf '\nNo hub on path: ensure hub-src.har or hub.cabal packages are installed\n\n'
-	hub comment hub-src "Hub for building hub tool" || true
-	hub set     hub-src                             || true
+	hub load    hub-src <hub-src.har                    || printf '\nNo hub on path: ensure hub-src.har or hub.cabal packages are installed\n\n'
+	hub comment hub-src "Hub for building the hub tool" || true
+	hub set     hub-src                                 || true
 	runhaskell prep
 
 install:

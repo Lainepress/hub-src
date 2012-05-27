@@ -1,3 +1,11 @@
+--
+-- >>> Hub.CommandLine <<<
+--
+-- This module parses the command line.
+--
+-- (c) 2011-2012 Chris Dornan 
+
+
 module Hub.CommandLine
     ( commandLine
     , CommandLine(..)

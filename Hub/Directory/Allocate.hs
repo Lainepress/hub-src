@@ -1,3 +1,13 @@
+--
+-- >>> Hub.Directory.Allocate <<<
+--
+-- This module logically belongs to HUb.Directory and would be placed there
+-- except doing so would establish an import sysle between Hub.Hub and
+-- Hub.Directory through Hub.Parse.
+--
+-- (c) 2011-2012 Chris Dornan 
+
+
 module Hub.Directory.Allocate
     ( allocate
     ) where

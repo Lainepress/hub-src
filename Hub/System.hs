@@ -1,3 +1,13 @@
+--
+-- >>> Hub.System <<<
+--
+-- This module contains all of the O/S-specific utilities. it should currently
+-- work for Posix systems. Getting a Windows hub port should be a matter of
+-- porting this module.
+--
+-- (c) 2011-2012 Chris Dornan 
+
+
 module Hub.System
     ( tmpFile
     , setEnv
@@ -18,63 +28,8 @@ module Hub.System
     , lockFileDir
     ) where
 
-import qualified Data.ByteString as B
-import qualified Data.Map        as Map
-import           System.Process
-import           Hub.Oops
-import 			 System.IO
-import 	         System.Exit
-
-
-#if mingw32_HOST_OS==1
-
-dev_null :: FilePath
-dev_null = winstub
-
-tmpFile :: FilePath -> IO FilePath
-tmpFile = winstub 
-
-setEnv :: String -> String -> Bool -> IO ()
-setEnv = winstub
-
-fileExists :: FilePath -> IO Bool
-fileExists = winstub
-
-fileDirExists :: FilePath -> IO Bool
-fileDirExists = winstub
-
-removeR :: FilePath -> IO ()
-removeR = winstub
-
-removeRF :: FilePath -> IO ()
-removeRF = winstub
-
-cpFileDir :: FilePath -> FilePath -> IO ()
-cpFileDir = winstub
-
-mvFileDir :: FilePath -> FilePath -> IO ()
-mvFileDir = winstub
-
-symLink :: FilePath -> FilePath -> IO ()
-symLink = winstub
-
-inc :: FilePath -> IO Int
-inc = winstub 
-
-tidyDir :: FilePath -> IO ()
-tidyDir = winstub
-
---fileAvailable :: FilePath -> IO Bool
---fileAvailable = winstub
-
-getEnvironment :: IO [(String,String)]
-getEnvironment = winstub 
-
-winstub :: a
-winstub = error "winstub"
-
-#else
-
+import           System.IO
+import           System.Exit
 import           Control.Monad
 import qualified Control.Exception      as E
 import           System.Directory
@@ -83,12 +38,16 @@ import           System.Posix.Files
 import           System.Posix.Process
 import           System.Posix.IO
 import           Text.Printf
+import qualified Data.ByteString.UTF8   as U
+import qualified Data.ByteString        as B
+import qualified Data.Map               as Map
+import           System.Process
+import           Hub.Oops
 
 
 dev_null :: FilePath
 dev_null = "/dev/null"
 
--- allocate a temporary file
 
 tmpFile :: FilePath -> IO FilePath
 tmpFile fn =
@@ -110,7 +69,7 @@ removeR fp =
      do ec <- rawSystem "rm" ["-r",fp]
         case ec of
           ExitSuccess   -> return ()
-          ExitFailure n -> oops SysO $
+          ExitFailure n -> oops PrgO $
                                 printf "rm failure (return code=%d)" n  
 
 removeRF :: FilePath -> IO ()
@@ -118,7 +77,7 @@ removeRF fp =
      do ec <- rawSystem "rm" ["-rf",fp]
         case ec of
           ExitSuccess   -> return ()
-          ExitFailure n -> oops SysO $
+          ExitFailure n -> oops PrgO $
                                 printf "rm failure (return code=%d)" n  
 
 cpFileDir :: FilePath -> FilePath -> IO ()
@@ -126,7 +85,7 @@ cpFileDir fp fp' =
      do ec <- rawSystem "cp" ["-a",fp,fp']
         case ec of
           ExitSuccess   -> return ()
-          ExitFailure n -> oops SysO $
+          ExitFailure n -> oops PrgO $
                                 printf "cp failure (return code=%d)" n  
 
 mvFileDir :: FilePath -> FilePath -> IO ()
@@ -134,7 +93,7 @@ mvFileDir fp fp' =
      do ec <- rawSystem "mv" [fp,fp']
         case ec of
           ExitSuccess   -> return ()
-          ExitFailure n -> oops SysO $
+          ExitFailure n -> oops PrgO $
                                 printf "mv failure (return code=%d)" n  
 
 
@@ -195,7 +154,6 @@ lockFileDir dir lck fp = setFileMode fp m
 hdl_ioe :: a -> IOError -> IO a
 hdl_ioe x _ = return x
 
-#endif
 
 data ExecEnv = EE {
     redirctOutEE :: RedirectStream,
@@ -237,10 +195,7 @@ exec ee pr as =
                 return $ Just $ bs ++ filter f bs0
 
 readAFile :: FilePath -> IO String
-readAFile fp =
-     do bs <- B.readFile fp
-        return $ map (toEnum.fromEnum) $ B.unpack bs 
+readAFile fp = U.toString `fmap` B.readFile fp
 
 writeAFile :: FilePath -> String -> IO ()
-writeAFile = writeFile
--- writeAFile fp cts = B.writeFile fp $ B.pack $ map (toEnum.fromEnum) cts
+writeAFile fp = B.writeFile fp . U.fromString 

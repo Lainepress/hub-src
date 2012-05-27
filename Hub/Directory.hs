@@ -1,3 +1,12 @@
+--
+-- >>> Hub.Directory <<<
+--
+-- All user hubs are managed in ~/.hubrc, the 'directory'. This module tries
+-- to abstract the messy details.
+--
+-- (c) 2011-2012 Chris Dornan 
+
+
 module Hub.Directory
     ( initDirectory
     , userHubExists
@@ -66,7 +75,7 @@ userHubAvailable hn =
      do _ <- checkHubName [UsrHK] hn
         iuh <- isUserHub hn
         case iuh of
-          True  -> oops SysO $ printf "%s: hub already in use" hn
+          True  -> oops PrgO $ printf "%s: hub already in use" hn
           False -> return ()
 
 -- check that the named hub exists
@@ -78,14 +87,14 @@ hubExists hn =
      do ok <- doesHubExist hn
         case ok of
           True  -> return ()
-          False -> oops SysO $ printf "%s: no such hub" hn
+          False -> oops PrgO $ printf "%s: no such hub" hn
 
 doesHubExist :: HubName -> IO Bool
 doesHubExist hn =
      do hf <- case isHubName hn of
                 Just GlbHK -> return $ globalHubPath hn
                 Just UsrHK -> userHubPath hn
-                Nothing    -> oops SysO $ printf "%s: bad hub name"
+                Nothing    -> oops PrgO $ printf "%s: bad hub name"
         fileExists hf
 
 -- test whether a user hub exists
@@ -107,13 +116,14 @@ globalHubPath hn = globalHubDir </> hn2fp hn
 
 defaultGlobalHubName :: IO HubName
 defaultGlobalHubName = sel
-        [ usr_df     -- user-spec default
-        , sys_df     -- system    default (may not be installed)
+        [ usr_df     -- user-spec  default
+        , dro_df     -- O/S distro default (may not be installed)
+        , sys_df     -- Hub system default (may not be installed)
         , lhp_df     -- looks like the latest H.P. (guess)
         , lst_df     -- lexigographical maximum 
         ]
       where
-        sel []        = oops SysO "no global hubs!"
+        sel []        = oops PrgO "no global hubs!"
         sel (p:ps)    =
                  do ei <- tryIO $ trim `fmap` p
                     case ei of
@@ -125,6 +135,8 @@ defaultGlobalHubName = sel
                               False -> sel ps
 
         usr_df        = trim `fmap` readAFile defaultHubPath
+
+        dro_df        = trim `fmap` readAFile distroDefaultHubPath
 
         sys_df        = trim `fmap` readAFile sysDefaultHubPath
 
@@ -268,7 +280,7 @@ gcDefaultDirectory discover gcm =
         dirs <- concat `fmap` mapM importLibraryDirs hubs
         hdir <- heap_dir `fmap` home
         hcts <- getDirectoryContents hdir
-        let hnds   = Map.fromList [ (nd,()) | Just nd <- map readMB hcts ] 
+        let hnds   = Map.fromList [ (nd,()) | Just nd <- map readMB hcts ]
             l_hnds = dirs2heap_node_set hdir dirs
             g_hnds = hnds `Map.difference` l_hnds
       --putStrLn $ printf "---hnds---\n%s\n----------\n\n" $ show hnds
@@ -281,6 +293,7 @@ gcDefaultDirectory discover gcm =
           VerboseGCM -> hPutStrLn stderr $ printf "GC: %d nodes collected" $ Map.size g_hnds
           QuietGCM   -> return ()
         collect hdir $ map show $ Map.keys g_hnds 
+
 
 
 --
@@ -401,12 +414,12 @@ hub_user_lib hub =
         case match (db_re hme) db of
           Just hn | hn==name__HUB hub
                 -> return $ user_lib hme hn
-          _     -> oops SysO "hub has non-standard user-database path"
+          _     -> oops PrgO "hub has non-standard user-database path"
 
 hub_user_db :: Hub -> IO FilePath
 hub_user_db hub = 
         case usr_dbHUB hub of
-          Nothing -> oops SysO "no user DB speceified for this hub"
+          Nothing -> oops PrgO "no user DB speceified for this hub"
           Just db -> return db
 
 
@@ -415,10 +428,10 @@ hub_user_db hub =
 --
 
 swap_files :: FilePath -> FilePath -> IO ()
-swap_files fp fp' = swap_files'' fp fp' $ oops SysO
+swap_files fp fp' = swap_files'' fp fp' $ oops PrgO
 
 --swap_files' :: FilePath -> FilePath -> IO () -> IO ()
---swap_files' fp fp' tdy = swap_files'' fp fp' $ \err -> tdy >> oops SysO err
+--swap_files' fp fp' tdy = swap_files'' fp fp' $ \err -> tdy >> oops PrgO err
 
 swap_files'' :: FilePath -> FilePath -> (String->IO ()) -> IO ()
 swap_files'' fp fp' h = catchIO (sw_files fp fp') $ \_ -> h err

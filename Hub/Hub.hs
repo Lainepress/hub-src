@@ -1,3 +1,14 @@
+--
+-- >>> Hub.hub <<<
+--
+-- This module provdes the central Hub abstraction. As the primary purpose
+-- of a hub is to execute programs in a controlled environment it includes
+-- the 'exec' utilities for setting up the PATH, GHC_PACKAGE_PATH and munging
+-- cabal's command-line arguments, etc.
+--
+-- (c) 2011-2012 Chris Dornan 
+
+
 module Hub.Hub
     ( Hub(..)
     , UsrHub(..)
@@ -69,9 +80,9 @@ prettyHubKind UsrHK = "user"
 checkHubName :: [HubKind] -> HubName -> IO HubKind
 checkHubName hks hn =
         case isHubName hn of
-          Nothing                 -> oops SysO $ printf "%s is not a valid hub name" hn
+          Nothing                 -> oops PrgO $ printf "%s is not a valid hub name" hn
           Just hk | hk `elem` hks -> return hk
-                  | otherwise     -> oops SysO $ printf "%s is a %s hub" hn $ prettyHubKind hk
+                  | otherwise     -> oops PrgO $ printf "%s is a %s hub" hn $ prettyHubKind hk
 
 isHubName :: HubName -> Maybe HubKind
 isHubName hn =

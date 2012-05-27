@@ -1,3 +1,12 @@
+--
+-- >>> Hub.Help <<<
+--
+-- This module provides an interface to the help text 'help.txt', 
+-- Haskell-encoded in Hub.HelpText.
+--
+-- (c) 2011-2012 Chris Dornan 
+
+
 module Hub.Help
     ( help
     , helpText

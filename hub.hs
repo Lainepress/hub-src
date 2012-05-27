@@ -1,3 +1,11 @@
+--
+-- >>> Main <<<
+--
+-- Main driver for the hub tool (see the README for details).
+--
+-- (c) 2011-2012 Chris Dornan 
+
+
 module Main(main) where 
 
 import Control.Monad

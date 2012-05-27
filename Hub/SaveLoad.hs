@@ -1,3 +1,13 @@
+--
+-- >>> Hub.SaveLoad <<<
+--
+-- This module saves the hub configuration in an archive type and loads
+-- an archive file, performing some analysis on the target Hub to be loaded
+-- (if there is one).
+--
+-- (c) 2011-2012 Chris Dornan 
+
+
 module Hub.SaveLoad
     ( save
     , PkgDiffs(..)
@@ -13,6 +23,8 @@ import           Hub.Directory
 import           Hub.Discover
 import           Hub.PackageDB
 
+
+-- Generates the archive on the standard output.
     
 save :: Hub -> IO ()
 save hub =
@@ -24,6 +36,17 @@ save hub =
 
 data PkgDiffs = PD { hubPD :: Hub, surPD, msgPD, allPD :: [PkgNick] }
                                                                 deriving (Show)
+
+-- Takes the name of the hub to be loaded, the existing hub (if it exists)
+-- an a flag indicating whether the hub is bing loaded or verified, and
+-- reads in the archive from the standard input and returns the new
+-- and the packages it is missing and the packages to be added.
+--
+--   * If it is not passed a hub then it creates a new one.
+--
+--   * If it is passed a hub which does not have the right global database
+--     then it will remove and recreate the hub with the right global databse
+--     if loading or generate an error if verifying.
 
 load :: HubName -> Maybe Hub -> Bool -> IO PkgDiffs
 load hn mb_hub0 vy =

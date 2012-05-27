@@ -1,3 +1,12 @@
+--
+-- >>> Hub.Parse <<<
+--
+-- This module parses the hub XML file to produce a Hub, and the inverse,
+-- dumping a Hub into XML.
+--
+-- (c) 2011-2012 Chris Dornan 
+
+
 module Hub.Parse
     ( parse
     , dump
@@ -61,7 +70,7 @@ dump hub = B.writeFile path xml_bs
 
 
 fail_err :: HubName -> FilePath -> Err -> IO a
-fail_err _ hf er = oops SysO rs
+fail_err _ hf er = oops PrgO rs
       where
         rs = printf "%s:%d:%d %s" hf ln (cn+1) es
         

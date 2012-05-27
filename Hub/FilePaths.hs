@@ -1,27 +1,43 @@
+--
+-- >>> Hub.FilePaths <<<
+--
+-- This module abstracts the layout of /usr/hs -- the system hub area.
+--
+-- (c) 2011-2012 Chris Dornan 
+
+
 module Hub.FilePaths where
 
 import           Text.Printf
 import           Text.Regex
 import           Data.Maybe
 
-hubLib, sysVersion, sysDefaultHubPath, defaultHubPath, globalHubDir, hubBin,
-                                toolsBin, hubGccBin, hubBinutilsBin :: FilePath
+
+hubLib, sysVersion, distroDefaultHubPath, sysDefaultHubPath, 
+                    defaultHubPath, globalHubDir, hubBin,
+                    toolsBin, hubGccBin, hubBinutilsBin :: FilePath
+
 hcBinREs, globalHubREs, hpDbREs :: String
-hubLib            = "/usr/hs/lib"
-sysVersion        = "/usr/hs/lib/version.txt"
-sysDefaultHubPath = "/usr/hs/lib/sys-default.hub"
-defaultHubPath    = "/usr/hs/lib/the-default.hub"
-globalHubDir      = "/usr/hs/hub"
-hubBin            = "/usr/hs/bin"
-toolsBin          = "/usr/hs/tools" 
-hubGccBin         = "/usr/hs/gcc/bin"
-hubBinutilsBin    = "/usr/hs/binutils/bin"
-hcBinREs          = "/usr/hs/ghc/([a-zA-Z0-9_.-]+)/bin"
-globalHubREs      = "/usr/hs/db/([^/]+)\\.d"
-hpDbREs           = "/usr/hs/db/("++hp_re++")(\\.d)?"
+
+hubLib                  = "/usr/hs/lib"
+sysVersion              = "/usr/hs/lib/version.txt"
+distroDefaultHubPath    = "/usr/hs/lib/distro-default.hub"
+sysDefaultHubPath       = "/usr/hs/lib/sys-default.hub"
+defaultHubPath          = "/usr/hs/lib/the-default.hub"
+globalHubDir            = "/usr/hs/hub"
+hubBin                  = "/usr/hs/bin"
+toolsBin                = "/usr/hs/tools" 
+hubGccBin               = "/usr/hs/gcc/bin"
+hubBinutilsBin          = "/usr/hs/binutils/bin"
+
+hcBinREs                = "/usr/hs/ghc/([a-zA-Z0-9_.-]+)/bin"
+globalHubREs            = "/usr/hs/db/([^/]+)\\.d"
+hpDbREs                 = "/usr/hs/db/("++hp_re++")(\\.d)?"
+
 
 hp_re :: String
 hp_re = "20[0-9][0-9]\\.[0-9]\\.[0-9]\\.[0-9](-[a-z0-9]*)?"
+
 
 
 --

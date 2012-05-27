@@ -1,3 +1,12 @@
+--
+-- >>> Hub.PackageDB <<<
+--
+-- Sometimes the hub has to tangle with the Package DB format (mostly hub
+-- erase): this package provides the tools.
+--
+-- (c) 2011-2012 Chris Dornan 
+
+
 module Hub.PackageDB
     ( PkgNick(..)
     , PkgName
@@ -21,8 +30,6 @@ import           Data.Char
 import           Data.List
 import           Data.Array
 import qualified Data.Map               as Map
-import qualified Data.ByteString        as B
-import qualified Data.ByteString.UTF8   as U
 import           Data.Graph.Inductive
 import           Text.Printf
 import           System.Directory
@@ -39,6 +46,8 @@ data PkgNick = PKN {
     namePKN :: PkgName,
     vrsnPKN :: Maybe PkgVrsn
     }                                                    deriving (Eq,Ord,Show)
+
+-- Fully qualified package as referenced in a package configuration file.
 
 data PkgIden = PKI {
     namePKI :: PkgName,
@@ -198,9 +207,9 @@ package_dump hub =
      do tf <- tmpFile "pkg-dump.txt"
         let ee = EE (RedirctRS tf) DiscardRS []
         execP HubO ee UserMDE hub Ghc_pkgP ["dump"]
-        bs <- B.readFile tf
+        ct <- readAFile tf
         removeFile tf
-        return $ U.toString bs
+        return ct
         
 packages :: [Package] -> Map.Map PkgIden Package
 packages pkgs = Map.fromList [(idPKG pkg,pkg) | pkg<-pkgs ]

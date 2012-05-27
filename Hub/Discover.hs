@@ -1,3 +1,11 @@
+--
+-- >>> Hub.Discover <<<
+--
+-- 'discover' works out the default hub.
+--
+-- (c) 2011-2012 Chris Dornan 
+
+
 module Hub.Discover
     ( discover
     ) where

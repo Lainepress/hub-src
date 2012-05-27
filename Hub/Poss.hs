@@ -1,3 +1,11 @@
+--
+-- >>> Hub.Poss <<<
+--
+-- This module reestablishes an unvandalised monadic Either type.
+--
+-- (c) 2011-2012 Chris Dornan 
+
+
 module Hub.Poss
     ( Poss(..)
     , poss

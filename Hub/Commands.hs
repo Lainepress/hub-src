@@ -1,3 +1,12 @@
+--
+-- >>> Hub.Commands <<<
+--
+-- This module provides the routines the Main dispatcher calls fater analysing
+-- the CommandLine AST.
+--
+-- (c) 2011-2012 Chris Dornan 
+
+
 module Hub.Commands
     ( _prog
     , _default
@@ -103,22 +112,22 @@ _name hub = putStrLn $ name__HUB hub
 
 _info :: Hub -> IO ()
 _info hub = putStr $ unlines $
-    [ printf "%s %s %s %s"                      name hs lk cmt                              ] ++
-    [ printf "   GHC              : %s" hc                | Just hc <- [bin2toolchain hc_bin] ] ++
-    [ printf "   Haskell Platform : %s" hp                | Just hp <- [db2platform   glb_db] ] ++ 
-    [ printf "   Tools            : %s"         hc_bin                                      ] ++
-    [        "   Package DBs"                             |                         True      ] ++
-    [ printf "      global        : %-50s (%s)" glb_db gh |                         True      ] ++
-    [ printf "      user          : %-50s (%s)" usr_db uh | Just usr_db <- [mb_ud], True      ]
+    [ printf "%-23s%s"                     (name++hs++lk) cmt                                    ] ++
+    [ printf "      GHC              : %s" hc                | Just hc <- [bin2toolchain hc_bin] ] ++
+    [ printf "      Haskell Platform : %s" hp                | Just hp <- [db2platform   glb_db] ] ++ 
+    [ printf "      Tools            : %s"         hc_bin                                        ] ++
+    [        "      Package DBs"                             |                         True      ] ++
+    [ printf "          global       : %-50s (%s)" glb_db gh |                         True      ] ++
+    [ printf "          user         : %-50s (%s)" usr_db uh | Just usr_db <- [mb_ud], True      ]
   where
     hs     = case sourceHUB hub of
-               ClHS -> ""
-               EvHS -> "[ENV]"
-               DrHS -> "[DIR]"
-               DsHS -> "[SYS]"
+               ClHS -> " "
+               EvHS -> " [ENV] "
+               DrHS -> " [DIR] "
+               DsHS -> " [SYS] "
     lk     = case lockedHUB hub of
-               True  -> "[LOCKED]"
-               False -> "        "
+               True  -> "[LOCKED] "
+               False -> " "
     gh     = case usr_ghHUB hub of
                Nothing -> name
                Just hn -> hn
@@ -153,7 +162,7 @@ lock lck hub =
 
         lk_hub  = hub { usr___HUB = fmap lk' $ usr___HUB hub }
         
-        lk' uhb = uhb { lockedUHB = True }
+        lk' uhb = uhb { lockedUHB = lck }
 
         msg     = printf "%s: cannot (un)lock a global hub" $ name__HUB hub
 
