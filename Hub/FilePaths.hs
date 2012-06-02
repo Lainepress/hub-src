@@ -14,7 +14,7 @@ import           Data.Maybe
 
 
 hubLib, sysVersion, distroDefaultHubPath, sysDefaultHubPath, 
-                    defaultHubPath, globalHubDir, hubBin,
+                    defaultHubPath, globalHubDir,
                     toolsBin, hubGccBin, hubBinutilsBin :: FilePath
 
 hcBinREs, globalHubREs, hpDbREs :: String
@@ -25,7 +25,6 @@ distroDefaultHubPath    = "/usr/hs/lib/distro-default.hub"
 sysDefaultHubPath       = "/usr/hs/lib/sys-default.hub"
 defaultHubPath          = "/usr/hs/lib/the-default.hub"
 globalHubDir            = "/usr/hs/hub"
-hubBin                  = "/usr/hs/bin"
 toolsBin                = "/usr/hs/tools" 
 hubGccBin               = "/usr/hs/gcc/bin"
 hubBinutilsBin          = "/usr/hs/binutils/bin"
