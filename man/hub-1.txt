@@ -1,7 +1,6 @@
 hub(1)
 ======
 
-
 NAME
 ----
 hub - manage Haskell hubs (for selecting toolchains, libraries and sandboxes)
@@ -47,23 +46,23 @@ DESCRIPTION
 
 The hub tool (i) integrates multiple releases of the Glasgow
 Haskell Compiler into a single installation with a simple
-mechanism for slecting between the installations and (ii)
+mechanism for selecting between the installations and (ii)
 provides a sandbox mechanism, allowing users to install
 packages on a per-project basis.
 
-The tool organizes compilation contexts around so called 'hubs'
+The tool organizes compilation contexts around so-called "hubs"
 which contain their own GHC package databases. A global hub
 is shared among all users on the system, is typically installed
-with the system package utility (such as yum) from a public repository 
+with the system package utility (such as 'yum') from a public repository 
 and is associated with a single global package database.
 
 User hubs belong to individual users, nominate a global hub as its
 starting point and own a user package database into which the user
-can install packages with cabal and ghc.
+can install packages with 'cabal' and 'ghc'.
 
 A directory will typically be statically associated with a hub.
-Invoking cabal and ghc within such a directory (or any of its
-sub-directories) will select the apropriate version of GHC
+Invoking 'cabal' and 'ghc within such a directory (or any of its
+sub-directories) will select the appropriate version of GHC
 (as determined by the hub configuration) and will set up the
 tools to work with package database that is private to that
 hub.
@@ -73,9 +72,9 @@ This is perhaps best illustrated by a sample session:
     hub init -n 7.0.4       # create new hub based on GHC-7.0.4
                             # and associate the current directory with it
     cabal install SHA       # install the latest version of the SHA package
-                            # in the user package databse of the hub
-    ghci crypto.hs          # load crypto.hs into ghci, which may make use of
-                            # the GHC-7.0.4 core packaghes and the SHA
+                            # in the user package database of the hub
+    ghci crypto.hs          # load crypto.hs into 'ghci', which may make use of
+                            # the GHC-7.0.4 core packages and the SHA
                             # package and any of its dependent packages.
 -----
 (This assumes GHC-7.0.4 is already installed; if not it may need to be
