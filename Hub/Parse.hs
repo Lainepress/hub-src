@@ -44,13 +44,13 @@ dump hub = B.writeFile path xml_bs
             , printf "  <hcbin>%s</hcbin>" $ string2xml hcbin
             , printf "  <tlbin>%s</tlbin>" $ string2xml tlbin
             ] ++
-            [ printf "  <lockd>%s</lockd>"                lks | not $ null lks
+            [ printf "  <glbdb>%s</glbdb>" $ string2xml glbdb
             ] ++
             [ printf "  <usrgh>%s</usrgh>" $ string2xml usrgh | Just usrgh<-[mb_usrgh]
             ] ++
-            [ printf "  <glbdb>%s</glbdb>" $ string2xml glbdb
-            ] ++
             [ printf "  <usrdb>%s</usrdb>" $ string2xml usrdb | Just usrdb<-[mb_usrdb]
+            ] ++
+            [ printf "  <lockd>%s</lockd>"                lks | not $ null lks
             ] ++
             [        "</hub>"
             ]
@@ -196,7 +196,7 @@ chk_comnt st0 nd = simple_node True  st0 nd "comnt" chk
                 chk st lc arg =
                         case comntST st of
                           Nothing -> YUP (st{comntST=Just arg})
-                          Just _  -> NOPE $ err lc "<comment> respecified"
+                          Just _  -> NOPE $ err lc "<comnt> respecified"
 
 chk_hcbin st0 nd = simple_node False st0 nd "hcbin" chk
               where
@@ -236,9 +236,9 @@ chk_usrdb st0 nd = simple_node False st0 nd "usrdb" chk
 chk_lockd st0 nd = simple_node False st0 nd "lockd" chk
               where
                 chk st lc arg =
-                        case usrdbST st of
+                        case lockdST st of
                           Nothing -> YUP (st{lockdST=Just $ not $ all isSpace arg})
-                          Just _  -> NOPE $ err lc "<usrdb> respecified"
+                          Just _  -> NOPE $ err lc "<lockd> respecified"
 
 -- deprecated (pre-0.3) constructions
 

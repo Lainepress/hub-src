@@ -6,17 +6,17 @@
 
 hub usage
 
-      Lists the syntax of all the hub commands.
+      List the syntax of all the hub commands.
 
 hub help         [<hub-command>]
 
-      Lists the help for a command or all commands if none specified.
+      List the help for a command or all commands if none specified.
 
       See "hub usage" for a command-syntax summary.
 
 hub version
 
-      Lists the version information.
+      List the version information.
 
 hub default        [<g-hub>|-]
 
@@ -34,13 +34,15 @@ hub default        [<g-hub>|-]
 
 hub ls [-a] [-q]
 
-      Lists your user hubs and all of the global hubs. If -a is specified then all
-      hubs are listed, otherwise the hidden hub (those starting with "__") are
-      ommitted.
+      List the user hubs belonging to the logged in user and all of the
+      global hubs. If -a is specified then all hubs are listed, otherwise
+      the hidden hub (those starting with "__") are ommitted. Normally the
+      locked status and any comments associated with the hub are displayed,
+      but these will be ommitted if the -q flag is given.
 
 hub set            [<hub>|-]
 
-      Sets the 'current' hub for a directory and its sub-directories.
+      Set the 'current' hub for a directory and its sub-directories.
       
       The HUB environment variable can be set to a hub name to override this
       setting.
@@ -50,50 +52,50 @@ hub set            [<hub>|-]
 
 hub info           [<hub>]
 
-      Lists the vital stats for the named or current hub.
+      Describe a hub. (See 'hub set' on how to set the current hub.)
       
       (See 'hub set' on how to set the current hub.)
 
 hub lock           [<hub>]
 
-      Locks a hub so that it can not be removed nor can packages be added nor
-      removed.
+      Lock a hub so that it can not be removed or renamed or have packages
+      added or removed.
 
       (See 'hub set' on how to set the current hub.)
 
 hub unlock         [<hub>]
 
-      Removes the lock on a hub.
+      Remove the lock from a hub.
 
       (See 'hub lock' on locking a hub and 'hub set' on how to set the current hub.)
 
 hub name
 
-      Lists the name of the current hub.
+      List the name of the current hub.
     
       (See 'hub set' on how to set the current hub.)
 
 hub path           [<hub>]
 
-      Lists the  path of the XML file defining the named or current hub.
+      List the  path of the XML file defining the named or current hub.
     
       (See 'hub set' on how to set the current hub.)
 
 hub xml            [<hub>]
 
-      Lists the contents of the XML file defining the named or current hub.
+      List the contents of the XML file defining the named or current hub.
     
       (See 'hub set' on how to set the current hub.)
 
-hub init [--n      [<hub>]]
-hub init [--s]     [<hub>]   <u-hub'>
+hub init [-n       [<hub>]]
+hub init [-s]      [<hub>]   <u-hub'>
 
-      The first form creates a new user hub with some unique name __<foo>
+      The first form creates a new user hub with some unique name __h<num>
       and associates the current working directory with the new hub. If
       a hub is specified then that determines the global hub for the new
       hub otherwise the current defaulkt hub is used.
       
-      The second from cretaes the new named user hub <u-hub'>. If <hub>
+      The second from creates the new named user hub <u-hub'>. If <hub>
       is specified then the global hub for the new hub is determined by
       this hub otherwise the default hub is used. Iff --set is specified
       the hub associated with the current directory is set to the new hub.
@@ -108,38 +110,37 @@ hub comment        [<u-hub>] <comment-string>
 
 hub cp             [<u-hub>] <u-hub'>
 
-      Duplicates the user <u-hub> (or the current hib) in <u-hub'>.
+      Duplicate <u-hub> (or the current hib) in <u-hub'>.
     
       (See 'hub set' on how to set the current hub.)
 
 hub mv             [<u-hub>] <u-hub'>
 
-      Renames user hub <u-hub> (or the current hub) to <u-hub'>.
+      Rename user hub <u-hub> (or the current hub) to <u-hub'>.
     
       (See 'hub set' on how to set the current hub.)
 
 hub rm              <u-hub>
 
-      Deletes user hub <hub>.
+      Delete user hub <u-hub>.
 
 hub swap           [<u-hub>] <u-hub'>
 
-      Swaps the contents of user hub <u-hub> (or the current hub) with
+      Swap the contents of user hub <u-hub> (or the current hub) with
       user hub <u-hub'>.
     
       (See 'hub set' on how to set the current hub.)
 
 hub list           [<hub>]
 
-      Lists the packages belonging to named hub (or the current hub --
-      calls 'ghc-pkg list').
+      List the packages belonging to a hub (calls 'ghc-pkg list').
 
       (See 'hub set' on how to set the current hub.)
 
 hub check          [<hub>]
 
-      Checks the packages belonging to named hub (or the current hub --
-      calls 'ghc-pkg check').
+      Check the packages belonging to a hub are coherent 
+      (calls 'ghc-pkg check').
 
       (See 'hub set' on how to set the current hub.)
 
@@ -149,8 +150,8 @@ hub install                  <pkg-name> ...
 
 hub install-into    <u-hub>  <pkg-name> ...
 
-      Uses 'cabal install' to install the named packages into the named
-      hub (or the current hub).
+      Uses 'cabal install' to install the named packages into a user
+      hub.
 
       (See 'hub set' on how to set the current hub.)
 
@@ -160,31 +161,31 @@ hub erase                    <pkg-name> ...
 
 hub erase-from [-f] <u-hub>  <pkg-name> ...
 
-      Determines all of the packages dependent on the list of named packaqes
-      in the named hub (or the current hub), lists them and offers to remove
-      them from the hub (by invoking 'ghc-pkg unregister' and 'hub gc'). 
+      Run the garbage collector on the user hubs to reclaim library code
+      that is no longer referenced by them. (The directories aren't removed
+      from the file system, but moved from `~/.hubrc/heap` to
+      `~/.hubrc/garbage` for manual removal.) 
 
       (See 'hub set' on how to set the current hub.)
 
 hub gc
 
-      Runs the garbage collector to reclaim library code that is no longer
+      Run the garbage collector to reclaim library code that is no longer
       referenced by the hubs.
 
 hub save           [<u-hub>]
         
-      Save out the configuration of the named hub (or the default hub) onto
-      standard output.
+      Save out the configuration of the hub onto standard output.
 
       (See 'hub set' on how to set the current hub.)
 
 hub load           [<u-hub>]
 
-      Load the hub <u-hub> from standard input. If the named hub doesn't
+      Load the hub from standard input. If the named hub doesn't
       exist then the hub is created with the global hub specified by the
       archive. If <u-hub> does exist then it is checked that it is using the
-      global hub specified and removed and recreated referencing the right
-      global hub if it isn't.
+      global hub specified and if necessary removed and recreated referencing
+      the right global hub.
       
       Any surplus packages not mentioned in the archive are then removed.
       

@@ -8,19 +8,16 @@
 
 module Main(main) where 
 
-import Control.Monad
-import System.IO
-import System.Exit
-import Text.Printf
-import Hub.System
-import Hub.FilePaths
-import Hub.Directory
-import Hub.CommandLine
-import Hub.Commands
-
-
-version :: String
-version = "1.0"
+import           Control.Monad
+import           System.IO
+import           System.Exit
+import           Text.Printf
+import           Hub.System
+import           Hub.FilePaths
+import           Hub.Directory
+import           Hub.CommandLine
+import           Hub.Commands
+import qualified Version        as V
 
 
 main :: IO ()
@@ -69,7 +66,9 @@ _help True  hlp = hPutStrLn stderr hlp >> exitWith (ExitFailure 1)
 
 _vrsn :: IO ()
 _vrsn =
-     do putStr $ printf "hub %s\n" version
+     do putStr $ printf "hub %s\n" V.version
         ex <- fileExists sysVersion
         when ex $
             readAFile sysVersion >>= putStr
+
+

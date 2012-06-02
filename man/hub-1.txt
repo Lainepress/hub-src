@@ -22,8 +22,8 @@ SYNOPSIS
     hub name
     hub path           [<hub>]
     hub xml            [<hub>]
-    hub init [--n      [<hub>]]
-    hub init [--s]     [<hub>]   <u-hub'>
+    hub init [-n       [<hub>]]
+    hub init [-s]      [<hub>]   <u-hub'>
     hub comment        [<u-hub>] <comment-string>
     hub cp             [<u-hub>] <u-hub'>
     hub mv             [<u-hub>] <u-hub'>
@@ -52,13 +52,14 @@ packages on a per-project basis.
 
 The tool organizes compilation contexts around so-called "hubs"
 which contain their own GHC package databases. A global hub
-is shared among all users on the system, is typically installed
-with the system package utility (such as 'yum') from a public repository 
-and is associated with a single global package database.
+is shared among all users on the system and is typically installed
+with the system package utility (e.g., 'yum' or 'apt') from
+a public repository. Each global hubs is associated with a
+single global package database.
 
-User hubs belong to individual users, nominate a global hub as its
-starting point and own a user package database into which the user
-can install packages with 'cabal' and 'ghc'.
+User hubs belong to individual users, point at a global hub and
+own a user package database into which the user can install packages
+with 'cabal' and 'ghc'.
 
 A directory will typically be statically associated with a hub.
 Invoking 'cabal' and 'ghc within such a directory (or any of its
@@ -82,7 +83,7 @@ installed first with, for example 'yum install ghc-7.0.4-hub'.)
 
 Each hub is named. We didn't specify a name for the new hub in the above
 example so a new unused name like '__h006' will have been chosen. It could
-be renamed to something more distinctive and associated with another work
+be renamed to something more distinctive and then associated with another work
 tree.
 -----
     hub mv __h006 crypto    # rename hub to something more memorable
@@ -131,14 +132,15 @@ If you have acquired the hub tool by installing the hub package
 everything should be set up for you. Otherwise, you will have to
 install the hub binary on your execution path under its own name ('hub')
 and under the name of each of the standard GHC tools ('ghc', 'ghci',
-'ghc-pkg', etc., and 'cabal') you want it to manage.    
+'ghc-pkg', etc., and 'cabal') you want it to manage. (This is usually
+managed by installing the hub program into a directory (like `/usr/hs/bin`)
+and creating links from 'ghc', 'ghci', 'ghc-pkg', 'cabal', etc. to the
+'hub' program.)      
 
 To add a new global hub you will have to install an xml file in
-/usr/hs/hub -- see hub(5) for details of the format of this file. Each
-global hub configuration must specify where the compiler tools are located
-but need not specify where cabal is located (in which case 
-'/usr/hs/tools/cabal' will be invoked and cabal must be installed
-at this location).
+`/usr/hs/hub (see hub(5) for details of the format of this file). Each
+global hub configuration must specify where the compiler tools
+are located.
 
 
 COMMANDS
@@ -171,52 +173,75 @@ COMMANDS
      settings are discarded and the system default re-established.
 
 
-`hub ls`::
+`hub ls [-a] [-q]`::
 
-     Lists your user hubs and all of the global hubs.
+     List the user hubs belonging to the logged in user and all of the
+     global hubs. If -a is specified then all hubs are listed, otherwise
+     the hidden hub (those starting with "__") are ommitted. Normally the
+     locked status and any comments associated with the hub are displayed,
+     but these will be ommitted if the -q flag is given.
 
 
 `hub set     [<hub>|-]`::
 
-     Sets the 'current' hub for a directory and its
-     sub-directories. The HUB environment variable can be set to a hub
-     name to override this setting.
+     Set the 'current' hub for a directory and its sub-directories.
+     The HUB environment variable can be set to a hub name to override
+     this setting.
 
 
 `hub info    [<hub>]`::
 
-     Lists the vital stats for the named or current hub. (See 'hub set'
-     on how to set the current hub.)
+     Describe a hub. (See 'hub set' on how to set the current hub.)
+
+
+`hub lock           [<hub>]`::
+
+     Lock a hub so that it can not be removed or renamed or have packages
+     added or removed.
+
+
+`hub unlock         [<hub>]`::
+
+     Remove the lock from a hub (see `hub lock` above).
 
 
 `hub name`::
 
-     Lists the name of the current hub. (See 'hub set' on how to set
+     List the name of the current hub. (See 'hub set' on how to set
      the current hub.)
 
 
 `hub path    [<hub>]`::
 
-     Lists the path of the XML file defining the named or current
-     hub. (See 'hub set' on how to set the current hub.)
+     List the path of the XML file defining the named or current
+     hub.
 
 
 `hub xml     [<hub>]`::
 
-     Lists the contents of the XML file defining the named or current
-     hub. (See 'hub set' on how to set the current hub.)
+     List the contents of the XML file defining the named or current
+     hub.
 
 
-`hub init    [<hub>]   <u-hub'>`::
+`hub init [-n       [<hub>]]`::
 
-     Creates an empty user hub, <u-hub'>. The new hub inherits the
-     global hub of <hub> (or the current hub). (See 'hub set' on how
-     to set the current hub.)
+     Create a new user hub with some unique name __h<num>
+     and associates the current working directory with the new hub. If
+     a hub is specified then that determines the global hub for the new
+     hub otherwise the current default hub is used.
+
+
+`hub init [-s]      [<hub>]   <u-hub'>`::
+
+     Create the new named user hub <u-hub'>. If <hub>
+     is specified then the global hub for the new hub is determined by
+     this hub otherwise the default hub is used. Iff -s is specified
+     the hub associated with the current directory is set to the new hub.
 
 
 `hub cp      [<u-hub>] <u-hub'>`::
 
-     Duplicates the user <u-hub> (or the current hib) in
+     Duplicate <u-hub> (or the current hub) in
      <u-hub'>. (See 'hub set' on how to set the current hub.)
 
 
@@ -239,16 +264,13 @@ COMMANDS
 
 `hub list    [<hub>]`::
 
-      Lists the packages belonging to named hub (or the current hub --
-      calls 'ghc-pkg list').
-      (See 'hub set' on how to set the current hub.)
+      List the packages belonging to a hub (calls 'ghc-pkg list').
 
 
 `hub check   [<hub>]`::
 
-      Checks the packages belonging to named hub (or the current hub --
-      calls 'ghc-pkg check').
-      (See 'hub set' on how to set the current hub.)
+      Check the packages belonging to a hub are coherent 
+      (calls 'ghc-pkg check').
 
 
 `hub install    <pkg-name>`... ::
@@ -264,26 +286,49 @@ COMMANDS
 
 `hub erase      <pkg-name>`... ::
 
-      Equivalent to: hub esase-from ^  <pkg-name> ...
+      Equivalent to: hub erase-from ^  <pkg-name> ...
 
 
 `hub erase-from <u-hub> <pkg-name>`...::
 
-      Determines all of the packages dependent on the list of named packaqes
-      in the named hub (or the current hub), lists them and offers to remove
-      them from the hub (by invoking 'ghc-pkg unregister' and 'hub gc').
-      (See 'hub set' on how to set the current hub.)
+      Determine all of the packages dependent on the list of named packaqes
+      in the hub, lists them and offers to remove them from the hub (by
+      invoking 'ghc-pkg unregister'). (See 'hub set' on how to set the
+      current hub.)
 
 
 `hub gc`::
 
-      Runs the garbage collector on the user hubs to reclaim library code
-      that is no longer referenced by them. The directories aren't removed
+      Run the garbage collector on the user hubs to reclaim library code
+      that is no longer referenced by them. (The directories aren't removed
       from the file system, but moved from `~/.hubrc/heap` to
-      `~/.hubrc/garbage` for manual removal. N.B. It is intended that
-      this feature be removed from the beta system with the final
-      release having a fully-automatic garbage collector.)
+      `~/.hubrc/garbage` for manual removal.)
 
+`hub save           [<u-hub>]`::
+
+      Save out the configuration of the hub onto standard output.
+      (See 'hub set' on how to set the current hub.)
+
+
+`hub load           [<u-hub>]`::
+
+      Load the hub from standard input. (i) If the named hub doesn't
+      exist then the hub is created with the global hub specified by the
+      archive; but If <u-hub> does exist then it is checked that it is using
+      the global hub specified and if necessary removed and recreated
+      referencing the right global hub. (ii) Any surplus packages not
+      mentioned in the archive are then removed. (iii) Finally any packages
+      missing from the hub listed in the archive are installed with
+      `cabal-install`.
+
+
+`hub verify [-s]    [<u-hub>]`::
+
+      Check that the named hub (or the default hub) uses the global hub
+      specified in the archive and that it contains all of the packages
+      at the versions specified by the archive. If -s is specified
+      then check that the hub contains no packages other than those specified
+      by the archive.
 
 
 EXAMPLE 1
@@ -295,17 +340,21 @@ List the packages in the (installed) 2011.2.0.1 Haskell Platform:
      HUB=2011.2.0.1 ghc-pkg list
 ----
 
+or equivalently,
+
+----
+     hub list 2011.2.0.1
+----
+
 
 EXAMPLE 2
 ---------
 
-Create a new user hub `foo` based on 2011.4.0.0 platform, attach it to
-the current directory, and install the latest edition of `hexpat` into
-it.
+Create a new hub based on the default hub, attach it to the current directory
+and install the latest edition of `hexpat` into it.
 
 ----
-     hub init 2011.4.0.0 foo
-     hub set foo
+     hub init
      cabal install hexpat
 ----
 
@@ -313,37 +362,35 @@ it.
 EXAMPLE 3
 ---------
 
-Duplicates the 2010.4.0.0-based `foo` hub of example 2 into hub `bar`
-and installs the SHA package into it. `foo` wil now contain the
-2010.4.0.0 packages plus `hexpat` and any other packages it needs and
-`bar` will contain all this plus package `SHA` plus any additional
-packages it need.
+Duplicates the contents of hub `foo` into hub `bar`
+and installs the SHA package into it.
 
 ----
      hub cp foo bar
-     HUB=bar cabal install SHA
+     hub install-into bar SHA
 ----
 
 
 EXAMPLE 4
 ---------
 
-Unpacks `GLUT-2.2.2.1` and runs one of its example programs using the
+Unpacks `GLUT-2.1.2.1` and runs one of its example programs using the
 (installed) Haskell Platform 2011.2.0.1.
 
 ----
-     cabal unpack GLUT-2.2.2.1
-     HUB=2011.2.0.1 runhaskell GLUT-2.2.2.1/examples/BOGLGP/Chapter01/Simple.hs
+     cabal unpack GLUT-2.1.2.1
+     HUB=2011.2.0.1 runhaskell GLUT-2.1.2.1/examples/BOGLGP/Chapter01/Simple.hs
 ----
 
 
 EXAMPLE 5
 ---------
 
-Install the `SHA` package into `my-test` and list the packages in it.
+Install the `SHA` package into `my-test` and lock the hub against it being 
+removed, renamed or having packages added or removed.
 ----
      hub install-into my-test SHA
-     hub list my-test
+     hub lock my-test
 ----
 
 
@@ -351,13 +398,41 @@ EXAMPLE 6
 ---------
 
 Remove the `text` package from the current hub, performs a garbage collection
-of the user hubs and check all of the package databases for consistency.
+of the user hubs and check all of the package databases for consistency
+(assumes `bash`).
 
 ----
      hub erase text
      hub gc
-     for h in $(hub ls); do hub check $h; done
+     for h in $(hub ls -a -q); do hub check ${h}; done
 ----
+
+
+EXAMPLE 7
+---------
+
+Archive the current hub into precious.har.
+
+----
+    hub save >precious.har
+---- 
+
+
+EXAMPLE 8
+---------
+
+(i) Load hub precious from `precsious.har`, creating the hub and erasing and
+installing packages as necessary; doing nothing if the hub already exists
+in the correct configuration. (ii) Configure the current work tree to use
+`precious`. (iii) Use `precious` to compile `golum.hs`.
+
+----
+    hub load precious <precious.har
+    hub set  precious
+    ghc --make golum.hs
+---- 
+
+
 
 
 ENVIRONMENT VARIABLES
@@ -372,19 +447,18 @@ ENVIRONMENT VARIABLES
 	the 'current' hub. If no parent directory defines the current
 	hub then the default global hub is used (see the `hub default`
 	command). The `HUB` environment variable overrides all of
-	these so it is best left unset unless you really want to force
-	a single hub to be used for the current session regardless of
-	current directory.
+	these so it is best left unset in interactive sessions unless
+	you really want to force a single hub to be used regardless of
+	work tree configuration.
 
 
 FILES
 -----
 
-[dot]`hub`::
+`.hub`::
 
-	(A bug in docbook aparently forbids literals from starting
-	with a period.) Lists the name of the hub for the current
-	directory and it's subdirectories.
+	Lists the name of the hub for the current directory
+	and it's subdirectories.
 
 `~/.hubrc/hub/<u-hub>.xml`::
 
@@ -404,8 +478,9 @@ FILES
     Contains directories removed from `~/.hubrc/heap` by the garbage collector.
 
 `/usr/hs/bin`::
-	Haskell tools ~-- this directory should be put on the user
-        path if the tools aren't installed in /usr/bin.
+	The standard location for the 'hub' program and the rest of
+	the Haskell tools (as links to the 'hub' program) -- this directory
+	should be put on the PATH if the tools aren't installed in /usr/bin.
 
 `/usr/hs/hub/<g-hub>.xml`::
 
@@ -413,15 +488,15 @@ FILES
 
 `/usr/hs/db`::
 
-	Package databases for system hubs.
+	Standard location for the package databases for system hubs.
 
 `/usr/hs/ghc/<version>`::
 
-	Installation directory for GHC <version>.
+	Standard location for GHC <version> installation.
 
 `/usr/hs/hp/<version>`::
 
-	Installation directory for Haskell Platform <version>.
+	Standard installation locations for Haskell Platform <version>.
 
 
 SEE ALSO
@@ -430,7 +505,7 @@ SEE ALSO
 hub(5)::
 
 	Describes the format of the XML configuration files used to
-	represent the user and global hubs.
+	configure the user and global hubs.
 
 
 http://justhub.org::
