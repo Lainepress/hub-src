@@ -5,7 +5,7 @@
 -- work for Posix systems. Getting a Windows hub port should be a matter of
 -- porting this module.
 --
--- (c) 2011-2012 Chris Dornan 
+-- (c) 2011-2012 Chris Dornan
 
 
 module Hub.System
@@ -63,14 +63,14 @@ fileDirExists :: FilePath -> IO Bool
 fileDirExists fp = flip E.catch (hdl_ioe False) $
      do st <- getFileStatus fp
         return $ isRegularFile st || isDirectory st
-        
+
 removeR :: FilePath -> IO ()
 removeR fp =
      do ec <- rawSystem "rm" ["-r",fp]
         case ec of
           ExitSuccess   -> return ()
           ExitFailure n -> oops PrgO $
-                                printf "rm failure (return code=%d)" n  
+                                printf "rm failure (return code=%d)" n
 
 removeRF :: FilePath -> IO ()
 removeRF fp =
@@ -78,7 +78,7 @@ removeRF fp =
         case ec of
           ExitSuccess   -> return ()
           ExitFailure n -> oops PrgO $
-                                printf "rm failure (return code=%d)" n  
+                                printf "rm failure (return code=%d)" n
 
 cpFileDir :: FilePath -> FilePath -> IO ()
 cpFileDir fp fp' =
@@ -86,7 +86,7 @@ cpFileDir fp fp' =
         case ec of
           ExitSuccess   -> return ()
           ExitFailure n -> oops PrgO $
-                                printf "cp failure (return code=%d)" n  
+                                printf "cp failure (return code=%d)" n
 
 mvFileDir :: FilePath -> FilePath -> IO ()
 mvFileDir fp fp' =
@@ -94,7 +94,7 @@ mvFileDir fp fp' =
         case ec of
           ExitSuccess   -> return ()
           ExitFailure n -> oops PrgO $
-                                printf "mv failure (return code=%d)" n  
+                                printf "mv failure (return code=%d)" n
 
 
 symLink :: FilePath -> FilePath -> IO ()
@@ -102,7 +102,7 @@ symLink = createSymbolicLink
 
 
 inc :: FilePath -> IO Int
-inc fp = 
+inc fp =
      do fd <- openFd fp ReadWrite (Just stdFileMode) defaultFileFlags
         -- putStrLn "acquiring lock"
         waitToSetLock fd (WriteLock,AbsoluteSeek,0,0)
@@ -119,13 +119,13 @@ inc fp =
 
 tidyDir :: FilePath -> IO ()
 tidyDir dp = flip E.catch (hdl_ioe ()) $
-     do e <- all dots `fmap` getDirectoryContents dp 
+     do e <- all dots `fmap` getDirectoryContents dp
         when e $ removeDirectory dp
       where
         dots "."  = True
         dots ".." = True
         dots _    = False
-        
+
 readMB :: Read a => String -> Maybe a
 readMB str =
     case [ x | (x,t)<-reads str, ("","")<-lex t ] of
@@ -133,10 +133,10 @@ readMB str =
       _   -> Nothing
 
 lockFileDir :: Bool -> Bool -> FilePath -> IO ()
-lockFileDir dir lck fp = setFileMode fp m 
+lockFileDir dir lck fp = setFileMode fp m
       where
         m = case lck of
-                  True  -> 
+                  True  ->
                     case dir of
                       True  -> u [r  ,x]
                       False ->    r
@@ -147,9 +147,9 @@ lockFileDir dir lck fp = setFileMode fp m
 
         r = u [ownerReadMode   ,groupReadMode   ,otherReadMode   ]
         w = u [ownerWriteMode                                    ]
-        x = u [ownerExecuteMode,groupExecuteMode,otherExecuteMode] 
+        x = u [ownerExecuteMode,groupExecuteMode,otherExecuteMode]
 
-        u = foldr unionFileModes nullFileMode 
+        u = foldr unionFileModes nullFileMode
 
 hdl_ioe :: a -> IOError -> IO a
 hdl_ioe x _ = return x
@@ -198,4 +198,4 @@ readAFile :: FilePath -> IO String
 readAFile fp = U.toString `fmap` B.readFile fp
 
 writeAFile :: FilePath -> String -> IO ()
-writeAFile fp = B.writeFile fp . U.fromString 
+writeAFile fp = B.writeFile fp . U.fromString

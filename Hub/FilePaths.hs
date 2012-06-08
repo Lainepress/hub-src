@@ -3,7 +3,7 @@
 --
 -- This module abstracts the layout of /usr/hs -- the system hub area.
 --
--- (c) 2011-2012 Chris Dornan 
+-- (c) 2011-2012 Chris Dornan
 
 
 module Hub.FilePaths where
@@ -13,7 +13,7 @@ import           Text.Regex
 import           Data.Maybe
 
 
-hubLib, sysVersion, distroDefaultHubPath, sysDefaultHubPath, 
+hubLib, sysVersion, distroDefaultHubPath, sysDefaultHubPath,
                     defaultHubPath, globalHubDir,
                     toolsBin, hubGccBin, hubBinutilsBin :: FilePath
 
@@ -25,7 +25,7 @@ distroDefaultHubPath    = "/usr/hs/lib/distro-default.hub"
 sysDefaultHubPath       = "/usr/hs/lib/sys-default.hub"
 defaultHubPath          = "/usr/hs/lib/the-default.hub"
 globalHubDir            = "/usr/hs/hub"
-toolsBin                = "/usr/hs/tools" 
+toolsBin                = "/usr/hs/tools"
 hubGccBin               = "/usr/hs/gcc/bin"
 hubBinutilsBin          = "/usr/hs/binutils/bin"
 

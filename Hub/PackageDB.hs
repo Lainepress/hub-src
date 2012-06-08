@@ -4,7 +4,7 @@
 -- Sometimes the hub has to tangle with the Package DB format (mostly hub
 -- erase): this package provides the tools.
 --
--- (c) 2011-2012 Chris Dornan 
+-- (c) 2011-2012 Chris Dornan
 
 
 module Hub.PackageDB
@@ -21,7 +21,7 @@ module Hub.PackageDB
     , PkgIden(..)
     , Package(..)
     , packageDB
-    
+
     , DepGraph(..)
     , dep_graph
     ) where
@@ -68,14 +68,14 @@ eraseClosure :: Hub -> [PkgNick] -> IO ([PkgNick],[PkgNick])
 eraseClosure hub pkns =
      do pdb  <- packageDB hub
         pkis <- mapM (resolve_pkg_nick pdb) pkns
-        return (map pki2pkn pkis,map pki2pkn $ erase_deps pdb pkis) 
+        return (map pki2pkn pkis,map pki2pkn $ erase_deps pdb pkis)
 
 importLibraryDirs :: Hub -> IO [FilePath]
 importLibraryDirs hub =
      do pdb  <- packageDB hub
         return $ usort $ concat $ map dirs $ Map.elems pdb
       where
-        dirs pkg = import_dirsPKG pkg ++ library_dirsPKG pkg  
+        dirs pkg = import_dirsPKG pkg ++ library_dirsPKG pkg
 
 parsePkgNick :: String -> IO PkgNick
 parsePkgNick s = maybe fl return $ parsePkgNick' s
@@ -92,12 +92,12 @@ parsePkgNick' s =
         is_val      = case s of
                         []   -> False
                         c:cs -> fval_c c && all sval_c cs
-      
-        is_vr       = not (null nm) && not (null vr) && all vr_c vr 
-      
+
+        is_vr       = not (null nm) && not (null vr) && all vr_c vr
+
         nm          = reverse r_nm
         vr          = reverse r_vr
-      
+
         r_nm        = cl_d rst2
         (r_vr,rst2) = break ('-'==) $ reverse s
 
@@ -108,7 +108,7 @@ parsePkgNick' s =
         vr_c c       = isDigit c
 
         fval_c c     = isAlpha c || c=='_'
-        sval_c c     = isAlpha c || isDigit c || c `elem` "-_.=+#~" 
+        sval_c c     = isAlpha c || isDigit c || c `elem` "-_.=+#~"
 
 prettyPkgNick :: PkgNick -> String
 prettyPkgNick pkn =
@@ -125,9 +125,9 @@ pki2pkn pki = PKN (namePKI pki) (Just(vrsnPKI pki))
 --
 
 erase_deps :: PackageDB -> [PkgIden] -> [PkgIden]
-erase_deps pdb pkis = map v2pki $ (\\ vs) $ usort $ concat $ map (pre gr) vs  
+erase_deps pdb pkis = map v2pki $ (\\ vs) $ usort $ concat $ map (pre gr) vs
       where
-        vs      = [ v | Just v<-map pki2mbv pkis ] 
+        vs      = [ v | Just v<-map pki2mbv pkis ]
         pki2mbv = flip Map.lookup $ assgnDG dg
         v2pki   = (arrayDG dg!)
         gr      = trc $ graphDG dg
@@ -154,11 +154,11 @@ dep_graph :: PackageDB -> DepGraph
 dep_graph pdb = DG asgn arry (mkGraph ndes edgs)
       where
         ndes = map (\(x,y)->(y,x)) $ Map.toList asgn
-        
+
         edgs = [ (x',y',()) | (x,y)<-deps,
                         Just x'<-[Map.lookup x asgn],
                         Just y'<-[Map.lookup y asgn] ]
-                
+
         deps = [ (idPKG pkg,dep) | pkg<-Map.elems pdb, dep<-dependsPKG pkg ]
 
         arry = listArray (0,Map.size asgn-1) $ Map.keys asgn
@@ -181,7 +181,7 @@ match_pkg_nick :: PackageDB -> PkgNick -> [PkgIden]
 match_pkg_nick pdb pkn =
             [ pki | pki <- Map.keys pdb,
                         namePKN pkn==namePKI pki
-                                    && maybe True (==vrsnPKI pki) (vrsnPKN pkn)] 
+                                    && maybe True (==vrsnPKI pki) (vrsnPKN pkn)]
 
 
 --
@@ -210,10 +210,10 @@ package_dump hub =
         ct <- readAFile tf
         removeFile tf
         return ct
-        
+
 packages :: [Package] -> Map.Map PkgIden Package
 packages pkgs = Map.fromList [(idPKG pkg,pkg) | pkg<-pkgs ]
-        
+
 package :: Map.Map String [String] -> Package
 package mp = PKG
         (s2pr (lu "id"           sgl))
@@ -222,7 +222,7 @@ package mp = PKG
               (lu "depends"      prs)
       where
         lu ky f = f $ Map.lookup ky mp
-                  
+
         sgl Nothing    = ""
         sgl (Just lns) = trim $ unlines lns
 
@@ -264,7 +264,7 @@ fields (ln:lns) = (tag,rst:cnt):fields lns'
                         w:ws -> (cln w,unwords ws)
 
         (cnt,lns')  = span chk lns
-        
+
         chk []      = False
         chk (c:_) = isSpace c
 
@@ -272,4 +272,4 @@ fields (ln:lns) = (tag,rst:cnt):fields lns'
                         ':':r_tg -> reverse r_tg
                         _        -> tg
 
-        
+

@@ -4,7 +4,7 @@
 -- This module provides the routines the Main dispatcher calls fater analysing
 -- the CommandLine AST.
 --
--- (c) 2011-2012 Chris Dornan 
+-- (c) 2011-2012 Chris Dornan
 
 
 module Hub.Commands
@@ -75,8 +75,8 @@ _ls :: Bool -> Bool -> IO ()
 _ls af qf =
      do hns  <- lsHubs [UsrHK,GlbHK]
         hubs <- mapM (discover . Just) $ filter chk hns
-        putStr $ unlines $ [ fmt nm co lk | hub<-hubs, 
-                                let nm = name__HUB hub, 
+        putStr $ unlines $ [ fmt nm co lk | hub<-hubs,
+                                let nm = name__HUB hub,
                                 let co = commntHUB hub,
                                 let lk = if lockedHUB hub then "L" else " " ]
       where
@@ -85,18 +85,18 @@ _ls af qf =
 
         fmt nm co lk  = case qf of
                           True  -> nm
-                          False -> printf "%-20s %s -- %s" nm lk co 
+                          False -> printf "%-20s %s -- %s" nm lk co
 
 _get :: IO ()
 _get =
      do yup <- fileExists ".hub"
         case yup of
           False -> putStrLn "No hub set for this directory"
-          True  -> 
+          True  ->
              do hn <- trim `fmap` readAFile ".hub"
                 _ <- checkHubName [UsrHK,GlbHK] hn
                 putStrLn hn
-                
+
 _set :: Hub -> IO ()
 _set hub = writeAFile ".hub" $ name__HUB hub ++ "\n"
 
@@ -114,7 +114,7 @@ _info :: Hub -> IO ()
 _info hub = putStr $ unlines $
     [ printf "%-23s%s"                     (name++hs++lk) cmt                                    ] ++
     [ printf "      GHC              : %s" hc                | Just hc <- [bin2toolchain hc_bin] ] ++
-    [ printf "      Haskell Platform : %s" hp                | Just hp <- [db2platform   glb_db] ] ++ 
+    [ printf "      Haskell Platform : %s" hp                | Just hp <- [db2platform   glb_db] ] ++
     [ printf "      Tools            : %s"         hc_bin                                        ] ++
     [        "      Package DBs"                             |                         True      ] ++
     [ printf "          global       : %-50s (%s)" glb_db gh |                         True      ] ++
@@ -149,7 +149,7 @@ lock :: Bool -> Hub -> IO ()
 lock lck hub =
         case usr_dbHUB hub of
           Nothing -> oops HubO msg
-          Just dr -> 
+          Just dr ->
              do cs <- filter isc `fmap` getDirectoryContents dr
                 lockFileDir True lck dr
                 mapM_ (lockFileDir False lck) [dr</>c|c<-cs]
@@ -161,7 +161,7 @@ lock lck hub =
                     _                     -> False
 
         lk_hub  = hub { usr___HUB = fmap lk' $ usr___HUB hub }
-        
+
         lk' uhb = uhb { lockedUHB = lck }
 
         msg     = printf "%s: cannot (un)lock a global hub" $ name__HUB hub
@@ -194,7 +194,7 @@ _swap hub1 hn2 =
      do hub2 <- discover $ Just hn2
         swapHub hub1 hub2
 
-_gc :: IO () 
+_gc :: IO ()
 _gc = gcDefaultDirectory discover VerboseGCM
 
 _list :: Hub -> IO ()
@@ -207,13 +207,13 @@ _save :: Hub -> IO ()
 _save = save
 
 _load :: HubName -> IO ()
-_load hn = 
+_load hn =
      do _   <- checkHubName [UsrHK] hn
         thr <- doesHubExist         hn
         mb  <- case thr of
                  True  -> Just `fmap` discover (Just hn)
                  False -> return Nothing
-        pd  <- load hn mb False 
+        pd  <- load hn mb False
         let hub = hubPD pd
             sps = surPD pd
             mps = msgPD pd
@@ -248,7 +248,7 @@ _install hub pkns =
                                             ("install":map prettyPkgNick pkns)
 
 _erase :: Hub -> [PkgNick] -> Bool -> IO ()
-_erase hub pkns0 ff = 
+_erase hub pkns0 ff =
      do notLocked hub
         (pkns,d_pkns) <- eraseClosure hub pkns0
         putStr "Packages requested to be deleted:\n"
@@ -263,7 +263,7 @@ _erase hub pkns0 ff =
                         yn <- getLine
                         return $ map toLower yn `elem` ["y","yes"]
         case go of
-          True  ->  
+          True  ->
              do mapM_ unreg $ pkns ++ d_pkns
                 putStr "package(s) deleted.\n"
           False -> putStrLn "No modules deleted."

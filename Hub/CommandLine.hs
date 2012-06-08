@@ -3,7 +3,7 @@
 --
 -- This module parses the command line.
 --
--- (c) 2011-2012 Chris Dornan 
+-- (c) 2011-2012 Chris Dornan
 
 
 module Hub.CommandLine
@@ -26,7 +26,7 @@ import           Hub.PackageDB
 
 
 commandLine :: IO CommandLine
-commandLine = 
+commandLine =
      do as  <- getArgs
         mb  <- prog as
         mb' <- maybe (hub_dispatch as) (return.Just) mb
@@ -77,7 +77,7 @@ prog as =
         let (_,p_s) = splitFileName pn
         case Map.lookup p_s progMap of
           Nothing  -> return Nothing
-          Just prg -> 
+          Just prg ->
                  do hub <- discover Nothing
                     return $ Just $ ProgCL hub (prg,as)
 
@@ -148,12 +148,12 @@ hub_dispatch as = case as of
     "erase-from":"-f":hn :p:ps -> hub_pks (Just hn) p ps    >>= \(hub,pkns) -> return $ Just $ EraseCL   hub     pkns True
     "erase"              :p:ps -> hub_pks  Nothing  p ps    >>= \(hub,pkns) -> return $ Just $ EraseCL   hub     pkns False
     "erase-from"     :hn :p:ps -> hub_pks (Just hn) p ps    >>= \(hub,pkns) -> return $ Just $ EraseCL   hub     pkns False
-    _                          ->                                              return   Nothing  
+    _                          ->                                              return   Nothing
 
 
 hub_uniq :: Maybe HubName -> IO (Hub,HubName)
 hub_uniq mb =
-     do hub <- discover mb 
+     do hub <- discover mb
         (,) hub `fmap` allocHub
 
 hub_pair, hub_swap :: Maybe HubName -> HubName -> IO Hub
@@ -161,7 +161,7 @@ hub_pair = hub_pair' False
 hub_swap = hub_pair' True
 
 hub_pair' :: Bool -> Maybe HubName -> HubName -> IO Hub
-hub_pair' sw mb_hn hn' = 
+hub_pair' sw mb_hn hn' =
      do hub <- discover mb_hn
         let hn = name__HUB hub
         _ <- checkHubName [UsrHK,GlbHK] hn

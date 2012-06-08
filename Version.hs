@@ -3,13 +3,13 @@
 --
 -- Keeper of the version information.
 --
--- (c) 2011-2012 Chris Dornan 
+-- (c) 2011-2012 Chris Dornan
 
 
 module Version
     ( version
     , main
-    ) where 
+    ) where
 
 
 version :: String

@@ -4,7 +4,7 @@
 -- This module parses the hub XML file to produce a Hub, and the inverse,
 -- dumping a Hub into XML.
 --
--- (c) 2011-2012 Chris Dornan 
+-- (c) 2011-2012 Chris Dornan
 
 
 module Hub.Parse
@@ -37,7 +37,7 @@ dump :: Hub -> IO ()
 dump hub = B.writeFile path xml_bs
       where
         xml_bs   = B.pack $ map (toEnum.fromEnum) xml
-        
+
         xml      = unlines $
             [        "<hub>"
             , printf "  <comnt>%s</comnt>" $ string2xml comnt
@@ -56,7 +56,7 @@ dump hub = B.writeFile path xml_bs
             ]
 
         lks      = if lk then "rmie" else ""
-                
+
         mb_usrgh = fmap  glb_hnUHB       mb_uh
         mb_usrdb = fmap  usr_dbUHB       mb_uh
         lk       = maybe False lockedUHB mb_uh
@@ -73,10 +73,10 @@ fail_err :: HubName -> FilePath -> Err -> IO a
 fail_err _ hf er = oops PrgO rs
       where
         rs = printf "%s:%d:%d %s" hf ln (cn+1) es
-        
+
         ln = X.xmlLineNumber   lc
         cn = X.xmlColumnNumber lc
-        
+
         X.XMLParseError es lc = er
 
 type Loc    = X.XMLParseLocation
@@ -100,8 +100,8 @@ parse' :: B.ByteString -> Poss Err Node
 parse' = ei2ps . X.parse' X.defaultParseOptions
 
 check :: HubSource -> FilePath -> HubName -> FilePath -> HubKind -> Node -> Poss Err Hub
-check hs dy hn hf hk (X.Element "hub" [] ns lc) = 
-                            final hs dy hk $ foldl chk (YUP $ start hn hf lc) ns 
+check hs dy hn hf hk (X.Element "hub" [] ns lc) =
+                            final hs dy hk $ foldl chk (YUP $ start hn hf lc) ns
           where
             chk (NOPE er) _  = NOPE er
             chk (YUP  st) nd = foldr (trial st nd) (NOPE $ unrecognised st nd)
@@ -121,7 +121,7 @@ check _  _  _  _  _  _ = NOPE $ err loc0 "expected simple <hub>...</hub>"
 
 data PSt = ST
     { handlST :: HubName
-    , hpathST :: FilePath    
+    , hpathST :: FilePath
     , locwfST :: Loc
     , comntST :: Maybe String
     , hcbinST :: Maybe FilePath
@@ -138,30 +138,30 @@ start hn fp lc =
 
 final :: HubSource -> FilePath -> HubKind -> Poss Err PSt -> Poss Err Hub
 final _  _  _  (NOPE er) = NOPE er
-final hs dy hk (YUP  st) = 
+final hs dy hk (YUP  st) =
      do co    <- get_co
         hc    <- get_hc
         tl    <- get_tl
         gl    <- get_gl
         mb_pr <- case (mb_ur,mb_gh) of
                    (Just ur,Nothing) -> (Just . ((,) ur)) `fmap` calc_gh gl
-                   (Just ur,Just gh) -> return $ Just (ur,gh) 
+                   (Just ur,Just gh) -> return $ Just (ur,gh)
                    (Nothing,_      ) -> return Nothing
-        return $ HUB hs hn hk hf co hc tl gl $ fmap mk_uhb mb_pr 
+        return $ HUB hs hn hk hf co hc tl gl $ fmap mk_uhb mb_pr
       where
-        get_co = maybe (YUP   ""      ) YUP mb_co 
+        get_co = maybe (YUP   ""      ) YUP mb_co
         get_hc = maybe (NOPE  hc_err  ) YUP mb_hc
         get_tl = maybe (YUP $ toolsBin) YUP mb_tl
         get_gl = maybe (NOPE  gl_err  ) YUP mb_gl
 
         hc_err = err lc "Hub doesn't specify a GHC bin directory"
         gl_err = err lc "Hub doesn't specify a global package directory"
-        
+
         mk_uhb = \(ur,gh) -> UHB dy gh ur $ maybe False id mb_lk
 
         calc_gh gl =
                 case match (mk_re globalHubREs) gl of
-                  Just gh | isHubName gh == Just GlbHK -> return gh 
+                  Just gh | isHubName gh == Just GlbHK -> return gh
                   _                                    -> NOPE $ err loc0 msg
               where
                 msg = "Could not derive the global hub name from the "
@@ -188,7 +188,7 @@ chk_wspce st nd =
           X.Text txt | all isSpace txt -> Just $ YUP    st
                      | otherwise       -> Just $ NOPE $ tx_err lc txt_er
       where
-        lc     = locwfST st 
+        lc     = locwfST st
         txt_er = "unexpected top-level text"
 
 chk_comnt st0 nd = simple_node True  st0 nd "comnt" chk
@@ -259,19 +259,19 @@ simple_node ev st (X.Element tg' as ks lc) tg cont
                         chk_as = case as of
                                    []  -> return  ()
                                    _:_ -> NOPE $ err lc ats_er
-    
+
                         chk_ks = case [ () | X.Element _ _ _ _<-ks ] of
                                    []  -> chk_nl
                                    _:_ -> NOPE $ err lc txt_er
-                                   
+
                         chk_nl = case all_tx of
                                    []  | not ev -> NOPE $ err lc emp_er
                                    _            -> chk_ls
-    
+
                         chk_ls = case all (/='\n') all_tx of
                                    True  -> return all_tx
                                    False -> NOPE $ err lc lns_er
-    
+
                         all_tx = trim $ concat $ [ txt | X.Text txt<-ks ]
                         ats_er = printf "<%s> takes no attributes"        tg
                         txt_er = printf "<%s> takes simple text"          tg

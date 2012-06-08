@@ -4,9 +4,9 @@
 -- This module generates the error messages. It has to be careful with the
 -- context as the user my have invokled 'ghc' or 'cabal' (say) only for the
 -- hub tool, acting as a wrapper, to encounter a problem in determing the
--- right tool and context to invoke. 
+-- right tool and context to invoke.
 --
--- (c) 2011-2012 Chris Dornan 
+-- (c) 2011-2012 Chris Dornan
 
 
 module Hub.Oops
@@ -29,7 +29,7 @@ data Oops
                                                                 deriving (Show)
 
 oops :: Oops -> String -> IO a
-oops o0 msg = 
+oops o0 msg =
      do pn <- getProgName
         as <- getArgs
         let o  = refineO (snd $ splitFileName pn) o0
@@ -39,7 +39,7 @@ oops o0 msg =
         hPutStr stderr $ err pn ar o
         exitWith $ ExitFailure 1
       where
-        err pn ar o = 
+        err pn ar o =
                 case o of
                   HubO -> printf "%s %s: %s\n"             pn ar msg
                   PrgO -> printf "%s (hub wrapper):  %s\n" pn    msg

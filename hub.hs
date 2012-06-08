@@ -3,10 +3,10 @@
 --
 -- Main driver for the hub tool (see the README for details).
 --
--- (c) 2011-2012 Chris Dornan 
+-- (c) 2011-2012 Chris Dornan
 
 
-module Main(main) where 
+module Main(main) where
 
 import           Control.Monad
 import           System.IO
@@ -21,7 +21,7 @@ import qualified Version        as V
 
 
 main :: IO ()
-main = 
+main =
      do cl <- commandLine
         case cl of
           HelpCL    _   _        -> return ()
@@ -58,7 +58,7 @@ main =
           VerifyCL  hub      sf  -> _verify  hub      sf
           InstallCL hub pkns     -> _install hub pkns
           EraseCL   hub pkns ef  -> _erase   hub pkns ef
-        
+
 
 _help :: Bool -> String -> IO ()
 _help False hlp = putStr hlp

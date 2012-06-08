@@ -6,7 +6,7 @@
 -- the 'exec' utilities for setting up the PATH, GHC_PACKAGE_PATH and munging
 -- cabal's command-line arguments, etc.
 --
--- (c) 2011-2012 Chris Dornan 
+-- (c) 2011-2012 Chris Dornan
 
 
 module Hub.Hub
@@ -74,7 +74,7 @@ data HubSource
                                                                 deriving (Show)
 
 prettyHubKind :: HubKind -> String
-prettyHubKind GlbHK = "global" 
+prettyHubKind GlbHK = "global"
 prettyHubKind UsrHK = "user"
 
 checkHubName :: [HubKind] -> HubName -> IO HubKind
@@ -87,7 +87,7 @@ checkHubName hks hn =
 isHubName :: HubName -> Maybe HubKind
 isHubName hn =
         case hn of
-          c:cs | all hubname_c cs -> fst_hubname_c c 
+          c:cs | all hubname_c cs -> fst_hubname_c c
           _                       -> Nothing
 
 hubUserPackageDBPath :: Hub -> IO FilePath
@@ -151,7 +151,7 @@ mk_prog hub prog as0 =
                 db <- hubUserPackageDBPath hub
                 let _ld = "--libdir="     ++ hd
                     _pd = "--package-db=" ++ db
-                return ( cmd : _ld : _pd : as', Just hd )                                 
+                return ( cmd : _ld : _pd : as', Just hd )
 
 hub_env :: Mode -> Hub -> String -> [(String,String)]
 hub_env mde hub pth0 = concat
@@ -161,7 +161,7 @@ hub_env mde hub pth0 = concat
         ]
       where
         is_usr     = hk /= GlbHK
-      
+
         pth        = printf "%s:%s:%s" hubGccBin hubBinutilsBin pth0
 
         ppt        = case mb_usr of
@@ -177,7 +177,7 @@ hub_env mde hub pth0 = concat
         mb_usr     = usr___HUB hub
         glb        = glb_dbHUB hub
 
-        
+
 --
 -- Validating Hub Names
 --
@@ -193,4 +193,4 @@ hubname_c c = c `elem` "_-." || isAlpha c || isDigit c
 glb_first_hub_name_c, usr_first_hub_name_c :: Char -> Bool
 glb_first_hub_name_c c = isDigit c
 usr_first_hub_name_c c = c `elem` "_." || isAlpha c
-        
+

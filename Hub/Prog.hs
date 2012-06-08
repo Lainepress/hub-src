@@ -5,10 +5,10 @@
 -- the programs that come with a Haskell Plaform: the GHC tools, cabal and
 -- a few others.
 --
--- (c) 2011-2012 Chris Dornan 
+-- (c) 2011-2012 Chris Dornan
 
 
-module Hub.Prog 
+module Hub.Prog
     ( Prog(..)
     , ProgType(..)
     , P(..)
@@ -60,4 +60,4 @@ p2prog p =
 
 progMap :: Map.Map String Prog
 progMap = Map.fromList [ (nmePROG pg,pg) | pg<-map p2prog [minBound..maxBound] ]
-                                                                
+

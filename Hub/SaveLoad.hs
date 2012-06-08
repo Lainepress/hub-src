@@ -5,7 +5,7 @@
 -- an archive file, performing some analysis on the target Hub to be loaded
 -- (if there is one).
 --
--- (c) 2011-2012 Chris Dornan 
+-- (c) 2011-2012 Chris Dornan
 
 
 module Hub.SaveLoad
@@ -13,7 +13,7 @@ module Hub.SaveLoad
     , PkgDiffs(..)
     , load
     ) where
-    
+
 import           Data.Char
 import qualified Data.Map               as Map
 import           Data.List
@@ -25,7 +25,7 @@ import           Hub.PackageDB
 
 
 -- Generates the archive on the standard output.
-    
+
 save :: Hub -> IO ()
 save hub =
      do pdb <- packageDB hub
@@ -56,11 +56,11 @@ load hn mb_hub0 vy =
                        Just pr -> return pr
         mb_hub <-
             case mb_hub0 of
-              Nothing  -> return Nothing 
+              Nothing  -> return Nothing
               Just hub ->
                 case usr___HUB hub of
                   Just uhb | gh==glb_hnUHB uhb -> return $ Just hub
-                           | not vy            -> r_noth $ deleteHub hub 
+                           | not vy            -> r_noth $ deleteHub hub
                   _                            -> oops HubO mm_msg
         g_hub <- discover $ Just gh
         hub   <- case mb_hub of
@@ -69,22 +69,22 @@ load hn mb_hub0 vy =
         nks0 <- (map iden2nick . Map.keys) `fmap` packageDB hub
         return $ PD hub (nks0\\nks) (nks\\nks0) nks
       where
-        r_noth = fmap (const Nothing) 
+        r_noth = fmap (const Nothing)
         mm_msg = "global hub mismatch"
 
 parse_input :: IO (Maybe (HubName,[PkgNick]))
-parse_input = 
+parse_input =
      do cts <- getContents
         return $ parse_har cts
 
 parse_har :: String -> Maybe (HubName,[PkgNick])
 parse_har cts =
      do (gh,r) <- hdr_p $ pp cts
-        (,) gh `fmap` bdy_p r 
-        
+        (,) gh `fmap` bdy_p r
+
 hdr_p :: [String] -> Maybe (HubName,[String])
 hdr_p []       = Nothing
-hdr_p (ln:lns) = 
+hdr_p (ln:lns) =
         case words ln of
           ['^':'=':hn]
             | isHubName hn == Just GlbHK
@@ -104,7 +104,7 @@ pp :: String -> [String]
 pp = filter (not . all isSpace) . map sc . lines
       where
         sc ln = foldr cmt "" ln
-        
+
         cmt '#' _ = ""
         cmt '-' t = case t of
                       '-':_ -> ""

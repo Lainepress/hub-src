@@ -4,7 +4,7 @@
 -- All user hubs are managed in ~/.hubrc, the 'directory'. This module tries
 -- to abstract the messy details.
 --
--- (c) 2011-2012 Chris Dornan 
+-- (c) 2011-2012 Chris Dornan
 
 
 module Hub.Directory
@@ -15,7 +15,7 @@ module Hub.Directory
     , doesHubExist
     , isUserHub
     , userHubPath
-    , globalHubPath    
+    , globalHubPath
     , defaultGlobalHubName
     , lsHubs
     , bin2toolchain
@@ -60,18 +60,18 @@ initDirectory =
      do (hub,lib) <- user_hub_dirs
         createDirectoryIfMissing True hub
         createDirectoryIfMissing True lib
-        
 
--- check that a hub name denotes a named user hub that either 
+
+-- check that a hub name denotes a named user hub that either
 -- exists (userHubExists) or or has not been created (userHubAvailable)
 
 userHubExists, userHubAvailable :: HubName -> IO ()
 
-userHubExists hn = 
+userHubExists hn =
      do _ <- checkHubName [UsrHK] hn
         hubExists   hn
 
-userHubAvailable hn = 
+userHubAvailable hn =
      do _ <- checkHubName [UsrHK] hn
         iuh <- isUserHub hn
         case iuh of
@@ -120,7 +120,7 @@ defaultGlobalHubName = sel
         , dro_df     -- O/S distro default (may not be installed)
         , sys_df     -- Hub system default (may not be installed)
         , lhp_df     -- looks like the latest H.P. (guess)
-        , lst_df     -- lexigographical maximum 
+        , lst_df     -- lexigographical maximum
         ]
       where
         sel []        = oops PrgO "no global hubs!"
@@ -128,7 +128,7 @@ defaultGlobalHubName = sel
                  do ei <- tryIO $ trim `fmap` p
                     case ei of
                       Left  _  -> sel ps
-                      Right hn -> 
+                      Right hn ->
                          do ex <- fileExists $ globalHubPath hn
                             case ex of
                               True  -> return hn
@@ -141,14 +141,14 @@ defaultGlobalHubName = sel
         sys_df        = trim `fmap` readAFile sysDefaultHubPath
 
         lhp_df        = mx_fr $ gmatch hp_hub_re
-        
+
         lst_df        = mx_fr $ const True
 
-        mx_fr  p      = (filter p `fmap` lsHubs [GlbHK]) >>= mx 
+        mx_fr  p      = (filter p `fmap` lsHubs [GlbHK]) >>= mx
 
         mx     []     = ioError $ userError "Hub.Hub: internal error"
         mx     (x:xs) = return  $ foldl max x xs
-                
+
         hp_hub_re     = mk_re "20[0-9][0-9]\\.[0-9]\\.[0-9]\\.[0-9]"
 
 -- list hubs
@@ -159,7 +159,7 @@ lsHubs hks = concat `fmap` mapM ls (sort hks)
         ls GlbHK = ls_glb_hubs
         ls UsrHK = ls_usr_hubs
 
--- convert 'bin' and 'db' paths to corresponding toolchai8ns and platforms 
+-- convert 'bin' and 'db' paths to corresponding toolchai8ns and platforms
 
 bin2toolchain, db2platform :: FilePath -> Maybe String
 bin2toolchain = match $ mk_re hcBinREs
@@ -172,14 +172,14 @@ allocHub =
      do (hd,_) <- user_hub_dirs
         alloc `fmap` getDirectoryContents hd
       where
-        alloc gns = printf "__h%03d" $ 
+        alloc gns = printf "__h%03d" $
                         (1+) $ maximum $ -1:[ i | Just i<-map prs gns ]
 
         prs fp = case reverse fp of
                    'l':'m':'x':'.':t -> prs' $ reverse t
-                   _                 -> Nothing 
-                
-        
+                   _                 -> Nothing
+
+
         prs' :: String -> Maybe Int
         prs' ('_':'_':'h':t) = readMB t
         prs' _               = Nothing
@@ -193,7 +193,7 @@ createHub' cp hub0 hn sf =
         (h_fp,lib,db) <- user_hub_paths hn
         createDirectoryIfMissing True lib
         case cp of
-          True  -> 
+          True  ->
              do db0 <- hub_user_db hub0
                 cpFileDir db0 db
           False ->
@@ -274,7 +274,7 @@ data GCMode = DebugGCM | VerboseGCM | QuietGCM
                                                                 deriving (Show)
 
 gcDefaultDirectory :: (Maybe HubName->IO Hub) -> GCMode -> IO ()
-gcDefaultDirectory discover gcm = 
+gcDefaultDirectory discover gcm =
      do hns  <- lsHubs [ hk | hk<-[minBound..maxBound], hk/=GlbHK ]
         hubs <- mapM discover $ map Just hns
         dirs <- concat `fmap` mapM importLibraryDirs hubs
@@ -289,15 +289,15 @@ gcDefaultDirectory discover gcm =
       --putStrLn $ printf "---hdir---\n%s\n----------\n\n" $ show hdir
       --putStrLn $ printf "---dirs---\n%s\n----------\n\n" $ show dirs
         case gcm of
-          DebugGCM   -> hPutStrLn stderr $ printf "GC: %s" $ unwords $ map show $ Map.keys g_hnds 
+          DebugGCM   -> hPutStrLn stderr $ printf "GC: %s" $ unwords $ map show $ Map.keys g_hnds
           VerboseGCM -> hPutStrLn stderr $ printf "GC: %d nodes collected" $ Map.size g_hnds
           QuietGCM   -> return ()
-        collect hdir $ map show $ Map.keys g_hnds 
+        collect hdir $ map show $ Map.keys g_hnds
 
 
 
 --
--- GC Helpers 
+-- GC Helpers
 --
 
 collect :: FilePath -> [FilePath] -> IO ()
@@ -307,17 +307,17 @@ collect dir sdirs = mapM_ clct sdirs
                   True  -> stash
                   False -> trash
 
-        stash sdir = 
+        stash sdir =
              do hme <- home
                 createDirectoryIfMissing False $ garbage hme
                 mvFileDir (dir</>sdir) (garbage hme</>sdir)
-                
+
         trash sdir = removeR (dir</>sdir)
 
-dirs2heap_node_set :: FilePath -> [FilePath] -> Map.Map Int () 
+dirs2heap_node_set :: FilePath -> [FilePath] -> Map.Map Int ()
 dirs2heap_node_set hdir dirs =
             Map.fromList [ (nd,()) | Just nd<-map (dir2heap_node hdir) dirs ]
-        
+
 dir2heap_node :: FilePath -> FilePath -> Maybe Int
 dir2heap_node hdir dir =
         case hdir `isPrefixOf` dir of
@@ -336,7 +336,7 @@ readMB str =
 
 
 --
--- Directory Structure 
+-- Directory Structure
 --
 -- (see also 'defaultDirectoryPath', 'allocateDefaultDirectory' and
 -- gcDefaultDirectory above)
@@ -377,7 +377,7 @@ ls_glb_hubs = (sort . chk) `fmap` getDirectoryContents globalHubDir
         chk fps = [ hn | fp<-fps, Just hn<-[fp2hn fp], isHubName hn==Just GlbHK ]
 
 ls_usr_hubs :: IO [HubName]
-ls_usr_hubs = 
+ls_usr_hubs =
      do dp <- fst `fmap` user_hub_dirs
         (sort . chk) `fmap` getDirectoryContents dp
       where
@@ -395,20 +395,20 @@ pkg_init hub fp =
 
 
 user_hub_paths :: HubName -> IO (FilePath,FilePath,FilePath)
-user_hub_paths hn = 
+user_hub_paths hn =
      do (hub,lib) <- user_hub_dirs
         let h_l = lib </> hn
         return (hub </> hn2fp hn, h_l, h_l </> package_config)
 
 user_hub_dirs :: IO (FilePath,FilePath)
-user_hub_dirs = 
+user_hub_dirs =
      do hme <- home
         let hub = printf "%s/.hubrc/hub" hme
             lib = printf "%s/.hubrc/lib" hme
         return (hub,lib)
 
 hub_user_lib :: Hub -> IO FilePath
-hub_user_lib hub = 
+hub_user_lib hub =
      do hme <- home
         db  <- hub_user_db hub
         case match (db_re hme) db of
@@ -417,7 +417,7 @@ hub_user_lib hub =
           _     -> oops PrgO "hub has non-standard user-database path"
 
 hub_user_db :: Hub -> IO FilePath
-hub_user_db hub = 
+hub_user_db hub =
         case usr_dbHUB hub of
           Nothing -> oops PrgO "no user DB speceified for this hub"
           Just db -> return db
@@ -436,7 +436,7 @@ swap_files fp fp' = swap_files'' fp fp' $ oops PrgO
 swap_files'' :: FilePath -> FilePath -> (String->IO ()) -> IO ()
 swap_files'' fp fp' h = catchIO (sw_files fp fp') $ \_ -> h err
       where
-        err = printf "Failed to swap %s and %s (permissions?)" fp fp' 
+        err = printf "Failed to swap %s and %s (permissions?)" fp fp'
 
 sw_files :: FilePath -> FilePath -> IO ()
 sw_files fp_1 fp_2 =
@@ -450,7 +450,7 @@ mk_tmp i fp =
      do yup <- fileDirExists fp'
         case yup of
           True  -> mk_tmp (i+1) fp
-          False -> return fp' 
+          False -> return fp'
       where
         fp' = printf "%s-%d" fp i
 
@@ -488,4 +488,4 @@ tryIO = E.try
 
 catchIO :: IO a -> (IOError->IO a) -> IO a
 catchIO = E.catch
-        
+

@@ -3,7 +3,7 @@
 --
 -- 'discover' works out the default hub.
 --
--- (c) 2011-2012 Chris Dornan 
+-- (c) 2011-2012 Chris Dornan
 
 
 module Hub.Discover
@@ -29,14 +29,14 @@ discover (Just hn) | hn=="^"   = discover Nothing
 
 
 read_hub :: (HubSource,HubName) -> IO Hub
-read_hub (hs,hn) = 
+read_hub (hs,hn) =
      do hk <- checkHubName [minBound..maxBound] hn
         hubExists hn
         hf <-  case isHubName hn==Just GlbHK  of
                  True  -> return $ globalHubPath hn
                  False -> userHubPath hn
         dy <- defaultDirectoryPath
-        parse hs dy hn hf hk 
+        parse hs dy hn hf hk
 
 which_hub :: IO (HubSource,HubName)
 which_hub =
@@ -55,13 +55,13 @@ env_which_hub str =
           _           -> return $ (EvHS,trim str)
 
 dir_which_hub :: IO (HubSource,HubName)
-dir_which_hub = 
+dir_which_hub =
      do ds <- (reverse.splitDirectories) `fmap` getCurrentDirectory
         w_h ds
       where
         w_h []     = (,) DsHS `fmap` defaultGlobalHubName
         w_h (d:ds) = catchIO (here (d:ds)) (\_ -> w_h ds)
-        
+
         here r_ds  = ((,) DrHS . trim) `fmap`
                             readAFile (joinPath $ reverse $ ".hub":r_ds)
 
