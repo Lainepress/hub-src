@@ -1,6 +1,6 @@
 OD = dist/build/hub
 ID = /usr/hs/bin
-HC = mkdir -p $(OD); ghc -cpp -XHaskell2010 --make -outputdir build -Wall
+HC = mkdir -p $(OD); ghc -XHaskell2010 --make -outputdir build -Wall
 VR = $(shell runghc Version)
 CM = "for building Hub ($(VR))" 
 OP = '\nNo hub on path: ensure hub-src.har or hub.cabal packages are installed\n\n' 
