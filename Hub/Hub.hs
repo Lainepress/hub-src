@@ -32,6 +32,7 @@ import           Text.Printf
 import           System.Exit
 import           System.FilePath
 import           System.Environment
+import           System.Directory
 import           Hub.FilePaths
 import           Hub.System
 import           Hub.Directory.Allocate
@@ -164,7 +165,7 @@ prog_name hub prog =
 hub_env :: Mode -> Hub -> String -> IO [(String,String)]
 hub_env mde hub pth0 = 
      do mb_udb <- case mb_usr of
-                    Nothing  -> hpGlbPdb2dfUsrPdb glb
+                    Nothing  -> prep_hp_user_pdb hub glb
                     Just uhb -> return $ Just $ usr_dbUHB uhb
         let mk_gpt udb = case mde of
                            UserMDE -> udb
@@ -185,7 +186,20 @@ hub_env mde hub pth0 =
         mb_usr    = usr___HUB hub
         glb       = glb_dbHUB hub
 
-
+prep_hp_user_pdb :: Hub -> FilePath -> IO (Maybe FilePath)
+prep_hp_user_pdb hub glb =
+     do mb <- hpGlbPdb2dfUsrPdb glb
+        case mb of
+          Nothing  -> return Nothing
+          Just udb ->
+             do ok <- doesDirectoryExist udb
+                case ok of
+                  True  -> return ()
+                  False -> const () `fmap` exec ee exe ["init",udb]
+                return mb
+      where
+        ee  = EE InheritRS InheritRS []
+        exe = hc_binHUB hub </> "ghc-pkg"
 
 
 --
