@@ -11,6 +11,29 @@ module Hub.FilePaths where
 import           Text.Printf
 import           Text.Regex
 import           Data.Maybe
+import           Hub.System
+
+
+-- Work out the corresponding default user package database from a standard
+-- (Hub) path to Haskell Platform package database; if the path is not
+-- recognized as such then return Nothing.
+
+hpGlbPdb2dfUsrPdb :: FilePath -> IO (Maybe String)
+hpGlbPdb2dfUsrPdb glb = 
+     do (sys,mac) <- systemMachine
+        mb_hme    <- homeDir
+        return $
+             do hme <- mb_hme
+                hpv <- match (mk_re hpDbREs) glb
+                case hpv of
+                  "2009.2.0.2" -> return $ mk hme mac sys "6.10.4" ""
+                  "2010.2.0.0" -> return $ mk hme mac sys "6.12.3" ".d"
+                  "2011.2.0.1" -> return $ mk hme mac sys "7.0.3"  ".d"
+                  "2011.4.0.0" -> return $ mk hme mac sys "7.0.4"  ".d"
+                  "2012.2.0.0" -> return $ mk hme mac sys "7.4.1"  ".d"
+                  _            -> Nothing
+      where
+        mk = printf "%s/.ghc/%s-%s-%s/package.conf%s" 
 
 
 hubLib, sysVersion, distroDefaultHubPath, sysDefaultHubPath,

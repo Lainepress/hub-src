@@ -40,7 +40,6 @@ import qualified Data.Map               as Map
 import           System.IO
 import           System.FilePath
 import           System.Directory
-import           System.Environment
 import           Text.Printf
 import           Text.Regex
 import           Hub.FilePaths
@@ -468,12 +467,12 @@ not_global hub = when (kind__HUB hub==GlbHK) $
 
 
 --
--- Get HOME Environment Variable
+-- Get HOME Directory
 --
 
 
 home :: IO FilePath
-home = catchIO (getEnv "HOME") $ \_ -> return "/"
+home = maybe "/" id `fmap` homeDir
 
 
 

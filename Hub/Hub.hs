@@ -118,7 +118,8 @@ execProg o ee0 mde hub prog args0 =
           _                 -> return ()
         (exe,args,tdy) <- mk_prog hub prog args0
         pth0 <- getEnv "PATH"
-        let ee = ee0 { extendEnvtEE = hub_env mde hub pth0 ++ extendEnvtEE ee0 }
+        ebds <- hub_env mde hub pth0
+        let ee = ee0 { extendEnvtEE = ebds ++ extendEnvtEE ee0 }
         ec   <- exec ee exe args
         case tdy of
           Nothing -> return ()
@@ -129,7 +130,7 @@ execProg o ee0 mde hub prog args0 =
 
 
 --
--- Executing Programmes
+-- Executing Programs
 --
 
 mk_prog :: Hub -> Prog -> [String] -> IO (FilePath,[String],Maybe FilePath)
@@ -160,29 +161,31 @@ prog_name hub prog =
           (CabalP,Just ci_vrn) -> nmePROG prog ++ "-" ++ ci_vrn
           _                    -> nmePROG prog
 
-hub_env :: Mode -> Hub -> String -> [(String,String)]
-hub_env mde hub pth0 = concat
-        [ [ (,) "HUB"               hnm          ]
-        , [ (,) "PATH"              pth | is_usr ]
-        , [ (,) "GHC_PACKAGE_PATH"  ppt | is_usr ]
-        ]
+hub_env :: Mode -> Hub -> String -> IO [(String,String)]
+hub_env mde hub pth0 = 
+     do mb_udb <- case mb_usr of
+                    Nothing  -> hpGlbPdb2dfUsrPdb glb
+                    Just uhb -> return $ Just $ usr_dbUHB uhb
+        let mk_gpt udb = case mde of
+                           UserMDE -> udb
+                           FullMDE -> printf "%s:%s" udb glb
+            mb_gpt     = fmap mk_gpt mb_udb
+        return $ concat
+            [ [ (,) "HUB"               hnm                        ]
+            , [ (,) "PATH"              pth | is_usr               ]
+            , [ (,) "GHC_PACKAGE_PATH"  gpt | Just gpt <- [mb_gpt] ]
+            ]
       where
-        is_usr     = hk /= GlbHK
+        is_usr    = hk /= GlbHK
 
-        pth        = printf "%s:%s:%s" hubGccBin hubBinutilsBin pth0
+        pth       = printf "%s:%s:%s" hubGccBin hubBinutilsBin pth0
 
-        ppt        = case mb_usr of
-                       Nothing  -> glb
-                       Just uhb -> case mde of
-                                     UserMDE -> udb
-                                     FullMDE -> printf "%s:%s" udb glb
-                            where
-                              udb = usr_dbUHB uhb
+        hnm       = name__HUB hub
+        hk        = kind__HUB hub
+        mb_usr    = usr___HUB hub
+        glb       = glb_dbHUB hub
 
-        hnm        = name__HUB hub
-        hk         = kind__HUB hub
-        mb_usr     = usr___HUB hub
-        glb        = glb_dbHUB hub
+
 
 
 --

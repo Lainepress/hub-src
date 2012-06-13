@@ -1,7 +1,7 @@
 --
 -- >>> Hub.System <<<
 --
--- This module contains all of the O/S-specific utilities. it should currently
+-- This module contains all of the O/S-specific utilities. It should currently
 -- work for Posix systems. Getting a Windows hub port should be a matter of
 -- porting this module.
 --
@@ -9,7 +9,9 @@
 
 
 module Hub.System
-    ( tmpFile
+    ( systemMachine
+    , homeDir
+    , tmpFile
     , setEnv
     , fileExists
     , fileDirExists
@@ -33,6 +35,7 @@ import           System.Exit
 import           Control.Monad
 import qualified Control.Exception      as E
 import           System.Directory
+import           System.Posix.Unistd
 import           System.Posix.Env
 import           System.Posix.Files
 import           System.Posix.Process
@@ -41,6 +44,7 @@ import           Text.Printf
 import qualified Data.ByteString.UTF8   as U
 import qualified Data.ByteString        as B
 import qualified Data.Map               as Map
+import           Data.Char
 import           System.Process
 import           Hub.Oops
 
@@ -48,6 +52,14 @@ import           Hub.Oops
 dev_null :: FilePath
 dev_null = "/dev/null"
 
+
+systemMachine :: IO (String,String)
+systemMachine = f `fmap` getSystemID
+      where
+        f si = (map toLower $ systemName si, machine si) 
+
+homeDir :: IO (Maybe FilePath)
+homeDir = getEnv "HOME"
 
 tmpFile :: FilePath -> IO FilePath
 tmpFile fn =
