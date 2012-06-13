@@ -186,6 +186,10 @@ hub_env mde hub pth0 =
         mb_usr    = usr___HUB hub
         glb       = glb_dbHUB hub
 
+-- if the default user package DB is missing we create
+-- it might be better to just omit it from the GHC_PACKAGE_PATH
+-- which would be more consitent with GHC's default behaviour
+
 prep_hp_user_pdb :: Hub -> FilePath -> IO (Maybe FilePath)
 prep_hp_user_pdb hub glb =
      do mb <- hpGlbPdb2dfUsrPdb glb
@@ -194,9 +198,8 @@ prep_hp_user_pdb hub glb =
           Just udb ->
              do ok <- doesDirectoryExist udb
                 case ok of
-                  True  -> return ()
-                  False -> const () `fmap` exec ee exe ["init",udb]
-                return mb
+                  True  -> return mb
+                  False -> const mb `fmap` exec ee exe ["init",udb]
       where
         ee  = EE InheritRS InheritRS []
         exe = hc_binHUB hub </> "ghc-pkg"
